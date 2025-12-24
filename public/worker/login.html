@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="App Sagliano - Accesso operatore e admin">
+    <meta name="keywords" content="App Sagliano, carburante, rifornimenti">
+    <meta name="author" content="App Sagliano">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="images/logo/favicon.svg" type="image/x-icon">
+    <title>App Sagliano - Accesso</title>
+
+    <link rel="apple-touch-icon" href="images/logo/favicon.svg">
+    <meta name="title-color" content="#1F1F1F">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="App Sagliano">
+    <meta name="msapplication-TileImage" content="images/logo/favicon.svg">
+
+    <meta name="msapplication-TileColor" content="#FFFFFF">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!--Google font-->
+    <link rel="stylesheet" type="text/css" href="css/GTWalsheimPro.css">
+
+    <!-- iconsax css -->
+    <link rel="stylesheet" type="text/css" href="css/vendors/iconsax.css">
+
+    <!-- bootstrap css -->
+    <link rel="stylesheet" id="rtl-link" type="text/css" href="css/vendors/bootstrap.css">
+
+    <!-- Theme css -->
+    <link rel="stylesheet" id="change-link" type="text/css" href="css/style.css">
+</head>
+
+<body>
+    <!-- header starts -->
+    <header id="header" class="auth-header">
+        <div class="custom-container">
+            <div class="header-panel  pb-0">
+                <img class="img-fluid mx-auto logo user-logo" src="images/logo/user/user-logo.svg" alt="logo">
+                <img class="img-fluid mx-auto logo-dark user-logo" src="images/logo/user/user-logo-dark.png" alt="logo">
+            </div>
+        </div>
+    </header>
+    <!-- header end -->
+
+    <!-- login page start -->
+    <div class="auth-bg-image-box">
+        <div class="auth-bg-image"></div>
+        <div class="auth-content-bg auth-content-bg-bottom">
+            <div class="custom-container white-background pb-2">
+                <div class="auth-title mt-0">
+                    <div class="loader-line"></div>
+                    <h6>Accedi ad App Sagliano</h6>
+                    <p class="content-color mb-0">Gestisci rifornimenti, ricevute e camion in digitale.</p>
+                </div>
+
+                <form class="auth-form mt-0" id="login-form" novalidate>
+                    <div class="alert alert-danger d-none" role="alert" id="login-alert"></div>
+                    <div class="form-group">
+                        <label class="form-label mb-2" for="Inputfullname">Nome e cognome</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="Inputfullname" name="full_name" autocomplete="name" placeholder="Inserisci nome e cognome" required>
+                            <i class="iconsax icon" data-icon="user-2"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label mb-2" for="Inputpassword">Password</label>
+                        <div class="position-relative">
+                            <input type="password" class="form-control" id="Inputpassword" name="password" autocomplete="current-password" placeholder="Inserisci la password" required>
+                            <i class="iconsax icon" data-icon="lock-2"></i>
+                        </div>
+                        <div class="show-hide toggler">
+                            <i class="iconsax eye-icon icon-eye" data-icon="eye"></i>
+                            <i class="iconsax eye-icon icon-eye-splash" data-icon="eye-slash"></i>
+                        </div>
+                    </div>
+                    <div class="flex-spacing">
+                        <div class="form-group mt-0">
+                            <div class="form-check">
+                                <input class="form-check-input m-0" type="checkbox" id="flexCheckDefault">
+                                <label class="form-check-label remember mb-0 fw-normal title-color" for="flexCheckDefault" style="color: #1F1F1F!important;">
+                                    Ricordami</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn theme-btn w-100 auth-btn mt-3" id="login-submit">Accedi</button>
+                    <h6 class="content-color fw-normal my-3 text-center">Nuovo operatore?
+<a href="signup.html" class="title-color fw-medium" style="
+                            color: #1F1F1F !important;
+                        ">Registrati</a>
+                    </h6>
+                </form>
+            </div>
+        </div>               
+    </div>
+    <!-- login page end -->
+
+    <!-- iconsax js -->
+    <script src="js/iconsax.js"></script>
+
+    <!-- password hide/show js -->
+    <script src="js/password-show.js"></script>
+
+    <!-- sticky-header js -->
+    <script src="js/sticky-header.js"></script>
+
+    <!-- bootstrap js -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <!-- template-setting js -->
+    <script src="js/template-setting.js"></script>
+
+    <!-- script js -->
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+
+</html>

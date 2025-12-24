@@ -1,0 +1,24 @@
+{
+  "name": "App Sagliano",
+  "short_name": "Sagliano",
+  "lang": "it-IT",
+  "start_url": "/worker/home.html",
+  "scope": "/worker/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#199675",
+  "description": "Gestione rifornimenti e ricevute per operatori",
+  "icons": [
+    {
+      "src": "images/logo/favicon.svg",
+      "sizes": "40x40",
+      "type": "image/png"
+    },
+    {
+      "src": "images/logo/user/144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

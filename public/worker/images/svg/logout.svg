@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Livello_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24">
+  <!-- Generator: Adobe Illustrator 29.8.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 2)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.5px;
+      }
+    </style>
+  </defs>
+  <path class="st0" d="M8.85.97H2.55c-.87,0-1.58.71-1.58,1.58v18.91c0,.87.71,1.58,1.58,1.58h6.3"/>
+  <path class="st0" d="M16.73,18.3l6.3-6.3-6.3-6.3"/>
+  <path class="st0" d="M23.03,12H7.27"/>
+</svg>
