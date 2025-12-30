@@ -441,6 +441,13 @@
                     return `<option value="${v.id}">${label}</option>`;
                 }).join('');
                 vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + vehicleOptions;
+
+                // Ripristina l'ultimo veicolo selezionato
+                const lastVehicle = getLastVehicle();
+                if (lastVehicle) {
+                    vehicleSelect.value = lastVehicle;
+                }
+
                 vehicleSelect.onchange = () => {
                     updateKmStartFromSelection();
                     updateVehicleEfficiencyFromSelection();
