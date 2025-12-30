@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
-                    <link rel="manifest" href="/admin-manifest.json?v=3">
+                    <link rel="manifest" href="/admin-manifest.json?v=4">
                     <meta name="theme-color" content="#ffffff">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                 HTML
