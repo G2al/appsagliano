@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -80,55 +80,54 @@ class Movement extends Model
     }
 
     /**
-        * Invia una notifica Telegram quando viene creato un movimento.
-        * Usa ENV: TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID.
-        */
+     * Invia una notifica Telegram quando viene creato un rifornimento.
+     */
     public function notifyTelegram(): void
     {
         $token = env('TELEGRAM_BOT_TOKEN');
         $chatId = env('TELEGRAM_CHAT_ID');
 
         if (! $token || ! $chatId) {
-            return; // configurazione mancante, non invio
+            return;
         }
 
         $lines = [];
-        $lines[] = "🧾 <b>Nuovo movimento</b>";
-        $lines[] = "👤 <b>Autore:</b> " . ($this->user?->full_name ?? $this->user?->name ?? 'N/D');
+        $lines[] = '⛽ <b>Nuovo rifornimento</b>';
+        $lines[] = '👤 <b>Autore:</b> ' . ($this->user?->full_name ?? $this->user?->name ?? 'N/D');
 
         if ($this->updated_by && $this->updated_by !== $this->user_id) {
-            $lines[] = "🛠 <b>Modificato da:</b> " . ($this->updatedBy?->name ?? 'Admin');
+            $lines[] = '🔧 <b>Modificato da:</b> ' . ($this->updatedBy?->name ?? 'Admin');
         }
 
-        $lines[] = "⛽ <b>Stazione:</b> " . ($this->station?->name ?? 'N/D');
-        $lines[] = "🚚 <b>Veicolo:</b> " . ($this->vehicle?->plate ?? $this->vehicle?->name ?? 'N/D');
+        $lines[] = '🏪 <b>Stazione:</b> ' . ($this->station?->name ?? 'N/D');
+        $lines[] = '🚚 <b>Veicolo:</b> ' . ($this->vehicle?->plate ?? $this->vehicle?->name ?? 'N/D');
 
         if ($this->date) {
-            $lines[] = "📅 <b>Data:</b> " . $this->date->format('d/m/Y H:i');
+            $lines[] = '📅 <b>Data:</b> ' . $this->date->format('d/m/Y H:i');
         }
 
         if ($this->km_start !== null || $this->km_end !== null) {
-            $lines[] = "🛣️ <b>Km:</b> " . ($this->km_start ?? '—') . " → " . ($this->km_end ?? '—');
+            $lines[] = '🛣️ <b>Km:</b> ' . ($this->km_start ?? 'N/D') . ' → ' . ($this->km_end ?? 'N/D');
         }
 
         if ($this->liters !== null) {
-            $lines[] = "💧 <b>Litri:</b> " . number_format((float) $this->liters, 2, ',', '.');
+            $lines[] = '⛽ <b>Litri:</b> ' . number_format((float) $this->liters, 2, ',', '.');
         }
 
         if ($this->price !== null) {
-            $lines[] = "💶 <b>Prezzo:</b> " . number_format((float) $this->price, 2, ',', '.') . " €";
+            $lines[] = '💶 <b>Prezzo:</b> ' . number_format((float) $this->price, 2, ',', '.') . ' €';
         }
 
         if ($this->adblue !== null) {
-            $lines[] = "🧴 <b>AdBlue:</b> " . number_format((float) $this->adblue, 2, ',', '.') . " L";
+            $lines[] = '💧 <b>AdBlue:</b> ' . number_format((float) $this->adblue, 2, ',', '.') . ' L';
         }
 
         if ($this->notes) {
-            $lines[] = "📝 <b>Note:</b> {$this->notes}";
+            $lines[] = '📝 <b>Note:</b> ' . $this->notes;
         }
 
         if ($this->photo_url) {
-            $lines[] = "📎 <a href=\"{$this->photo_url}\">Ricevuta</a>";
+            $lines[] = '📎 <a href="' . $this->photo_url . '">Ricevuta</a>';
         }
 
         $text = implode("\n", $lines);
