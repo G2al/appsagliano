@@ -122,6 +122,18 @@ class Movement extends Model
             $lines[] = '💧 <b>AdBlue:</b> ' . number_format((float) $this->adblue, 2, ',', '.') . ' L';
         }
 
+        $ticketAvg = $this->km_per_liter;
+        if ($ticketAvg === null && $this->km_start !== null && $this->km_end !== null && $this->liters) {
+            $distance = (float) $this->km_end - (float) $this->km_start;
+            $liters = (float) $this->liters;
+            if ($distance >= 0 && $liters > 0) {
+                $ticketAvg = $distance / $liters;
+            }
+        }
+        if ($ticketAvg !== null && $ticketAvg >= 0) {
+            $lines[] = '📊 <b>Media ticket:</b> ' . number_format((float) $ticketAvg, 2, ',', '.') . ' km/L';
+        }
+
         if ($this->notes) {
             $lines[] = '📝 <b>Note:</b> ' . $this->notes;
         }
