@@ -10,6 +10,18 @@
   "description": "Gestione rifornimenti e ricevute per operatori",
   "icons": [
     {
+      "src": "images/logo/user/logo-pwa-utenti-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/logo/user/logo-pwa-utenti-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "images/logo/user/logo-pwa-utenti.svg",
       "sizes": "any",
       "type": "image/svg+xml",
