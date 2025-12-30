@@ -10,10 +10,10 @@
   "description": "Gestione rifornimenti e ricevute per operatori",
   "icons": [
     {
-      "src": "images/logo/user/user-logo.svg",
+      "src": "images/logo/user/logo-pwa-utenti.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "images/logo/user/144.png",
@@ -22,7 +22,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "images/logo/user/user-logo.svg",
+      "src": "images/logo/user/logo-pwa-utenti.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

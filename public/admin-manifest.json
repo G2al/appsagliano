@@ -10,7 +10,7 @@
   "description": "Pannello amministrazione App Sagliano",
   "icons": [
     {
-      "src": "/worker/images/logo/user/user-logo.svg",
+      "src": "/worker/images/logo/user/logo-pwa-admin.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
@@ -22,7 +22,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/worker/images/logo/user/user-logo.svg",
+      "src": "/worker/images/logo/user/logo-pwa-admin.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
