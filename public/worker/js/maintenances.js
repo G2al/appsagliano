@@ -224,7 +224,6 @@
             vehiclesById = new Map(vehicles.map((v) => [String(v.id), v]));
             const supplierSelect = document.getElementById('supplier-select');
             const vehicleSelect = document.getElementById('vehicle-select');
-            const lastVehicleId = getLastVehicle();
 
             if (supplierSelect) {
                 supplierSelect.innerHTML = `<option value="">Seleziona</option>` +
@@ -237,7 +236,6 @@
                     return `<option value="${v.id}">${label}</option>`;
                 }).join('');
                 vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + vehicleOptions;
-                if (lastVehicleId) vehicleSelect.value = lastVehicleId;
                 updateKmCurrent();
                 vehicleSelect.addEventListener('change', () => {
                     updateKmCurrent();
@@ -258,6 +256,26 @@
         if (vehicle) {
             kmInput.value = vehicle.maintenance_km ?? '';
         }
+        updateMaintenanceSteps();
+    };
+
+    const updateMaintenanceSteps = () => {
+        const form = document.getElementById('maintenance-form');
+        if (!form) return;
+        const hasValue = (field) => field && field.value !== null && field.value !== '';
+
+        let stage = 1;
+        if (hasValue(form.supplier_id)) stage = 2;
+        if (hasValue(form.vehicle_id)) stage = 3;
+        if (hasValue(form.km)) stage = 4;
+        if (hasValue(form.invoice_number)) stage = 5;
+        if (hasValue(form.price)) stage = 6;
+        if (hasValue(form.notes) || ((form.attachment?.files || []).length > 0)) stage = 6;
+
+        form.querySelectorAll('.maintenance-step').forEach((el) => {
+            const step = Number(el.dataset.maintenanceStep || '1');
+            el.classList.toggle('d-none', stage < step);
+        });
     };
 
     const setDefaultDate = () => {
@@ -350,6 +368,7 @@
                 vehiclesById.set(selectedVehicle, { ...existing, maintenance_km: kmValue });
             }
             updateKmCurrent();
+            updateMaintenanceSteps();
             const modal = bootstrap.Modal.getInstance(document.getElementById('maintenanceModal'));
             modal?.hide();
             await loadMaintenances();
@@ -370,11 +389,29 @@
 
         document.getElementById('maintenance-submit')?.addEventListener('click', submitMaintenance);
         document.getElementById('maintenanceModal')?.addEventListener('show.bs.modal', () => {
+            const form = document.getElementById('maintenance-form');
+            const alertBox = document.getElementById('maintenance-alert');
+            if (form) {
+                form.reset();
+            }
+            if (alertBox) {
+                alertBox.classList.add('d-none');
+                alertBox.textContent = '';
+            }
             setDefaultDate();
             loadOptions();
+            updateMaintenanceSteps();
+        });
+
+        ['supplier_id', 'vehicle_id', 'km', 'invoice_number', 'price', 'notes', 'attachment'].forEach((name) => {
+            const input = document.querySelector(`#maintenance-form [name=\"${name}\"]`);
+            if (!input) return;
+            const evt = input.type === 'file' ? 'change' : 'input';
+            input.addEventListener(evt, updateMaintenanceSteps);
         });
 
         loadOptions().then(setDefaultDate);
         loadMaintenances();
+        updateMaintenanceSteps();
     });
 })();

@@ -177,52 +177,52 @@
                     <div class="alert alert-danger d-none" role="alert" id="movement-alert"></div>
                     <form id="movement-form">
                         <div class="row g-3">
-                            <div class="col-12">
+                            <div class="col-12 movement-step" data-movement-step="1">
                                 <label class="form-label mb-1">Data</label>
                                 <input type="datetime-local" class="form-control" name="date" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 movement-step" data-movement-step="1">
                                 <label class="form-label mb-1">Stazione</label>
                                 <select class="form-select" name="station_id" id="station-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
                                 <div id="station-credit" class="mt-2 d-none"></div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 movement-step d-none" data-movement-step="2">
                                 <label class="form-label mb-1">Veicolo</label>
                                 <select class="form-select" name="vehicle_id" id="vehicle-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
                                 <div id="vehicle-efficiency" class="mt-2 d-none"></div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 movement-step d-none" data-movement-step="3">
                                 <label class="form-label mb-1">Km iniziali</label>
                                 <input type="number" class="form-control" name="km_start" min="0" step="1" required readonly>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 movement-step d-none" data-movement-step="4">
                                 <label class="form-label mb-1">Km finali</label>
                                 <input type="number" class="form-control" name="km_end" min="0" step="1" required>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 movement-step d-none" data-movement-step="5">
                                 <label class="form-label mb-1">Litri</label>
                                 <input type="number" class="form-control" name="liters" min="0" step="0.01" required>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 movement-step d-none" data-movement-step="6">
                                 <label class="form-label mb-1">Prezzo (€)</label>
                                 <input type="number" class="form-control" name="price" min="0" step="0.01" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 movement-step d-none" data-movement-step="6">
                                 <div id="ticket-efficiency" class="mt-2 d-none"></div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 movement-step d-none" data-movement-step="7">
                                 <label class="form-label mb-1">AdBlue</label>
                                 <input type="number" class="form-control" name="adblue" min="0" step="0.01">
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 movement-step d-none" data-movement-step="7">
                                 <label class="form-label mb-1">Note</label>
                                 <textarea class="form-control" name="notes" rows="2" placeholder="Note (opzionale)"></textarea>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 movement-step d-none" data-movement-step="7">
                                 <label class="form-label mb-1">Foto ricevuta</label>
                                 <input type="file" class="form-control" name="photo" accept="image/*" required>
                             </div>

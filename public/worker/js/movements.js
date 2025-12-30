@@ -312,6 +312,7 @@
                 kmEndInput.min = vehicle.current_km;
             }
         }
+        updateMovementSteps();
     };
 
     const updateVehicleEfficiencyFromSelection = () => {
@@ -320,6 +321,28 @@
         // Mostra solo la media del ticket corrente: nascondiamo la media storica del veicolo per non confondere.
         box.innerHTML = '';
         box.classList.add('d-none');
+    };
+
+    const updateMovementSteps = () => {
+        const form = document.getElementById('movement-form');
+        if (!form) return;
+        const hasValue = (field) => field && field.value !== null && field.value !== '';
+
+        let stage = 1;
+        if (hasValue(form.station_id)) stage = 2;
+        if (hasValue(form.vehicle_id)) stage = 3;
+        if (hasValue(form.km_start)) stage = 4;
+        if (hasValue(form.km_end)) stage = 5;
+        if (hasValue(form.liters)) stage = 6;
+        if (hasValue(form.price)) stage = 7;
+        if (hasValue(form.adblue) || hasValue(form.notes) || ((form.photo?.files || []).length > 0)) {
+            stage = 7;
+        }
+
+        form.querySelectorAll('.movement-step').forEach((el) => {
+            const step = Number(el.dataset.movementStep || '1');
+            el.classList.toggle('d-none', stage < step);
+        });
     };
 
     const updateTicketEfficiencyFromForm = () => {
@@ -398,7 +421,6 @@
 
             const stationSelect = document.getElementById('station-select');
             const vehicleSelect = document.getElementById('vehicle-select');
-            const lastVehicleId = getLastVehicle();
 
             if (stationSelect) {
                 const stationOptions = stations.map((s) => {
@@ -406,7 +428,10 @@
                 }).join('');
 
                 stationSelect.innerHTML = `<option value="">Seleziona</option>` + stationOptions;
-                stationSelect.onchange = () => updateStationCreditFromSelection();
+                stationSelect.onchange = () => {
+                    updateStationCreditFromSelection();
+                    updateMovementSteps();
+                };
                 updateStationCreditFromSelection();
             }
 
@@ -415,15 +440,12 @@
                     const label = [v.plate, v.name].filter(Boolean).join(' - ') || 'Senza nome';
                     return `<option value="${v.id}">${label}</option>`;
                 }).join('');
-                vehicleSelect.innerHTML = `<option value="">Seleziona</option>` +
-                    vehicleOptions;
-                if (lastVehicleId) {
-                    vehicleSelect.value = lastVehicleId;
-                }
+                vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + vehicleOptions;
                 vehicleSelect.onchange = () => {
                     updateKmStartFromSelection();
                     updateVehicleEfficiencyFromSelection();
                     updateTicketEfficiencyFromForm();
+                    updateMovementSteps();
                     if (vehicleSelect.value) {
                         setLastVehicle(vehicleSelect.value);
                     }
@@ -431,6 +453,7 @@
                 updateKmStartFromSelection();
                 updateVehicleEfficiencyFromSelection();
                 updateTicketEfficiencyFromForm();
+                updateMovementSteps();
                 if (isAdmin) {
                     vehiclesCache = vehicles;
                     renderVehicleTabs();
@@ -556,6 +579,7 @@
             updateVehicleEfficiencyFromSelection();
             updateTicketEfficiencyFromForm();
             updateStationCreditFromSelection();
+            updateMovementSteps();
             await loadMovements();
         } catch (error) {
             if (alertBox) {
@@ -581,6 +605,19 @@
 
         document.getElementById('movementModal')?.addEventListener('show.bs.modal', loadOptions);
         document.getElementById('movementModal')?.addEventListener('show.bs.modal', () => {
+            const form = document.getElementById('movement-form');
+            const alertBox = document.getElementById('movement-alert');
+            if (form) {
+                form.reset();
+                updateStationCreditFromSelection();
+                updateVehicleEfficiencyFromSelection();
+                updateTicketEfficiencyFromForm();
+            }
+            if (alertBox) {
+                alertBox.classList.add('d-none');
+                alertBox.textContent = '';
+                delete alertBox.dataset.clientError;
+            }
             const dateInput = document.querySelector('#movement-form [name="date"]');
             if (dateInput && !dateInput.value) {
                 const now = new Date();
@@ -588,6 +625,7 @@
                 const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
                 dateInput.value = formatted;
             }
+            updateMovementSteps();
         });
         const movementModal = document.getElementById('movementModal');
         if (movementModal) {
@@ -611,15 +649,28 @@
             });
         });
 
-        ['km_start', 'km_end', 'liters'].forEach((name) => {
+        ['km_start', 'km_end', 'liters', 'price', 'adblue', 'notes'].forEach((name) => {
             const input = document.querySelector(`#movement-form [name="${name}"]`);
             if (!input) return;
             input.addEventListener('input', () => updateTicketEfficiencyFromForm());
             input.addEventListener('blur', () => updateTicketEfficiencyFromForm());
+            input.addEventListener('input', updateMovementSteps);
         });
+        const photoInput = document.querySelector('#movement-form [name="photo"]');
+        photoInput?.addEventListener('change', updateMovementSteps);
+
+        const stationSelect = document.querySelector('#movement-form [name="station_id"]');
+        stationSelect?.addEventListener('change', updateMovementSteps);
+        const vehicleSelectDom = document.querySelector('#movement-form [name="vehicle_id"]');
+        vehicleSelectDom?.addEventListener('change', updateMovementSteps);
+        const litersInput = document.querySelector('#movement-form [name="liters"]');
+        litersInput?.addEventListener('input', updateMovementSteps);
+        const kmEndInput = document.querySelector('#movement-form [name="km_end"]');
+        kmEndInput?.addEventListener('input', updateMovementSteps);
 
         // Precarica opzioni veicoli per le tab e carica movimenti subito
         loadOptions();
         loadMovements();
+        updateMovementSteps();
     });
 })();

@@ -1,11 +1,93 @@
+const CACHE_NAME = 'sagliano-worker-v1';
+const ASSETS = [
+  '/worker/',
+  '/worker/home.html',
+  '/worker/maintenance.html',
+  '/worker/login.html',
+  '/worker/signup.html',
+  '/worker/css/style.css',
+  '/worker/css/GTWalsheimPro.css',
+  '/worker/css/vendors/bootstrap.css',
+  '/worker/css/vendors/iconsax.css',
+  '/worker/js/movements.js',
+  '/worker/js/maintenances.js',
+  '/worker/js/auth.js',
+  '/worker/js/script.js',
+  '/worker/js/template-setting.js',
+  '/worker/js/sticky-header.js',
+  '/worker/js/bootstrap.bundle.min.js',
+  '/worker/js/iconsax.js',
+  '/worker/fonts/GTWalsheimPro-Regular.woff2',
+  '/worker/images/logo/user/user-logo.svg',
+  '/worker/images/logo/user/144.png',
+];
+
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  clients.claim();
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('sagliano-worker-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', () => {
-  // Passthrough: no caching for now.
+const isAssetRequest = (request) =>
+  request.destination === 'style' ||
+  request.destination === 'script' ||
+  request.destination === 'image' ||
+  request.url.endsWith('.woff2');
+
+const isHtmlNavigate = (request) =>
+  request.mode === 'navigate' || (request.destination === '' && request.headers.get('accept')?.includes('text/html'));
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  if (request.method !== 'GET') return;
+
+  // Navigation: network first, fallback cache, then offline shell.
+  if (isHtmlNavigate(request)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match('/worker/home.html'))
+        )
+    );
+    return;
+  }
+
+  // Assets: cache first, then network.
+  if (isAssetRequest(request)) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+            return response;
+          })
+      )
+    );
+    return;
+  }
+
+  // Other GET (e.g., API): network first, fallback cache if present.
+  event.respondWith(
+    fetch(request).catch(() => caches.match(request))
+  );
 });

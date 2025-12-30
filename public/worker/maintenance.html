@@ -132,39 +132,39 @@
                     <div class="alert alert-danger d-none" role="alert" id="maintenance-alert"></div>
                     <form id="maintenance-form">
                         <div class="row g-3">
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step" data-maintenance-step="1">
                                 <label class="form-label mb-1">Data</label>
                                 <input type="datetime-local" class="form-control" name="date" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step" data-maintenance-step="1">
                                 <label class="form-label mb-1">Fornitore</label>
                                 <select class="form-select" name="supplier_id" id="supplier-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="2">
                                 <label class="form-label mb-1">Veicolo</label>
                                 <select class="form-select" name="vehicle_id" id="vehicle-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="3">
                                 <label class="form-label mb-1">Km manutenzione</label>
                                 <input type="number" class="form-control" name="km" min="0" step="1" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="4">
                                 <label class="form-label mb-1">Numero bolla</label>
                                 <input type="text" class="form-control" name="invoice_number" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="5">
                                 <label class="form-label mb-1">Prezzo (€)</label>
                                 <input type="number" class="form-control" name="price" min="0" step="0.01" required>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="6">
                                 <label class="form-label mb-1">Dettagli intervento</label>
-                                <textarea class="form-control" name="notes" rows="2" placeholder="Cosa è stato fatto" required></textarea>
+                                <textarea class="form-control" name="notes" rows="2" placeholder="Cosa ? stato fatto" required></textarea>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 maintenance-step d-none" data-maintenance-step="6">
                                 <label class="form-label mb-1">Allegato</label>
                                 <input type="file" class="form-control" name="attachment" accept="image/*,.pdf" required>
                             </div>

@@ -7,8 +7,9 @@ use App\Http\Controllers\MaintenanceReceiptController;
 use App\Http\Controllers\MaintenanceAttachmentPrintController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/worker/login.html');
 });
+
 
 Route::get('/admin/movements/{movement}/receipt', MovementReceiptController::class)
     ->middleware('auth')
