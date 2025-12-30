@@ -11,9 +11,9 @@
   "icons": [
     {
       "src": "/worker/images/logo/user/logo-pwa-admin.svg",
-      "sizes": "192x192",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/worker/images/logo/user/144.png",
@@ -23,7 +23,7 @@
     },
     {
       "src": "/worker/images/logo/user/logo-pwa-admin.svg",
-      "sizes": "512x512",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
