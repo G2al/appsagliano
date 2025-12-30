@@ -44,13 +44,24 @@ class MovementResource extends Resource
                             ->required(),
                         Forms\Components\Select::make('station_id')
                             ->label('Stazione')
-                            ->relationship('station', 'name')
+                            ->options(fn () => Station::query()
+                                ->orderBy('name')
+                                ->get()
+                                ->mapWithKeys(fn ($s) => [$s->id => ($s->name ?: 'Senza nome')])
+                                ->toArray())
                             ->searchable()
                             ->preload()
                             ->required(),
                         Forms\Components\Select::make('vehicle_id')
                             ->label('Veicolo')
-                            ->relationship('vehicle', 'name')
+                            ->options(fn () => \App\Models\Vehicle::query()
+                                ->orderBy('plate')
+                                ->get()
+                                ->mapWithKeys(function ($v) {
+                                    $label = trim(($v->plate ? $v->plate . ' - ' : '') . ($v->name ?: 'Senza nome'));
+                                    return [$v->id => $label];
+                                })
+                                ->toArray())
                             ->searchable()
                             ->preload()
                             ->required(),
