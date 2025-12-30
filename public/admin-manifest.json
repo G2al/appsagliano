@@ -1,28 +1,28 @@
 {
-  "name": "App Sagliano",
-  "short_name": "Sagliano",
+  "name": "App Sagliano - Admin",
+  "short_name": "Sagliano Admin",
   "lang": "it-IT",
-  "start_url": "/worker/home.html",
-  "scope": "/worker/",
+  "start_url": "/admin",
+  "scope": "/admin/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "description": "Gestione rifornimenti e ricevute per operatori",
+  "description": "Pannello amministrazione App Sagliano",
   "icons": [
     {
-      "src": "images/logo/user/user-logo.svg",
+      "src": "/worker/images/logo/user/user-logo.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "images/logo/user/144.png",
+      "src": "/worker/images/logo/user/144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "images/logo/user/user-logo.svg",
+      "src": "/worker/images/logo/user/user-logo.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

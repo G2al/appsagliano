@@ -29,6 +29,26 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->renderHook(
+                'panels::head.start',
+                fn (): string => <<<'HTML'
+                    <link rel="manifest" href="/admin-manifest.json">
+                    <meta name="theme-color" content="#ffffff">
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+                HTML
+            )
+            ->renderHook(
+                'panels::body.end',
+                fn (): string => <<<'HTML'
+                    <script>
+                        if ('serviceWorker' in navigator) {
+                            window.addEventListener('load', () => {
+                                navigator.serviceWorker.register('/admin-sw.js').catch(() => {});
+                            });
+                        }
+                    </script>
+                HTML
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
