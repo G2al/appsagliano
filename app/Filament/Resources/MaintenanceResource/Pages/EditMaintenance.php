@@ -16,4 +16,11 @@ class EditMaintenance extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['km_after'] = $data['km_current'] ?? null;
+
+        return $data;
+    }
 }

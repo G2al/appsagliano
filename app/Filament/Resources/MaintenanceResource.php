@@ -79,11 +79,7 @@ class MaintenanceResource extends Resource
                             ->visibility('public')
                             ->required(),
                     ]),
-            ])
-            ->mutateFormDataUsing(function (array $data) {
-                $data['km_after'] = $data['km_current'];
-                return $data;
-            });
+            ]);
     }
 
     public static function table(Table $table): Table
