@@ -91,7 +91,8 @@
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            const message = data?.message || Object.values(data?.errors || {})?.[0]?.[0];
+            const firstError = Object.values(data?.errors || {})?.[0];
+            const message = (Array.isArray(firstError) ? firstError[0] : firstError) || data?.message;
             throw new Error(message || 'Errore di comunicazione.');
         }
 
