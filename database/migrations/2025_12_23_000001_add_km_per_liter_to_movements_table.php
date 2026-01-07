@@ -9,19 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('movements', function (Blueprint $table) {
-            $expression = 'CASE
-                WHEN km_end IS NOT NULL
-                    AND km_start IS NOT NULL
-                    AND km_end >= km_start
-                    AND liters IS NOT NULL
-                    AND liters > 0
-                THEN ROUND((km_end - km_start) / liters, 2)
-                ELSE NULL
-            END';
-
             $table
                 ->decimal('km_per_liter', 10, 2)
-                ->storedAs($expression)
                 ->nullable()
                 ->after('liters');
         });
@@ -34,4 +23,3 @@ return new class extends Migration
         });
     }
 };
-

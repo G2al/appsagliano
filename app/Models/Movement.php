@@ -45,6 +45,21 @@ class Movement extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (self $movement) {
+            $kmStart = $movement->km_start;
+            $kmEnd = $movement->km_end;
+            $liters = $movement->liters;
+
+            $movement->km_per_liter = null;
+            if ($kmStart !== null && $kmEnd !== null && $liters !== null) {
+                $distance = (float) $kmEnd - (float) $kmStart;
+                $litersValue = (float) $liters;
+                if ($distance >= 0 && $litersValue > 0) {
+                    $movement->km_per_liter = round($distance / $litersValue, 2);
+                }
+            }
+        });
+
         static::created(function (self $movement) {
             $movement->notifyTelegram();
         });
