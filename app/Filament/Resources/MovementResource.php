@@ -109,6 +109,7 @@ class MovementResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Autore')
+                    ->formatStateUsing(fn ($record) => $record->user ? trim($record->user->name . ' ' . $record->user->surname) : 'N/D')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('station.name')
