@@ -158,12 +158,51 @@
         const alertBox = document.getElementById('register-alert');
         const submit = document.getElementById('register-submit');
 
+        // Aggiungi validazione in tempo reale
+        const passwordInput = form.password;
+        const passwordConfirmInput = form.password_confirmation;
+
+        const validatePassword = () => {
+            if (passwordInput.value.length > 0 && passwordInput.value.length < 5) {
+                passwordInput.setCustomValidity('La password deve contenere almeno 5 caratteri.');
+            } else {
+                passwordInput.setCustomValidity('');
+            }
+        };
+
+        const validatePasswordConfirm = () => {
+            if (passwordConfirmInput.value !== passwordInput.value) {
+                passwordConfirmInput.setCustomValidity('Le password non coincidono.');
+            } else {
+                passwordConfirmInput.setCustomValidity('');
+            }
+        };
+
+        passwordInput.addEventListener('input', validatePassword);
+        passwordConfirmInput.addEventListener('input', validatePasswordConfirm);
+
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             hideAlert(alertBox);
 
+            // Ricontrolla validazione
+            validatePassword();
+            validatePasswordConfirm();
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            if (form.password.value.length < 5) {
+                showAlert(alertBox, 'La password deve contenere almeno 5 caratteri.');
+                alertBox.classList.add('alert-danger');
+                return;
+            }
+
             if (form.password.value !== form.password_confirmation.value) {
                 showAlert(alertBox, 'Le password non coincidono.');
+                alertBox.classList.add('alert-danger');
                 return;
             }
 

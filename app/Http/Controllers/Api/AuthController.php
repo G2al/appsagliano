@@ -20,10 +20,11 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('users', 'name')->where('surname', $request->input('surname'))],
             'surname' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:5', 'confirmed'],
         ], [
             'name.unique' => 'Esiste già un utente con questo nome e cognome.',
             'phone.unique' => 'Il numero di telefono è già registrato.',
+            'password.min' => 'La password deve contenere almeno 5 caratteri.',
         ]);
 
         $normalizedPhone = $this->normalizePhone($validated['phone']);
