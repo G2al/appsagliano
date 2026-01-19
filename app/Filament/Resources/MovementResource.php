@@ -116,7 +116,7 @@ class MovementResource extends Resource
                     ->label('Stazione')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('vehicle.name')
+                Tables\Columns\TextColumn::make('vehicle.plate')
                     ->label('Veicolo')
                     ->sortable()
                     ->searchable(),
