@@ -289,7 +289,7 @@
 
     const loadMovements = async () => {
         showSkeleton();
-        const data = await api('/movements');
+        const data = await api('/movements?per_page=all');
         movementsCache = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
         if (!isAdmin) {
             vehiclesCache = deriveVehiclesFromMovements();

@@ -22,6 +22,23 @@ class MovementController extends Controller
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest();
 
+        if ($request->filled('vehicle_id')) {
+            $query->where('vehicle_id', $request->query('vehicle_id'));
+        }
+
+        $perPage = $request->query('per_page');
+
+        if ($perPage === 'all') {
+            return response()->json($query->get());
+        }
+
+        if ($perPage !== null) {
+            $perPageValue = (int) $perPage;
+            if ($perPageValue > 0) {
+                return response()->json($query->paginate($perPageValue));
+            }
+        }
+
         return response()->json($query->paginate(20));
     }
 
