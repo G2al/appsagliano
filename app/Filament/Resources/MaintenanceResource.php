@@ -11,9 +11,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use ZipArchive;
 
 class MaintenanceResource extends Resource
 {
@@ -143,44 +140,16 @@ class MaintenanceResource extends Resource
                 Tables\Actions\BulkAction::make('download_bolle')
                     ->label('Scarica bolle')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function (Collection $records): StreamedResponse {
-                        $zipFileName = 'bolle_' . now()->format('Y-m-d_H-i-s') . '.zip';
-                        $tempPath = storage_path('app/temp/' . $zipFileName);
+                    ->action(function (Collection $records) {
+                        $ids = $records->pluck('id')->toArray();
 
-                        if (!is_dir(storage_path('app/temp'))) {
-                            mkdir(storage_path('app/temp'), 0755, true);
+                        if (empty($ids)) {
+                            return;
                         }
 
-                        $zip = new ZipArchive();
-                        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+                        $token = base64_encode(json_encode($ids));
 
-                        foreach ($records as $record) {
-                            if (!$record->attachment_path) {
-                                continue;
-                            }
-
-                            $filePath = Storage::disk('public')->path($record->attachment_path);
-
-                            if (!file_exists($filePath)) {
-                                continue;
-                            }
-
-                            $extension = pathinfo($filePath, PATHINFO_EXTENSION);
-                            $invoiceNumber = $record->invoice_number ?: 'senza_bolla_' . $record->id;
-                            $invoiceNumber = preg_replace('/[^a-zA-Z0-9_-]/', '_', $invoiceNumber);
-                            $fileName = 'bolla_' . $invoiceNumber . '.' . $extension;
-
-                            $zip->addFile($filePath, $fileName);
-                        }
-
-                        $zip->close();
-
-                        return response()->streamDownload(function () use ($tempPath) {
-                            readfile($tempPath);
-                            @unlink($tempPath);
-                        }, $zipFileName, [
-                            'Content-Type' => 'application/zip',
-                        ]);
+                        return redirect()->route('maintenances.download-bolle', ['token' => $token]);
                     })
                     ->deselectRecordsAfterCompletion(),
             ]);
