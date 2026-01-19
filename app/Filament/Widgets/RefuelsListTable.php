@@ -7,14 +7,16 @@ use App\Models\Station;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Filament\Tables;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 class RefuelsListTable extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Movimenti rifornimento';
-    public array $filters = [];
 
     protected function getTableQuery(): Builder
     {

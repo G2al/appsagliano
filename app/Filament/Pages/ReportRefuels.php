@@ -28,11 +28,13 @@ class ReportRefuels extends Page
                 DatePicker::make('start_date')
                     ->label('Dal')
                     ->default(now()->startOfMonth())
-                    ->required(),
+                    ->required()
+                    ->live(),
                 DatePicker::make('end_date')
                     ->label('Al')
                     ->default(now())
-                    ->required(),
+                    ->required()
+                    ->live(),
             ]);
     }
 

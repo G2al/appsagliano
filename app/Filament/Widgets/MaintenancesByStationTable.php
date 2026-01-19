@@ -33,8 +33,7 @@ class MaintenancesByStationTable extends BaseWidget
             ")
             ->join('stations', 'stations.id', '=', 'maintenances.station_id')
             ->whereBetween('maintenances.date', [$start, $end])
-            ->groupBy('stations.id', 'stations.name')
-            ->orderByDesc('price_total');
+            ->groupBy('stations.id', 'stations.name');
     }
 
     protected function getTableColumns(): array

@@ -32,8 +32,7 @@ class MaintenancesVehicleSummaryTable extends BaseWidget
             ')
             ->join('vehicles', 'vehicles.id', '=', 'maintenances.vehicle_id')
             ->whereBetween('maintenances.date', [$start, $end])
-            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name')
-            ->orderByDesc('price_total');
+            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name');
     }
 
     protected function getTableColumns(): array

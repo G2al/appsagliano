@@ -7,11 +7,13 @@ use App\Models\Supplier;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Filament\Tables;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 class MaintenancesListTable extends BaseWidget
 {
+    use InteractsWithPageFilters;
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Movimenti manutenzione';
 
@@ -84,14 +86,12 @@ class MaintenancesListTable extends BaseWidget
 
     private function getDateRange(): array
     {
-        $filters = $this->tableFilters ?? [];
-        $dateFilter = $filters['date_range'] ?? [];
-        if (is_array($dateFilter) && array_key_exists('value', $dateFilter)) {
-            $dateFilter = $dateFilter['value'] ?? [];
-        }
+        $filters = $this->filters ?? [];
+        $startRaw = $filters['start_date'] ?? null;
+        $endRaw = $filters['end_date'] ?? null;
 
-        $start = Carbon::parse($dateFilter['start'] ?? now()->startOfMonth())->startOfDay();
-        $end = Carbon::parse($dateFilter['end'] ?? now())->endOfDay();
+        $start = Carbon::parse($startRaw ?: now()->startOfMonth())->startOfDay();
+        $end = Carbon::parse($endRaw ?: now())->endOfDay();
 
         return [$start, $end];
     }

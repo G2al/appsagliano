@@ -2,6 +2,11 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\MaintenancesStats;
+use App\Filament\Widgets\MaintenancesBySupplierTable;
+use App\Filament\Widgets\MaintenancesByVehicleTable;
+use App\Filament\Widgets\MaintenancesByVehicleSupplierTable;
+use App\Filament\Widgets\MaintenancesListTable;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
@@ -15,7 +20,7 @@ class ReportMaintenances extends Page
     protected static ?string $navigationLabel = 'Report manutenzioni';
     protected static ?string $navigationGroup = 'Report';
     protected static string $view = 'filament.pages.report-maintenances';
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     public function filtersForm(Form $form): Form
     {
@@ -24,11 +29,13 @@ class ReportMaintenances extends Page
                 DatePicker::make('start_date')
                     ->label('Dal')
                     ->default(now()->startOfMonth())
-                    ->required(),
+                    ->required()
+                    ->live(),
                 DatePicker::make('end_date')
                     ->label('Al')
                     ->default(now())
-                    ->required(),
+                    ->required()
+                    ->live(),
             ]);
     }
 
@@ -39,10 +46,20 @@ class ReportMaintenances extends Page
         ];
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            MaintenancesStats::class,
+            MaintenancesByVehicleSupplierTable::class,
+            MaintenancesBySupplierTable::class,
+            MaintenancesByVehicleTable::class,
+        ];
+    }
+
     protected function getFooterWidgets(): array
     {
         return [
-            \App\Filament\Widgets\MaintenancesListTable::class,
+            MaintenancesListTable::class,
         ];
     }
 }

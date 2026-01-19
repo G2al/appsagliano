@@ -5,12 +5,15 @@ namespace App\Filament\Widgets;
 use App\Models\Maintenance;
 use Carbon\Carbon;
 use Filament\Tables;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class MaintenancesByVehicleSupplierTable extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Spesa per veicolo / fornitore';
 
@@ -32,8 +35,7 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
             ->join('vehicles', 'vehicles.id', '=', 'maintenances.vehicle_id')
             ->join('suppliers', 'suppliers.id', '=', 'maintenances.supplier_id')
             ->whereBetween('maintenances.date', [$start, $end])
-            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name', 'suppliers.id', 'suppliers.name')
-            ->orderByDesc('price_total');
+            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name', 'suppliers.id', 'suppliers.name');
 
         if ($vehicleIdFilter) {
             $query->where('maintenances.vehicle_id', $vehicleIdFilter);
@@ -145,26 +147,18 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
      */
     private function resolveFilters(): array
     {
-        $filters = $this->tableFilters ?? [];
-        $dateFilter = $filters['date_range'] ?? [];
-        if (is_array($dateFilter) && array_key_exists('value', $dateFilter)) {
-            $dateFilter = $dateFilter['value'] ?? [];
-        }
+        $filters = $this->filters ?? [];
+        $startRaw = $filters['start_date'] ?? null;
+        $endRaw = $filters['end_date'] ?? null;
 
-        $start = Carbon::parse($dateFilter['start'] ?? now()->startOfMonth())->startOfDay();
-        $end = Carbon::parse($dateFilter['end'] ?? now())->endOfDay();
-
-        $vehicleFilter = $filters['vehicle_id'] ?? null;
-        $vehicleId = is_array($vehicleFilter) ? ($vehicleFilter['value'] ?? null) : $vehicleFilter;
-
-        $supplierFilter = $filters['supplier_id'] ?? null;
-        $supplierId = is_array($supplierFilter) ? ($supplierFilter['value'] ?? null) : $supplierFilter;
+        $start = Carbon::parse($startRaw ?: now()->startOfMonth())->startOfDay();
+        $end = Carbon::parse($endRaw ?: now())->endOfDay();
 
         return [
             $start,
             $end,
-            $vehicleId ? (int) $vehicleId : null,
-            $supplierId ? (int) $supplierId : null,
+            null,
+            null,
         ];
     }
 }

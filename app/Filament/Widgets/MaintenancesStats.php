@@ -4,11 +4,13 @@ namespace App\Filament\Widgets;
 
 use App\Models\Maintenance;
 use Carbon\Carbon;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class MaintenancesStats extends StatsOverviewWidget
 {
+    use InteractsWithPageFilters;
     protected function getStats(): array
     {
         [$start, $end, $vehicleId, $supplierId] = $this->resolveFilters();
@@ -50,26 +52,18 @@ class MaintenancesStats extends StatsOverviewWidget
      */
     private function resolveFilters(): array
     {
-        $filters = $this->tableFilters ?? [];
-        $dateFilter = $filters['date_range'] ?? [];
-        if (is_array($dateFilter) && array_key_exists('value', $dateFilter)) {
-            $dateFilter = $dateFilter['value'] ?? [];
-        }
+        $filters = $this->filters ?? [];
+        $startRaw = $filters['start_date'] ?? null;
+        $endRaw = $filters['end_date'] ?? null;
 
-        $start = Carbon::parse($dateFilter['start'] ?? now()->startOfMonth())->startOfDay();
-        $end = Carbon::parse($dateFilter['end'] ?? now())->endOfDay();
-
-        $vehicleFilter = $filters['vehicle_id'] ?? null;
-        $vehicleId = is_array($vehicleFilter) ? ($vehicleFilter['value'] ?? null) : $vehicleFilter;
-
-        $supplierFilter = $filters['supplier_id'] ?? null;
-        $supplierId = is_array($supplierFilter) ? ($supplierFilter['value'] ?? null) : $supplierFilter;
+        $start = Carbon::parse($startRaw ?: now()->startOfMonth())->startOfDay();
+        $end = Carbon::parse($endRaw ?: now())->endOfDay();
 
         return [
             $start,
             $end,
-            $vehicleId ? (int) $vehicleId : null,
-            $supplierId ? (int) $supplierId : null,
+            null,
+            null,
         ];
     }
 }

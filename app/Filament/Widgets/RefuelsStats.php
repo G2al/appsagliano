@@ -4,11 +4,13 @@ namespace App\Filament\Widgets;
 
 use App\Models\Movement;
 use Carbon\Carbon;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class RefuelsStats extends StatsOverviewWidget
 {
+    use InteractsWithPageFilters;
     protected function getStats(): array
     {
         [$start, $end] = $this->resolveDateRange();

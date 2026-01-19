@@ -22,6 +22,7 @@ class MaintenanceReportResource extends Resource
     protected static ?string $navigationLabel = 'Report manutenzioni';
     protected static ?string $navigationGroup = 'Report';
     protected static ?string $slug = 'maintenance-reports';
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

@@ -5,15 +5,17 @@ namespace App\Filament\Widgets;
 use App\Models\Movement;
 use Carbon\Carbon;
 use Filament\Tables;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class RefuelsByVehicleStationTable extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Spesa per veicolo / stazione';
-    public array $filters = [];
 
     protected function getTableQuery(): Builder
     {
@@ -34,8 +36,7 @@ class RefuelsByVehicleStationTable extends BaseWidget
             ->join('vehicles', 'vehicles.id', '=', 'movements.vehicle_id')
             ->join('stations', 'stations.id', '=', 'movements.station_id')
             ->whereBetween('movements.date', [$start, $end])
-            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name', 'stations.id', 'stations.name')
-            ->orderByDesc('price_total');
+            ->groupBy('vehicles.id', 'vehicles.plate', 'vehicles.name', 'stations.id', 'stations.name');
     }
 
     protected function getTableColumns(): array
