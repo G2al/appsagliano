@@ -143,10 +143,6 @@ class MovementResource extends Resource
                     ->label('Prezzo')
                     ->money('EUR', true)
                     ->sortable(),
-                Tables\Columns\ImageColumn::make('photo_url')
-                    ->label('Ricevuta')
-                    ->square()
-                    ->height(40),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creato il')
                     ->dateTime('d/m/Y H:i')

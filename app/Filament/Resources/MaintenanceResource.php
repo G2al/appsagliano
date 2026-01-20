@@ -114,10 +114,6 @@ class MaintenanceResource extends Resource
                     ->label('Prezzo')
                     ->money('EUR', true)
                     ->sortable(),
-                Tables\Columns\ImageColumn::make('attachment_url')
-                    ->label('Allegato')
-                    ->square()
-                    ->height(40),
             ])
             ->actions([
                 Tables\Actions\Action::make('receipt')
