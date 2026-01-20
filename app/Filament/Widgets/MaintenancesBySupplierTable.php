@@ -48,7 +48,7 @@ class MaintenancesBySupplierTable extends BaseWidget
         return [
             Tables\Columns\TextColumn::make('name')
                 ->label('Fornitore')
-                ->searchable(),
+                ->searchable(['suppliers.name']),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa')
                 ->money('EUR', true)

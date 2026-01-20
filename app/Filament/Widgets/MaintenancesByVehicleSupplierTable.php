@@ -53,10 +53,10 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->vehicle_name ?? '')))
-                ->searchable(['plate', 'vehicle_name']),
+                ->searchable(['vehicles.plate', 'vehicles.name']),
             Tables\Columns\TextColumn::make('supplier_name')
                 ->label('Fornitore')
-                ->searchable(),
+                ->searchable(['suppliers.name']),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa')
                 ->money('EUR', true)

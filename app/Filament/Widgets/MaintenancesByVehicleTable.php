@@ -50,7 +50,7 @@ class MaintenancesByVehicleTable extends BaseWidget
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')))
-                ->searchable(['plate', 'name']),
+                ->searchable(['vehicles.plate', 'vehicles.name']),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa')
                 ->money('EUR', true)

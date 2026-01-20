@@ -42,7 +42,7 @@ class RefuelsByVehicleTable extends BaseWidget
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')))
-                ->searchable(['plate', 'name']),
+                ->searchable(['vehicles.plate', 'vehicles.name']),
             Tables\Columns\TextColumn::make('liters_total')
                 ->label('Litri')
                 ->numeric(2, locale: 'it')

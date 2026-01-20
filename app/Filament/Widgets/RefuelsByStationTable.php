@@ -40,7 +40,7 @@ class RefuelsByStationTable extends BaseWidget
         return [
             Tables\Columns\TextColumn::make('name')
                 ->label('Stazione')
-                ->searchable(),
+                ->searchable(['stations.name']),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa')
                 ->money('EUR', true)

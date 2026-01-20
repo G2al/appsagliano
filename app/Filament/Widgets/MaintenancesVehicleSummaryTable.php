@@ -41,7 +41,7 @@ class MaintenancesVehicleSummaryTable extends BaseWidget
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($state ? $state . ' - ' : '') . ($record->name ?? 'Veicolo')))
-                ->searchable()
+                ->searchable(['vehicles.plate', 'vehicles.name'])
                 ->sortable(),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa totale')
@@ -68,4 +68,3 @@ class MaintenancesVehicleSummaryTable extends BaseWidget
         return [$start, $end];
     }
 }
-
