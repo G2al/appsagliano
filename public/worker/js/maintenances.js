@@ -202,7 +202,7 @@
 
     const loadMaintenances = async () => {
         showSkeleton();
-        const data = await api('/maintenances');
+        const data = await api('/maintenances?per_page=all');
         maintenancesCache = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
         if (!isAdmin) {
             renderVehicleTabs(deriveVehiclesFromMaintenances());
