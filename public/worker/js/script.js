@@ -21,10 +21,29 @@ const isStandalonePwa = () =>
 
 window.addEventListener("load", () => {
     const refreshBtn = document.getElementById("pwa-refresh-btn");
+    const versionLabel = document.getElementById("pwa-version-label");
     if (!refreshBtn) return;
     if (!isStandalonePwa()) return;
 
     refreshBtn.classList.remove("d-none");
+    if (versionLabel) {
+        let versionText = "Versione app";
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+            try {
+                const manifestUrl = new URL(manifestLink.getAttribute("href"), window.location.href);
+                const manifestVersion = manifestUrl.searchParams.get("v");
+                if (manifestVersion) {
+                    versionText = `Versione app: v${manifestVersion}`;
+                }
+            } catch (err) {
+                /* ignore invalid manifest url */
+            }
+        }
+        versionLabel.textContent = versionText;
+        versionLabel.classList.remove("d-none");
+    }
+
     refreshBtn.addEventListener("click", async () => {
         refreshBtn.disabled = true;
         refreshBtn.textContent = "Aggiornamento...";
