@@ -3,11 +3,53 @@
  ==========================*/
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-        navigator.serviceWorker.register("sw.js").catch(() => {
-            /* ignore if sw not available */
-        });
+        navigator.serviceWorker
+            .register("sw.js")
+            .then((registration) => registration.update().catch(() => {}))
+            .catch(() => {
+                /* ignore if sw not available */
+            });
     });
 }
+
+/*====================
+ PWA refresh button (login only)
+=======================*/
+const isStandalonePwa = () =>
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+    window.navigator.standalone === true;
+
+window.addEventListener("load", () => {
+    const refreshBtn = document.getElementById("pwa-refresh-btn");
+    if (!refreshBtn) return;
+    if (!isStandalonePwa()) return;
+
+    refreshBtn.classList.remove("d-none");
+    refreshBtn.addEventListener("click", async () => {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Aggiornamento...";
+
+        try {
+            if ("serviceWorker" in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.update().catch(() => {});
+                }
+            }
+
+            if ("caches" in window) {
+                const keys = await caches.keys();
+                await Promise.all(
+                    keys
+                        .filter((key) => key.startsWith("sagliano-worker-"))
+                        .map((key) => caches.delete(key))
+                );
+            }
+        } finally {
+            window.location.reload();
+        }
+    });
+});
 
 /*====================
  Ratio js

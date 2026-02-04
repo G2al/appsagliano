@@ -54,10 +54,12 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET') return;
 
-  // Navigation: network first, fallback cache, then offline shell.
+  const fetchFresh = () => fetch(request, { cache: 'no-store' });
+
+  // Navigation: network first (always fresh), fallback cache, then offline shell.
   if (isHtmlNavigate(request)) {
     event.respondWith(
-      fetch(request)
+      fetchFresh()
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
@@ -70,24 +72,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets: cache first, then network.
+  // Assets: network first (always fresh), fallback cache.
   if (isAssetRequest(request)) {
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((response) => {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-            return response;
-          })
-      )
+      fetchFresh()
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
 
   // Other GET (e.g., API): network first, fallback cache if present.
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetchFresh().catch(() => caches.match(request))
   );
 });
