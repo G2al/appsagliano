@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\DB;
 
 class MovementResource extends Resource
@@ -82,6 +83,11 @@ class MovementResource extends Resource
                             ->label('Prezzo')
                             ->numeric()
                             ->step('0.01')
+                            ->helperText(new HtmlString('<span class="text-xs text-gray-500">Info: il prezzo deve essere maggiore dei litri.</span>'))
+                            ->rule('gt:liters')
+                            ->validationMessages([
+                                'gt' => 'Il prezzo deve essere maggiore dei litri.',
+                            ])
                             ->required(),
                         Forms\Components\TextInput::make('adblue')
                             ->label('AdBlue')

@@ -530,6 +530,15 @@
             return;
         }
 
+        const litersRaw = form.elements['liters']?.value ?? '';
+        const priceRaw = form.elements['price']?.value ?? '';
+        const litersValue = Number(String(litersRaw).trim().replace(',', '.'));
+        const priceValue = Number(String(priceRaw).trim().replace(',', '.'));
+        if (Number.isFinite(litersValue) && Number.isFinite(priceValue) && priceValue <= litersValue) {
+            focusAndError(form.elements['price'], 'Il prezzo deve essere maggiore dei litri.');
+            return;
+        }
+
         if (!form.photo?.files?.length) {
             focusAndError(form.photo, 'È obbligatorio caricare la foto della ricevuta.');
             return;
