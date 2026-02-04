@@ -6,10 +6,12 @@ use App\Filament\Resources\MovementResource\Pages;
 use App\Models\Movement;
 use App\Models\Station;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
@@ -84,10 +86,35 @@ class MovementResource extends Resource
                             ->numeric()
                             ->step('0.01')
                             ->helperText(new HtmlString('<span class="text-xs text-gray-500">Info: il prezzo deve essere maggiore dei litri.</span>'))
-                            ->rule('gt:liters')
-                            ->validationMessages([
-                                'gt' => 'Il prezzo deve essere maggiore dei litri.',
-                            ])
+                            ->rule(function (Get $get): Closure {
+                                return function (string $attribute, $value, Closure $fail) use ($get) {
+                                    $parseNumber = static function ($raw): ?float {
+                                        if ($raw === null) {
+                                            return null;
+                                        }
+                                        $string = trim((string) $raw);
+                                        if ($string === '') {
+                                            return null;
+                                        }
+                                        $hasComma = str_contains($string, ',');
+                                        $hasDot = str_contains($string, '.');
+                                        if ($hasComma && $hasDot) {
+                                            $string = str_replace('.', '', $string);
+                                            $string = str_replace(',', '.', $string);
+                                        } elseif ($hasComma) {
+                                            $string = str_replace(',', '.', $string);
+                                        }
+                                        return is_numeric($string) ? (float) $string : null;
+                                    };
+
+                                    $liters = $parseNumber($get('liters'));
+                                    $price = $parseNumber($value);
+
+                                    if ($liters !== null && $price !== null && $price <= $liters) {
+                                        $fail('Il prezzo deve essere maggiore dei litri.');
+                                    }
+                                };
+                            })
                             ->required(),
                         Forms\Components\TextInput::make('adblue')
                             ->label('AdBlue')
