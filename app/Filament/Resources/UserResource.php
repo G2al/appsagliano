@@ -113,6 +113,7 @@ class UserResource extends Resource
                     ->falseLabel('In attesa')
                     ->placeholder('Tutti'),
             ])
+            ->poll('5s')
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->modalHeading('Modifica utente'),

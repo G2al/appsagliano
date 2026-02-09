@@ -135,7 +135,8 @@
             const ticketKmPerLiterBadge = ticketKmPerLiterFormatted
                 ? `<span class="badge ${ticketKmPerLiterBadgeClass}">${ticketKmPerLiterFormatted} km/L</span>`
                 : `<span class="badge bg-secondary">N/D</span>`;
-            const photo = movement?.photo_url || 'images/profile/p6.png';
+            const attachment = movement?.photo_url || '';
+            const photo = attachment || 'images/profile/p6.png';
             const roleLabel = movement?.user?.role === 'admin' ? 'Admin' : 'Operaio';
             const updatedByAdmin = movement?.updated_by && movement?.updated_by !== movement?.user_id;
             const updatedAt = formatDateTime(movement?.updated_at);
@@ -170,10 +171,12 @@
                                 ${adblue ? `<li><i class="iconsax icon" data-icon="drop"></i>${adblue}</li>` : ''}
                             </ul>
                             <div class="flex-align-center pt-2">
-                                <h6 class="content-color fw-normal">Litri: ${liters}</h6>
+                                <h6 class="content-color fw-normal">Litri: ${liters} · Prezzo: ${price}</h6>
                             </div>
                         </div>
-                        <div class="coupon-discount">${price}</div>
+                        ${attachment
+                            ? `<div class="coupon-discount"><a href="${attachment}" target="_blank" rel="noreferrer">Ricevuta</a></div>`
+                            : `<div class="coupon-discount">${price}</div>`}
                     </div>
                 </div>
             `;
