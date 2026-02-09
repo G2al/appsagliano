@@ -48,6 +48,10 @@ class RefuelsListTable extends BaseWidget
                 ->label('Litri')
                 ->numeric(2)
                 ->sortable(),
+            Tables\Columns\TextColumn::make('km_per_liter')
+                ->label('Km/L')
+                ->formatStateUsing(fn ($state) => $state === null ? 'N/D' : number_format((float) $state, 2, ',', '.'))
+                ->sortable(),
             Tables\Columns\TextColumn::make('price')
                 ->label('Prezzo')
                 ->money('EUR', true)

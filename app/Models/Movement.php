@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Vehicle;
 
 class Movement extends Model
 {
@@ -63,6 +64,26 @@ class Movement extends Model
         static::created(function (self $movement) {
             $movement->notifyTelegram();
         });
+
+        static::saved(function (self $movement) {
+            $vehicleId = $movement->vehicle_id;
+            if ($vehicleId) {
+                self::syncVehicleCurrentKm($vehicleId);
+            }
+
+            if ($movement->wasChanged('vehicle_id')) {
+                $originalVehicleId = $movement->getOriginal('vehicle_id');
+                if ($originalVehicleId) {
+                    self::syncVehicleCurrentKm($originalVehicleId);
+                }
+            }
+        });
+
+        static::deleted(function (self $movement) {
+            if ($movement->vehicle_id) {
+                self::syncVehicleCurrentKm($movement->vehicle_id);
+            }
+        });
     }
 
     public function user(): BelongsTo
@@ -92,6 +113,20 @@ class Movement extends Model
         }
 
         return Storage::disk('public')->url($this->photo_path);
+    }
+
+    protected static function syncVehicleCurrentKm(int $vehicleId): void
+    {
+        $latestKm = self::query()
+            ->where('vehicle_id', $vehicleId)
+            ->whereNotNull('km_end')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->value('km_end');
+
+        Vehicle::whereKey($vehicleId)->update([
+            'current_km' => $latestKm,
+        ]);
     }
 
     /**
