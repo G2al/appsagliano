@@ -63,12 +63,12 @@ class MaintenanceResource extends Resource
                         Forms\Components\TextInput::make('km_after')
                             ->label('Prossima manutenzione (km)')
                             ->numeric()
-                            ->minValue(0)
-                            ->default(0)
+                            ->nullable()
+                            ->gt('km_current')
                             ->helperText(function (Get $get): string {
                                 $vehicleId = $get('vehicle_id');
                                 if (! $vehicleId) {
-                                    return '0 = nessun avviso. Ultimi km manutenzione: N/D';
+                                    return 'Lascia vuoto = nessun avviso. Se valorizzato, deve essere maggiore dei km manutenzione.';
                                 }
 
                                 $lastKm = Maintenance::query()
@@ -78,10 +78,10 @@ class MaintenanceResource extends Resource
                                     ->value('km_current');
 
                                 if ($lastKm === null) {
-                                    return '0 = nessun avviso. Ultimi km manutenzione: N/D';
+                                    return 'Lascia vuoto = nessun avviso. Ultimi km manutenzione: N/D';
                                 }
 
-                                return '0 = nessun avviso. Ultimi km manutenzione: ' . number_format((float) $lastKm, 0, ',', '.');
+                                return 'Lascia vuoto = nessun avviso. Ultimi km manutenzione: ' . number_format((float) $lastKm, 0, ',', '.');
                             }),
                         Forms\Components\DatePicker::make('next_maintenance_date')
                             ->label('Prossima manutenzione (data)')

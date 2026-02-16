@@ -21,7 +21,7 @@ class EditMaintenance extends EditRecord
     {
         $data['km_after'] = isset($data['km_after']) && $data['km_after'] !== ''
             ? $data['km_after']
-            : 0;
+            : null;
 
         return $data;
     }

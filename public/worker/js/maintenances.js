@@ -350,6 +350,16 @@
             }
         }
 
+        const kmCurrentValue = Number(normalizeInteger(form.km?.value));
+        const kmAfterInput = form.elements['km_after'];
+        const kmAfterRaw = kmAfterInput?.value;
+        if (kmAfterRaw !== undefined && kmAfterRaw !== null && kmAfterRaw !== '') {
+            const kmAfterValue = Number(normalizeInteger(kmAfterRaw));
+            if (!Number.isFinite(kmAfterValue) || kmAfterValue <= kmCurrentValue) {
+                showError(kmAfterInput, 'Prossima manutenzione (km) deve essere maggiore di Km manutenzione.');
+                return;
+            }
+        }
         if (!form.attachment?.files?.length) {
             showError(form.attachment, 'È obbligatorio caricare l\'allegato.');
             return;
@@ -363,9 +373,9 @@
                 formData.append(field, value);
             }
         });
-        const kmAfterRaw = form.elements['km_after']?.value;
-        if (kmAfterRaw !== undefined && kmAfterRaw !== null && kmAfterRaw !== '') {
-            formData.append('km_after', normalizeInteger(kmAfterRaw));
+        const kmAfterRawToSend = form.elements['km_after']?.value;
+        if (kmAfterRawToSend !== undefined && kmAfterRawToSend !== null && kmAfterRawToSend !== '') {
+            formData.append('km_after', normalizeInteger(kmAfterRawToSend));
         }
         const nextMaintenanceDateRaw = form.elements['next_maintenance_date']?.value;
         if (nextMaintenanceDateRaw) {

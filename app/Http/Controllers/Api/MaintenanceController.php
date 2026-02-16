@@ -52,7 +52,7 @@ class MaintenanceController extends Controller
             'supplier_id' => ['required', Rule::exists('suppliers', 'id')],
             'date' => ['required', 'date'],
             'km' => ['required', 'integer', 'min:0'],
-            'km_after' => ['nullable', 'integer', 'min:0'],
+            'km_after' => ['nullable', 'integer', 'gt:km'],
             'next_maintenance_date' => ['nullable', 'date'],
             'price' => ['required', 'numeric', 'min:0'],
             'invoice_number' => ['required', 'string', 'max:255'],
@@ -64,6 +64,7 @@ class MaintenanceController extends Controller
             'integer' => 'Il campo :attribute deve essere un numero intero.',
             'numeric' => 'Il campo :attribute deve essere un numero.',
             'min.numeric' => 'Il campo :attribute deve essere maggiore o uguale a :min.',
+            'km_after.gt' => 'Prossima manutenzione (km) deve essere maggiore di km manutenzione.',
             'exists' => 'Il campo :attribute non esiste.',
             'string' => 'Il campo :attribute deve essere un testo.',
             'attachment.file' => "L'allegato deve essere un file valido.",
@@ -74,6 +75,7 @@ class MaintenanceController extends Controller
             'supplier_id' => 'fornitore',
             'date' => 'data',
             'km' => 'km manutenzione',
+            'km_after' => 'prossima manutenzione (km)',
             'next_maintenance_date' => 'prossima manutenzione (data)',
             'price' => 'prezzo',
             'invoice_number' => 'numero bolla',
@@ -84,7 +86,7 @@ class MaintenanceController extends Controller
         $kmValue = (int) $validated['km'];
         $kmAfterValue = array_key_exists('km_after', $validated) && $validated['km_after'] !== null
             ? (int) $validated['km_after']
-            : 0;
+            : null;
         $nextMaintenanceDateValue = $validated['next_maintenance_date'] ?? null;
         $attachmentPath = $request->file('attachment')->store('maintenances', 'public');
 
