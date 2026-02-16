@@ -130,7 +130,8 @@ class Movement extends Model
             ->value('km_end');
 
         Vehicle::whereKey($vehicleId)->update([
-            'current_km' => $latestKm,
+            // `vehicles.current_km` is NOT NULL: fallback to 0 when no movements remain.
+            'current_km' => $latestKm ?? 0,
         ]);
     }
 
