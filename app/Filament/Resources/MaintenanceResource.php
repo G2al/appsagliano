@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MaintenanceResource\Pages;
 use App\Models\Maintenance;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -59,6 +60,32 @@ class MaintenanceResource extends Resource
                             ->numeric()
                             ->required()
                             ->helperText('Valore unico usato per le manutenzioni.'),
+                        Forms\Components\TextInput::make('km_after')
+                            ->label('Prossima manutenzione (km)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->helperText(function (Get $get): string {
+                                $vehicleId = $get('vehicle_id');
+                                if (! $vehicleId) {
+                                    return '0 = nessun avviso. Ultimi km manutenzione: N/D';
+                                }
+
+                                $lastKm = Maintenance::query()
+                                    ->where('vehicle_id', $vehicleId)
+                                    ->orderByDesc('date')
+                                    ->orderByDesc('id')
+                                    ->value('km_current');
+
+                                if ($lastKm === null) {
+                                    return '0 = nessun avviso. Ultimi km manutenzione: N/D';
+                                }
+
+                                return '0 = nessun avviso. Ultimi km manutenzione: ' . number_format((float) $lastKm, 0, ',', '.');
+                            }),
+                        Forms\Components\DatePicker::make('next_maintenance_date')
+                            ->label('Prossima manutenzione (data)')
+                            ->helperText('Lascia vuoto per nessun avviso a data.'),
                         Forms\Components\TextInput::make('price')
                             ->label('Prezzo')
                             ->numeric()

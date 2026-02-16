@@ -23,7 +23,7 @@ class RefuelsListTable extends BaseWidget
         [$start, $end] = $this->resolveDateRange();
 
         return Movement::query()
-            ->with(['vehicle', 'station'])
+            ->with(['vehicle', 'station', 'user'])
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -39,6 +39,11 @@ class RefuelsListTable extends BaseWidget
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($state ? $state . ' - ' : '') . ($record->vehicle?->name ?? 'Veicolo')))
                 ->searchable(['vehicles.plate', 'vehicles.name'])
+                ->sortable(),
+            Tables\Columns\TextColumn::make('user.name')
+                ->label('Operatore')
+                ->formatStateUsing(fn ($record) => $record->user ? trim(($record->user->name ?? '') . ' ' . ($record->user->surname ?? '')) : 'N/D')
+                ->searchable(['users.name', 'users.surname'])
                 ->sortable(),
             Tables\Columns\TextColumn::make('station.name')
                 ->label('Stazione')

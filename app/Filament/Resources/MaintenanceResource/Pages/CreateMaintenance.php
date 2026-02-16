@@ -11,7 +11,9 @@ class CreateMaintenance extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['km_after'] = $data['km_current'] ?? null;
+        $data['km_after'] = isset($data['km_after']) && $data['km_after'] !== ''
+            ? $data['km_after']
+            : 0;
 
         return $data;
     }

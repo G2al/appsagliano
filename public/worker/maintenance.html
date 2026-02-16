@@ -148,9 +148,19 @@
                                     <option value="">Seleziona</option>
                                 </select>
                             </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="3">
+                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
                                 <label class="form-label mb-1">Km manutenzione</label>
                                 <input type="number" class="form-control" name="km" min="0" step="1" required>
+                            </div>
+                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
+                                <label class="form-label mb-1">Prossima manutenzione (km)</label>
+                                <input type="number" class="form-control" name="km_after" min="0" step="1" placeholder="0 = nessun avviso">
+                                <small class="text-muted" id="last-maintenance-km">Ultimi km manutenzione: N/D</small>
+                            </div>
+                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
+                                <label class="form-label mb-1">Prossima manutenzione (data)</label>
+                                <input type="date" class="form-control" name="next_maintenance_date">
+                                <small class="text-muted">Vuoto = nessun avviso a data</small>
                             </div>
                             <div class="col-12 maintenance-step d-none" data-maintenance-step="4">
                                 <label class="form-label mb-1">Numero bolla</label>

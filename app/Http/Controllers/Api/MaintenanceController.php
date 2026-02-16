@@ -52,6 +52,8 @@ class MaintenanceController extends Controller
             'supplier_id' => ['required', Rule::exists('suppliers', 'id')],
             'date' => ['required', 'date'],
             'km' => ['required', 'integer', 'min:0'],
+            'km_after' => ['nullable', 'integer', 'min:0'],
+            'next_maintenance_date' => ['nullable', 'date'],
             'price' => ['required', 'numeric', 'min:0'],
             'invoice_number' => ['required', 'string', 'max:255'],
             'notes' => ['required', 'string'],
@@ -72,6 +74,7 @@ class MaintenanceController extends Controller
             'supplier_id' => 'fornitore',
             'date' => 'data',
             'km' => 'km manutenzione',
+            'next_maintenance_date' => 'prossima manutenzione (data)',
             'price' => 'prezzo',
             'invoice_number' => 'numero bolla',
             'notes' => 'dettagli',
@@ -79,12 +82,17 @@ class MaintenanceController extends Controller
         ]);
 
         $kmValue = (int) $validated['km'];
+        $kmAfterValue = array_key_exists('km_after', $validated) && $validated['km_after'] !== null
+            ? (int) $validated['km_after']
+            : 0;
+        $nextMaintenanceDateValue = $validated['next_maintenance_date'] ?? null;
         $attachmentPath = $request->file('attachment')->store('maintenances', 'public');
 
         $maintenance = Maintenance::create([
             ...$validated,
             'km_current' => $kmValue,
-            'km_after' => $kmValue,
+            'km_after' => $kmAfterValue,
+            'next_maintenance_date' => $nextMaintenanceDateValue,
             'attachment_path' => $attachmentPath,
             'user_id' => $user->id,
         ]);

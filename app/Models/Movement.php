@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Vehicle;
+use App\Models\Maintenance;
 
 class Movement extends Model
 {
     use HasFactory;
+
+    private const MAINTENANCE_TOLERANCE_KM = 500;
 
     protected $fillable = [
         'user_id',
@@ -61,14 +64,12 @@ class Movement extends Model
             }
         });
 
-        static::created(function (self $movement) {
-            $movement->notifyTelegram();
-        });
 
         static::saved(function (self $movement) {
             $vehicleId = $movement->vehicle_id;
             if ($vehicleId) {
                 self::syncVehicleCurrentKm($vehicleId);
+                self::notifyUpcomingMaintenanceIfNeeded($vehicleId);
             }
 
             if ($movement->wasChanged('vehicle_id')) {
@@ -127,6 +128,48 @@ class Movement extends Model
         Vehicle::whereKey($vehicleId)->update([
             'current_km' => $latestKm,
         ]);
+    }
+
+    protected static function notifyUpcomingMaintenanceIfNeeded(int $vehicleId): void
+    {
+        $vehicle = Vehicle::query()
+            ->select('id', 'plate', 'name', 'current_km')
+            ->find($vehicleId);
+
+        if (! $vehicle || $vehicle->current_km === null) {
+            return;
+        }
+
+        $maintenance = Maintenance::query()
+            ->where('vehicle_id', $vehicleId)
+            ->whereNull('next_maintenance_alert_sent_at')
+            ->where(function ($query) {
+                $query->where('km_after', '>', 0)
+                    ->orWhereNotNull('next_maintenance_date');
+            })
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $maintenance) {
+            return;
+        }
+
+        $currentKm = (int) $vehicle->current_km;
+        $kmReached = $maintenance->shouldSendMaintenanceAlertForKm($currentKm, self::MAINTENANCE_TOLERANCE_KM);
+        $dateReached = $maintenance->isNextMaintenanceDateReached();
+
+        if (! $kmReached && ! $dateReached) {
+            return;
+        }
+
+        if ($dateReached && ! $kmReached) {
+            $maintenance->notifyUpcomingMaintenanceByDateTelegram($vehicle, $currentKm);
+        } else {
+            $maintenance->notifyUpcomingMaintenanceTelegram($vehicle, $currentKm);
+        }
+
+        $maintenance->markNextMaintenanceAlertAsSent();
     }
 
     /**

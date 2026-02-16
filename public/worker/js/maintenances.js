@@ -215,6 +215,12 @@
         return value.toString().replace(/[^\d]/g, '');
     };
 
+    const formatInteger = (value) => {
+        const normalized = normalizeInteger(value);
+        if (!normalized) return 'N/D';
+        return new Intl.NumberFormat('it-IT').format(Number(normalized));
+    };
+
     const loadOptions = async () => {
         try {
             const [suppliers, vehicles] = await Promise.all([
@@ -252,10 +258,15 @@
     const updateKmCurrent = () => {
         const vehicleSelect = document.getElementById('vehicle-select');
         const kmInput = document.querySelector('#maintenance-form [name="km"]');
+        const lastKmInfo = document.getElementById('last-maintenance-km');
         if (!vehicleSelect || !kmInput) return;
         const vehicle = vehiclesById.get(vehicleSelect.value);
         if (vehicle) {
             kmInput.value = vehicle.maintenance_km ?? '';
+        }
+        if (lastKmInfo) {
+            const lastKmValue = vehicle?.maintenance_km;
+            lastKmInfo.textContent = `Ultimi km manutenzione: ${formatInteger(lastKmValue)}`;
         }
         updateMaintenanceSteps();
     };
@@ -352,6 +363,14 @@
                 formData.append(field, value);
             }
         });
+        const kmAfterRaw = form.elements['km_after']?.value;
+        if (kmAfterRaw !== undefined && kmAfterRaw !== null && kmAfterRaw !== '') {
+            formData.append('km_after', normalizeInteger(kmAfterRaw));
+        }
+        const nextMaintenanceDateRaw = form.elements['next_maintenance_date']?.value;
+        if (nextMaintenanceDateRaw) {
+            formData.append('next_maintenance_date', nextMaintenanceDateRaw);
+        }
         formData.append('attachment', form.attachment.files[0]);
 
         try {
@@ -404,7 +423,7 @@
             updateMaintenanceSteps();
         });
 
-        ['supplier_id', 'vehicle_id', 'km', 'invoice_number', 'price', 'notes', 'attachment'].forEach((name) => {
+        ['supplier_id', 'vehicle_id', 'km', 'km_after', 'next_maintenance_date', 'invoice_number', 'price', 'notes', 'attachment'].forEach((name) => {
             const input = document.querySelector(`#maintenance-form [name=\"${name}\"]`);
             if (!input) return;
             const evt = input.type === 'file' ? 'change' : 'input';
