@@ -81,10 +81,19 @@ class Maintenance extends Model
         ])->saveQuietly();
     }
 
+    private function maintenanceAlertTelegramConfig(): array
+    {
+        return [
+            'token' => env('TELEGRAM_MAINTENANCE_BOT_TOKEN'),
+            'chat_id' => env('TELEGRAM_MAINTENANCE_CHAT_ID'),
+        ];
+    }
+
     public function notifyUpcomingMaintenanceTelegram(Vehicle $vehicle, int $currentKm): void
     {
-        $token = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $config = $this->maintenanceAlertTelegramConfig();
+        $token = $config['token'] ?? null;
+        $chatId = $config['chat_id'] ?? null;
 
         if (! $token || ! $chatId) {
             return;
@@ -123,8 +132,9 @@ class Maintenance extends Model
 
     public function notifyUpcomingMaintenanceByDateTelegram(Vehicle $vehicle, int $currentKm): void
     {
-        $token = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $config = $this->maintenanceAlertTelegramConfig();
+        $token = $config['token'] ?? null;
+        $chatId = $config['chat_id'] ?? null;
 
         if (! $token || ! $chatId) {
             return;
