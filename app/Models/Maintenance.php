@@ -121,6 +121,9 @@ class Maintenance extends Model
         $lines[] = '🛠️ <b>Prossima manutenzione:</b> ' . number_format((float) $nextKm, 0, ',', '.');
         $lines[] = '⏳ <b>Km mancanti:</b> ' . number_format((float) $remaining, 0, ',', '.');
 
+        if ($this->notes) {
+            $lines[] = '<b>Dettagli ultima manutenzione:</b> ' . e($this->notes);
+        }
         $text = implode("\n", $lines);
 
         try {
@@ -163,6 +166,9 @@ class Maintenance extends Model
             $lines[] = '<b>Km mancanti:</b> ' . number_format((float) $remaining, 0, ',', '.');
         }
 
+        if ($this->notes) {
+            $lines[] = '<b>Dettagli ultima manutenzione:</b> ' . e($this->notes);
+        }
         $text = implode("\n", $lines);
 
         try {
