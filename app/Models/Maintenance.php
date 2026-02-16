@@ -50,6 +50,10 @@ class Maintenance extends Model
                 $maintenance->next_maintenance_alert_sent_at = null;
             }
         });
+
+        static::created(function (self $maintenance) {
+            $maintenance->notifyTelegram();
+        });
     }
 
     public function shouldSendMaintenanceAlertForKm(int $currentKm, int $toleranceKm = 500): bool

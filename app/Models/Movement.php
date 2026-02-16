@@ -64,6 +64,10 @@ class Movement extends Model
             }
         });
 
+        static::created(function (self $movement) {
+            $movement->notifyTelegram();
+        });
+
 
         static::saved(function (self $movement) {
             $vehicleId = $movement->vehicle_id;
