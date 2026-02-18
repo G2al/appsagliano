@@ -182,8 +182,8 @@ class Movement extends Model
      */
     public function notifyTelegram(): void
     {
-        $token = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $token = env('TELEGRAM_MOVEMENTS_BOT_TOKEN', env('TELEGRAM_BOT_TOKEN'));
+        $chatId = env('TELEGRAM_MOVEMENTS_CHAT_ID', env('TELEGRAM_CHAT_ID'));
 
         if (! $token || ! $chatId) {
             return;

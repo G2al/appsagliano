@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\TelegramMaintenanceCreatedNotifier;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -255,13 +256,6 @@ class Maintenance extends Model
      */
     public function notifyTelegram(): void
     {
-        $token = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
-
-        if (! $token || ! $chatId) {
-            return;
-        }
-
         $lines = [];
         $lines[] = '🔧 <b>Nuova manutenzione</b>';
         $lines[] = '👤 <b>Autore:</b> ' . ($this->user?->full_name ?? $this->user?->name ?? 'N/D');
@@ -294,14 +288,6 @@ class Maintenance extends Model
 
         $text = implode("\n", $lines);
 
-        try {
-            Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'parse_mode' => 'HTML',
-            ]);
-        } catch (\Throwable $e) {
-            // non bloccare il flusso in caso di errore telegram
-        }
+        app(TelegramMaintenanceCreatedNotifier::class)->send($text);
     }
 }
