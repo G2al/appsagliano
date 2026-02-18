@@ -26,7 +26,7 @@ class EditMovement extends EditRecord
                     $charge = (float) ($record->station_charge ?? 0);
 
                     if ($stationId && $charge > 0) {
-                        Station::whereKey($stationId)->increment('credit_balance', $charge);
+                        Station::adjustCreditBalance((int) $stationId, $charge);
                     }
 
                     return (bool) $record->delete();
@@ -78,12 +78,22 @@ class EditMovement extends EditRecord
         $newStationId = $this->record->station_id;
         $newCharge = (float) ($this->record->station_charge ?? 0);
 
+        $deltas = [];
+
         if ($oldStationId && $oldCharge > 0) {
-            Station::whereKey($oldStationId)->increment('credit_balance', $oldCharge);
+            $deltas[(int) $oldStationId] = ($deltas[(int) $oldStationId] ?? 0.0) + $oldCharge;
         }
 
         if ($newStationId && $newCharge > 0) {
-            Station::whereKey($newStationId)->decrement('credit_balance', $newCharge);
+            $deltas[(int) $newStationId] = ($deltas[(int) $newStationId] ?? 0.0) - $newCharge;
+        }
+
+        foreach ($deltas as $stationId => $delta) {
+            if ((float) $delta === 0.0) {
+                continue;
+            }
+
+            Station::adjustCreditBalance((int) $stationId, (float) $delta);
         }
     }
 }

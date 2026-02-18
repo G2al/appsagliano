@@ -114,7 +114,7 @@ class MovementController extends Controller
             ]);
 
             if ($stationCharge > 0 && ! empty($validated['station_id'])) {
-                Station::whereKey($validated['station_id'])->decrement('credit_balance', $stationCharge);
+                Station::adjustCreditBalance((int) $validated['station_id'], -$stationCharge);
             }
 
             if (! empty($validated['vehicle_id']) && isset($validated['km_end'])) {

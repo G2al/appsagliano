@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Http;
-use App\Models\Movement;
 
 class Station extends Model
 {
@@ -27,21 +26,44 @@ class Station extends Model
         return $this->hasMany(Movement::class);
     }
 
+    public static function adjustCreditBalance(int $stationId, float $delta): void
+    {
+        if ($delta === 0.0) {
+            return;
+        }
+
+        $station = self::query()->find($stationId);
+
+        if (! $station || $station->credit_balance === null) {
+            return;
+        }
+
+        $station->credit_balance = round(((float) $station->credit_balance) + $delta, 2);
+        $station->save();
+    }
+
     protected static function booted(): void
     {
         static::updated(function (self $station): void {
-            $threshold = (float) (env('STATION_CREDIT_THRESHOLD', 5000));
-            $old = $station->getOriginal('credit_balance');
-            $new = $station->credit_balance;
+            $threshold = (float) env('STATION_CREDIT_THRESHOLD', 5000);
+            $oldRaw = $station->getOriginal('credit_balance');
+            $newRaw = $station->credit_balance;
 
-            // Notifica discesa sotto soglia (solo se prima era sopra o uguale)
-            if ($new !== null && $new < $threshold && ($old === null || $old >= $threshold)) {
-                $station->notifyCreditBelowThreshold($threshold, $new);
+            if ($newRaw === null) {
+                return;
             }
 
-            // Notifica risalita sopra soglia (ricarica)
-            if ($new !== null && $new >= $threshold && ($old !== null && $old < $threshold)) {
-                $station->notifyCreditRestored($threshold, $new);
+            $old = $oldRaw !== null ? (float) $oldRaw : null;
+            $new = (float) $newRaw;
+
+            // Requisito: notifica sempre quando viene aggiunto credito.
+            if ($old !== null && $new > $old) {
+                $station->notifyCreditAdded($new);
+            }
+
+            // Requisito: notifica quando il credito scende sotto soglia.
+            if ($new < $threshold && ($old === null || $old >= $threshold)) {
+                $station->notifyCreditBelowThreshold($threshold, $new);
             }
         });
     }
@@ -56,10 +78,10 @@ class Station extends Model
         }
 
         $lines = [];
-        $lines[] = '⚠️ <b>Credito stazione basso</b>';
-        $lines[] = '🏪 <b>Stazione:</b> ' . ($this->name ?? 'N/D');
-        $lines[] = '💰 <b>Saldo:</b> ' . number_format($balance, 2, ',', '.') . ' €';
-        $lines[] = '🔻 <b>Soglia:</b> ' . number_format($threshold, 2, ',', '.') . ' €';
+        $lines[] = '&#9888;&#65039; <b>Credito stazione basso</b>';
+        $lines[] = '&#127970; <b>Stazione:</b> ' . ($this->name ?? 'N/D');
+        $lines[] = '&#128176; <b>Saldo:</b> ' . number_format($balance, 2, ',', '.') . ' &euro;';
+        $lines[] = '&#128315; <b>Soglia:</b> ' . number_format($threshold, 2, ',', '.') . ' &euro;';
 
         $text = implode("\n", $lines);
 
@@ -70,11 +92,11 @@ class Station extends Model
                 'parse_mode' => 'HTML',
             ]);
         } catch (\Throwable $e) {
-            // Non bloccare
+            // Non bloccare il flusso.
         }
     }
 
-    protected function notifyCreditRestored(float $threshold, float $balance): void
+    protected function notifyCreditAdded(float $newBalance): void
     {
         $token = env('TELEGRAM_CREDIT_BOT_TOKEN');
         $chatId = env('TELEGRAM_CREDIT_CHAT_ID');
@@ -82,12 +104,13 @@ class Station extends Model
         if (! $token || ! $chatId) {
             return;
         }
+        $threshold = (float) env('STATION_CREDIT_THRESHOLD', 5000);
 
         $lines = [];
-        $lines[] = '✅ <b>Credito ricaricato</b>';
-        $lines[] = '🏪 <b>Stazione:</b> ' . ($this->name ?? 'N/D');
-        $lines[] = '💰 <b>Saldo:</b> ' . number_format($balance, 2, ',', '.') . ' €';
-        $lines[] = '📈 <b>Soglia:</b> ' . number_format($threshold, 2, ',', '.') . ' €';
+        $lines[] = '&#9989; <b>Credito ricaricato</b>';
+        $lines[] = '&#127970; <b>Stazione:</b> ' . ($this->name ?? 'N/D');
+        $lines[] = '&#128176; <b>Saldo:</b> ' . number_format($newBalance, 2, ',', '.') . ' &euro;';
+        $lines[] = '&#128200; <b>Soglia:</b> ' . number_format($threshold, 2, ',', '.') . ' &euro;';
 
         $text = implode("\n", $lines);
 
@@ -98,7 +121,7 @@ class Station extends Model
                 'parse_mode' => 'HTML',
             ]);
         } catch (\Throwable $e) {
-            // Non bloccare
+            // Non bloccare il flusso.
         }
     }
 }

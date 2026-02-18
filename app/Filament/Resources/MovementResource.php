@@ -208,7 +208,7 @@ class MovementResource extends Resource
                                     $charge = (float) ($record->station_charge ?? 0);
 
                                     if ($stationId && $charge > 0) {
-                                        Station::whereKey($stationId)->increment('credit_balance', $charge);
+                                        Station::adjustCreditBalance((int) $stationId, $charge);
                                     }
 
                                     $record->delete();

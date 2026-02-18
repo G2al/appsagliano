@@ -49,6 +49,6 @@ class CreateMovement extends CreateRecord
             return;
         }
 
-        Station::whereKey($stationId)->decrement('credit_balance', $charge);
+        Station::adjustCreditBalance((int) $stationId, -$charge);
     }
 }
