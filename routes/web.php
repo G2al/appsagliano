@@ -6,6 +6,7 @@ use App\Http\Controllers\MovementAttachmentPrintController;
 use App\Http\Controllers\MaintenanceReceiptController;
 use App\Http\Controllers\MaintenanceAttachmentPrintController;
 use App\Http\Controllers\MaintenanceBolleDownloadController;
+use App\Http\Controllers\UserDocumentDownloadController;
 
 Route::get('/', function () {
     return redirect('/worker/login.html');
@@ -31,3 +32,7 @@ Route::get('/admin/maintenances/{maintenance}/attachment', MaintenanceAttachment
 Route::get('/admin/maintenances/download-bolle', MaintenanceBolleDownloadController::class)
     ->middleware('auth')
     ->name('maintenances.download-bolle');
+
+Route::get('/admin/user-documents/files/{file}/download', UserDocumentDownloadController::class)
+    ->middleware('auth')
+    ->name('user-documents.files.download');

@@ -1,8 +1,9 @@
-const CACHE_NAME = 'sagliano-worker-v1';
+const CACHE_NAME = 'sagliano-worker-v2';
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
   '/worker/maintenance.html',
+  '/worker/documents.html',
   '/worker/login.html',
   '/worker/signup.html',
   '/worker/css/style.css',
@@ -11,6 +12,7 @@ const ASSETS = [
   '/worker/css/vendors/iconsax.css',
   '/worker/js/movements.js',
   '/worker/js/maintenances.js',
+  '/worker/js/documents.js',
   '/worker/js/auth.js',
   '/worker/js/script.js',
   '/worker/js/template-setting.js',

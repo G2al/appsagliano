@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\UserDocumentFolderTemplateSyncService;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -50,6 +51,8 @@ class User extends Authenticatable implements FilamentUser
     protected static function booted(): void
     {
         static::created(function (self $user): void {
+            app(UserDocumentFolderTemplateSyncService::class)->syncForUser($user);
+
             if ($user->role === 'worker') {
                 $user->notifyTelegramSignup();
             }
@@ -95,6 +98,11 @@ class User extends Authenticatable implements FilamentUser
     public function maintenances(): HasMany
     {
         return $this->hasMany(Maintenance::class);
+    }
+
+    public function documentFolders(): HasMany
+    {
+        return $this->hasMany(UserDocumentFolder::class)->latest('id');
     }
 
     public function notifyTelegramSignup(): void

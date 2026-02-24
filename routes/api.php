@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserDocumentController;
 use App\Http\Controllers\Api\MovementController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\StationController;
@@ -26,4 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/suppliers', [SupplierController::class, 'index']);
     Route::get('/maintenances', [MaintenanceController::class, 'index']);
     Route::post('/maintenances', [MaintenanceController::class, 'store']);
+
+    Route::get('/documents', [UserDocumentController::class, 'index']);
+    Route::post('/documents/files/{file}/open', [UserDocumentController::class, 'open']);
+    Route::get('/documents/files/{file}/download', [UserDocumentController::class, 'download']);
 });

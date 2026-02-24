@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="description" content="App Sagliano - Documenti">
+    <meta name="keywords" content="App Sagliano, documenti, area riservata">
+    <meta name="author" content="App Sagliano">
+    <link rel="manifest" href="manifest.json?v=4">
+    <link rel="icon" href="images/logo/favicon.svg" type="image/x-icon">
+    <title>App Sagliano - Documenti</title>
+
+    <link rel="apple-touch-icon" href="images/logo/favicon.svg">
+    <meta name="title-color" content="#1F1F1F">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="App Sagliano">
+    <meta name="msapplication-TileImage" content="images/logo/favicon.svg">
+    <meta name="msapplication-TileColor" content="#FFFFFF">
+    <link rel="preload" href="fonts/GTWalsheimPro-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+    <link rel="stylesheet" type="text/css" href="css/GTWalsheimPro.css">
+    <link rel="stylesheet" type="text/css" href="css/vendors/iconsax.css">
+    <link rel="stylesheet" id="rtl-link" type="text/css" href="css/vendors/bootstrap.css">
+    <link rel="stylesheet" id="change-link" type="text/css" href="css/style.css">
+</head>
+
+<body data-require-auth="true">
+    <div id="page-loader" class="page-loader d-none">
+        <div class="spinner"></div>
+    </div>
+
+    <header id="header" class="main-header">
+        <div class="custom-container">
+            <div class="header-panel justify-content-between align-items-center">
+                <img class="img-fluid logo user-logo" src="images/logo/user/user-logo-white.svg" alt="logo">
+                <a href="#" id="logout-link" class="d-flex align-items-center gap-1" style="color: #fff; font-weight: 600;">
+                    <img class="unactive" src="images/svg/logout.svg" alt="logout" style="width:20px;height:20px;">
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <section class="home-profile-section section-b-space pt-0">
+        <div class="custom-container">
+            <div class="mb-2">
+                <h6 class="title-color mb-0" id="user-greeting">Ciao</h6>
+            </div>
+            <div class="form-input">
+                <input type="search" class="form-control with-icon" id="search-documents" placeholder="Cerca documento">
+                <i class="iconsax search-icon" data-icon="search-normal-2"></i>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="custom-container">
+            <div class="title">
+                <h3>Documenti riservati</h3>
+                <p class="content-color mb-0">Buste paga, F24 e documenti personali.</p>
+            </div>
+
+            <div class="alert alert-danger d-none mb-3" role="alert" id="documents-alert"></div>
+
+            <div class="accordion" id="documents-accordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button">
+                            Nessun documento disponibile.
+                        </button>
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel-space"></section>
+
+    <div class="navbar-menu">
+        <ul>
+            <li>
+                <a href="home.html" class="nav-link-loading">
+                    <div class="icon">
+                        <img class="unactive" src="images/svg/fuel-fill.svg" alt="rifornimento">
+                        <img class="active" src="images/svg/fuel.svg" alt="rifornimento">
+                    </div>
+                    <span style="color: #1F1F1F;">Rifornimento</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="maintenance.html" class="nav-link-loading">
+                    <div class="icon">
+                        <img class="unactive" src="images/svg/setting-fill.svg" alt="manutenzione">
+                        <img class="active" src="images/svg/setting.svg" alt="manutenzione">
+                    </div>
+                    <span style="color: #1F1F1F;">Manutenzione</span>
+                </a>
+            </li>
+
+            <li class="active">
+                <a href="documents.html" class="nav-link-loading">
+                    <div class="icon">
+                        <img class="unactive" src="images/svg/category-fill.svg" alt="documenti">
+                        <img class="active" src="images/svg/category.svg" alt="documenti">
+                    </div>
+                    <span class="active">Documenti</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="modal fade" id="openDocumentModal" tabindex="-1" aria-labelledby="openDocumentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="openDocumentModalLabel">Conferma apertura</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="open-document-message">Vuoi aprire questo documento?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn theme-btn" id="confirm-open-document">Apri documento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/iconsax.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/sticky-header.js"></script>
+    <script src="js/template-setting.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/documents.js"></script>
+    <script>
+        (function () {
+            const loader = document.getElementById('page-loader');
+            const showLoader = () => loader?.classList.remove('d-none');
+
+            document.querySelectorAll('.nav-link-loading').forEach((link) => {
+                link.addEventListener('click', () => showLoader());
+            });
+
+            const logout = document.getElementById('logout-link');
+            if (logout) {
+                logout.addEventListener('click', () => showLoader());
+            }
+        })();
+    </script>
+</body>
+
+</html>
