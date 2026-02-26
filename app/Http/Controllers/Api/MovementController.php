@@ -14,6 +14,40 @@ use Illuminate\Validation\ValidationException;
 
 class MovementController extends Controller
 {
+    public function kmStart(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
+            'date' => ['required', 'date'],
+        ], [
+            'required' => 'Il campo :attribute e obbligatorio.',
+            'date' => 'Il campo :attribute non e una data valida.',
+            'exists' => 'Il campo :attribute non esiste.',
+        ], [
+            'vehicle_id' => 'veicolo',
+            'date' => 'data',
+        ]);
+
+        $vehicleId = (int) $validated['vehicle_id'];
+        $resolvedKmStart = Movement::resolveKmStartForVehicleAtDate($vehicleId, $validated['date']);
+
+        if ($resolvedKmStart !== null) {
+            return response()->json([
+                'km_start' => $resolvedKmStart,
+                'source' => 'previous_ticket_by_date',
+            ]);
+        }
+
+        $vehicleCurrentKm = Vehicle::query()
+            ->whereKey($vehicleId)
+            ->value('current_km');
+
+        return response()->json([
+            'km_start' => (int) ($vehicleCurrentKm ?? 0),
+            'source' => 'vehicle_current_km',
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -105,9 +139,24 @@ class MovementController extends Controller
             }
         }
 
-        $movement = DB::transaction(function () use ($validated, $photoPath, $stationCharge, $user) {
+        $resolvedKmStart = Movement::resolveKmStartForVehicleAtDate(
+            (int) $validated['vehicle_id'],
+            $validated['date']
+        );
+
+        $kmStart = $resolvedKmStart ?? (int) $validated['km_start'];
+        $kmEnd = (int) $validated['km_end'];
+
+        if ($kmEnd < $kmStart) {
+            throw ValidationException::withMessages([
+                'km_end' => ['I km finali devono essere maggiori o uguali ai km iniziali.'],
+            ]);
+        }
+
+        $movement = DB::transaction(function () use ($validated, $photoPath, $stationCharge, $user, $kmStart) {
             $movement = Movement::create([
                 ...$validated,
+                'km_start' => $kmStart,
                 'photo_path' => $photoPath,
                 'user_id' => $user->id,
                 'station_charge' => $stationCharge,
@@ -115,12 +164,6 @@ class MovementController extends Controller
 
             if ($stationCharge > 0 && ! empty($validated['station_id'])) {
                 Station::adjustCreditBalance((int) $validated['station_id'], -$stationCharge);
-            }
-
-            if (! empty($validated['vehicle_id']) && isset($validated['km_end'])) {
-                Vehicle::whereKey($validated['vehicle_id'])->update([
-                    'current_km' => $validated['km_end'],
-                ]);
             }
 
             return $movement;

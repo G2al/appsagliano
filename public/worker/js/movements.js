@@ -10,6 +10,7 @@
     let selectedVehicleId = '';
     let searchQuery = '';
     let isAdmin = false;
+    let kmStartRequestSeq = 0;
 
     const getToken = () => localStorage.getItem(TOKEN_KEY);
     const getCurrentUser = () => {
@@ -304,19 +305,73 @@
         applyFilters();
     };
 
-    const updateKmStartFromSelection = () => {
+    const updateKmStartFromSelection = async () => {
         const vehicleSelect = document.getElementById('vehicle-select');
+        const dateInput = document.querySelector('#movement-form [name="date"]');
         const kmStartInput = document.querySelector('#movement-form [name="km_start"]');
         const kmEndInput = document.querySelector('#movement-form [name="km_end"]');
+
         if (!vehicleSelect || !kmStartInput) return;
-        const vehicle = vehiclesById.get(vehicleSelect.value);
-        if (vehicle && typeof vehicle.current_km !== 'undefined') {
-            kmStartInput.value = vehicle.current_km;
+
+        const vehicleId = String(vehicleSelect.value || '').trim();
+        if (!vehicleId) {
+            kmStartInput.value = '';
             if (kmEndInput) {
-                kmEndInput.min = vehicle.current_km;
+                kmEndInput.min = 0;
+            }
+            updateMovementSteps();
+            updateTicketEfficiencyFromForm();
+            return;
+        }
+
+        const sequence = ++kmStartRequestSeq;
+        let kmStart = null;
+        const movementDate = String(dateInput?.value || '').trim();
+
+        if (movementDate) {
+            try {
+                const query = new URLSearchParams({
+                    vehicle_id: vehicleId,
+                    date: movementDate,
+                }).toString();
+                const response = await api(`/movements/km-start?${query}`);
+                const value = Number(response?.km_start);
+                if (Number.isFinite(value) && value >= 0) {
+                    kmStart = value;
+                }
+            } catch (error) {
+                // fallback su current_km in caso di errore API
             }
         }
+
+        if (sequence !== kmStartRequestSeq) {
+            return;
+        }
+
+        if (kmStart === null) {
+            const vehicle = vehiclesById.get(vehicleId);
+            if (vehicle && typeof vehicle.current_km !== 'undefined' && vehicle.current_km !== null) {
+                const value = Number(vehicle.current_km);
+                if (Number.isFinite(value) && value >= 0) {
+                    kmStart = value;
+                }
+            }
+        }
+
+        if (kmStart !== null) {
+            kmStartInput.value = Math.trunc(kmStart);
+            if (kmEndInput) {
+                kmEndInput.min = Math.trunc(kmStart);
+            }
+        } else {
+            kmStartInput.value = '';
+            if (kmEndInput) {
+                kmEndInput.min = 0;
+            }
+        }
+
         updateMovementSteps();
+        updateTicketEfficiencyFromForm();
     };
 
     const updateVehicleEfficiencyFromSelection = () => {
@@ -452,18 +507,16 @@
                     vehicleSelect.value = lastVehicle;
                 }
 
-                vehicleSelect.onchange = () => {
-                    updateKmStartFromSelection();
+                vehicleSelect.onchange = async () => {
+                    await updateKmStartFromSelection();
                     updateVehicleEfficiencyFromSelection();
-                    updateTicketEfficiencyFromForm();
                     updateMovementSteps();
                     if (vehicleSelect.value) {
                         setLastVehicle(vehicleSelect.value);
                     }
                 };
-                updateKmStartFromSelection();
+                await updateKmStartFromSelection();
                 updateVehicleEfficiencyFromSelection();
-                updateTicketEfficiencyFromForm();
                 updateMovementSteps();
                 if (isAdmin) {
                     vehiclesCache = vehicles;
@@ -595,7 +648,7 @@
                 const existing = vehiclesById.get(selectedVehicle) || {};
                 vehiclesById.set(selectedVehicle, { ...existing, current_km: kmEndValue });
             }
-            updateKmStartFromSelection();
+            await updateKmStartFromSelection();
             updateVehicleEfficiencyFromSelection();
             updateTicketEfficiencyFromForm();
             updateStationCreditFromSelection();
@@ -624,7 +677,7 @@
         }
 
         document.getElementById('movementModal')?.addEventListener('show.bs.modal', loadOptions);
-        document.getElementById('movementModal')?.addEventListener('show.bs.modal', () => {
+        document.getElementById('movementModal')?.addEventListener('show.bs.modal', async () => {
             const form = document.getElementById('movement-form');
             const alertBox = document.getElementById('movement-alert');
             if (form) {
@@ -645,6 +698,7 @@
                 const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
                 dateInput.value = formatted;
             }
+            await updateKmStartFromSelection();
             updateMovementSteps();
         });
         const movementModal = document.getElementById('movementModal');
@@ -683,6 +737,11 @@
         stationSelect?.addEventListener('change', updateMovementSteps);
         const vehicleSelectDom = document.querySelector('#movement-form [name="vehicle_id"]');
         vehicleSelectDom?.addEventListener('change', updateMovementSteps);
+        const dateInputDom = document.querySelector('#movement-form [name="date"]');
+        dateInputDom?.addEventListener('change', () => {
+            updateKmStartFromSelection();
+        });
+
         const litersInput = document.querySelector('#movement-form [name="liters"]');
         litersInput?.addEventListener('input', updateMovementSteps);
         const kmEndInput = document.querySelector('#movement-form [name="km_end"]');

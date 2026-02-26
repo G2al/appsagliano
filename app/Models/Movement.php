@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Vehicle;
@@ -133,6 +134,19 @@ class Movement extends Model
             // `vehicles.current_km` is NOT NULL: fallback to 0 when no movements remain.
             'current_km' => $latestKm ?? 0,
         ]);
+    }
+
+    public static function resolveKmStartForVehicleAtDate(int $vehicleId, string|Carbon $referenceDate): ?int
+    {
+        $kmStart = self::query()
+            ->where('vehicle_id', $vehicleId)
+            ->whereNotNull('km_end')
+            ->where('date', '<=', $referenceDate)
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->value('km_end');
+
+        return $kmStart !== null ? (int) $kmStart : null;
     }
 
     protected static function notifyUpcomingMaintenanceIfNeeded(int $vehicleId): void

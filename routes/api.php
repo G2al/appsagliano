@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::get('/movements', [MovementController::class, 'index']);
+    Route::get('/movements/km-start', [MovementController::class, 'kmStart']);
     Route::post('/movements', [MovementController::class, 'store']);
 
     Route::get('/stations', [StationController::class, 'index']);
