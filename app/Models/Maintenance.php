@@ -156,19 +156,19 @@ class Maintenance extends Model
         $remaining = $nextKm > 0 ? max($nextKm - $currentKm, 0) : null;
 
         $lines = [];
-        $lines[] = '<b>AVVISO MANUTENZIONE</b>';
-        $lines[] = '<b>Veicolo:</b> ' . $vehicleLabel;
-        $lines[] = '<b>Scadenza raggiunta:</b> data prossima manutenzione';
-        $lines[] = '<b>Data prossima manutenzione:</b> ' . $nextDate;
-        $lines[] = '<b>Km attuali:</b> ' . number_format((float) $currentKm, 0, ',', '.');
+        $lines[] = "\u{1F6A8}\u{26A0}\u{FE0F} <b>AVVISO MANUTENZIONE</b>";
+        $lines[] = "\u{1F69A} <b>Veicolo:</b> " . $vehicleLabel;
+        $lines[] = "\u{1F4C5} <b>Scadenza raggiunta:</b> data prossima manutenzione";
+        $lines[] = "\u{1F4C6} <b>Data prossima manutenzione:</b> " . $nextDate;
+        $lines[] = "\u{1F9ED} <b>Km attuali:</b> " . number_format((float) $currentKm, 0, ',', '.');
 
         if ($nextKm > 0) {
-            $lines[] = '<b>Prossima manutenzione (km):</b> ' . number_format((float) $nextKm, 0, ',', '.');
-            $lines[] = '<b>Km mancanti:</b> ' . number_format((float) $remaining, 0, ',', '.');
+            $lines[] = "\u{1F6E0}\u{FE0F} <b>Prossima manutenzione:</b> " . number_format((float) $nextKm, 0, ',', '.');
+            $lines[] = "\u{23F3} <b>Km mancanti:</b> " . number_format((float) $remaining, 0, ',', '.');
         }
 
         if ($this->notes) {
-            $lines[] = '<b>Dettagli ultima manutenzione:</b> ' . e($this->notes);
+            $lines[] = "\u{1F4DD} <b>Dettagli ultima manutenzione:</b> " . e($this->notes);
         }
         $text = implode("\n", $lines);
 

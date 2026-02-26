@@ -15,5 +15,5 @@ Artisan::command('maintenance:check-due-alerts', function () {
 })->purpose('Invia alert manutenzione per scadenze a data');
 
 Schedule::command('maintenance:check-due-alerts')
-    ->hourly()
+    ->everyFiveSeconds()
     ->withoutOverlapping();
