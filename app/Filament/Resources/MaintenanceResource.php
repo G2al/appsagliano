@@ -12,8 +12,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 
 class MaintenanceResource extends Resource
@@ -147,23 +149,32 @@ class MaintenanceResource extends Resource
                     ->money('EUR', true)
                     ->sortable(),
             ])
+            ->filters([
+                Tables\Filters\TrashedFilter::make()->label('Cestino'),
+            ])
             ->actions([
                 Tables\Actions\Action::make('receipt')
                     ->label('Stampa')
                     ->icon('heroicon-o-printer')
+                    ->visible(fn (Maintenance $record): bool => ! $record->trashed())
                     ->url(fn (Maintenance $record) => route('maintenances.receipt', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')
-                    ->visible(fn (Maintenance $record) => filled($record->attachment_url))
+                    ->visible(fn (Maintenance $record): bool => ! $record->trashed() && filled($record->attachment_url))
                     ->url(fn (Maintenance $record) => route('maintenances.attachment', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Maintenance $record): bool => ! $record->trashed()),
+                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
                 Tables\Actions\BulkAction::make('download_bolle')
                     ->label('Scarica bolle')
@@ -180,6 +191,14 @@ class MaintenanceResource extends Resource
                         return redirect()->route('maintenances.download-bolle', ['token' => $token]);
                     })
                     ->deselectRecordsAfterCompletion(),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
             ]);
     }
 
@@ -209,15 +228,35 @@ class MaintenanceResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::canViewAny();
+        return static::canViewAny() && (! method_exists($record, 'trashed') || ! $record->trashed());
     }
 
     public static function canDelete(Model $record): bool
     {
-        return static::canViewAny();
+        return static::canViewAny() && (! method_exists($record, 'trashed') || ! $record->trashed());
     }
 
     public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canRestoreAny(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canForceDeleteAny(): bool
     {
         return static::canViewAny();
     }

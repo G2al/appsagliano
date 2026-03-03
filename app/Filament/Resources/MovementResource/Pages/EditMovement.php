@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\MovementResource\Pages;
 
 use App\Filament\Resources\MovementResource;
-use App\Models\Movement;
 use App\Models\Station;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -20,17 +19,7 @@ class EditMovement extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()
-                ->using(function (Movement $record): bool {
-                    $stationId = $record->station_id;
-                    $charge = (float) ($record->station_charge ?? 0);
-
-                    if ($stationId && $charge > 0) {
-                        Station::adjustCreditBalance((int) $stationId, $charge);
-                    }
-
-                    return (bool) $record->delete();
-                }),
+            Actions\DeleteAction::make(),
         ];
     }
 

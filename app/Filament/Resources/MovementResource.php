@@ -14,11 +14,10 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\DB;
 
 class MovementResource extends Resource
 {
@@ -187,40 +186,40 @@ class MovementResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make()->label('Cestino'),
             ])
             ->actions([
                 Tables\Actions\Action::make('receipt')
                     ->label('Stampa')
                     ->icon('heroicon-o-printer')
+                    ->visible(fn (Movement $record): bool => ! $record->trashed())
                     ->url(fn (Movement $record) => route('movements.receipt', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')
-                    ->visible(fn (Movement $record) => filled($record->photo_url))
+                    ->visible(fn (Movement $record): bool => ! $record->trashed() && filled($record->photo_url))
                     ->url(fn (Movement $record) => route('movements.attachment', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Movement $record): bool => ! $record->trashed()),
+                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->using(function (Collection $records): void {
-                            DB::transaction(function () use ($records) {
-                                $records->each(function (Movement $record): void {
-                                    $stationId = $record->station_id;
-                                    $charge = (float) ($record->station_charge ?? 0);
-
-                                    if ($stationId && $charge > 0) {
-                                        Station::adjustCreditBalance((int) $stationId, $charge);
-                                    }
-
-                                    $record->delete();
-                                });
-                            });
-                        }),
+                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
             ]);
     }
 
@@ -245,15 +244,35 @@ class MovementResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::canViewAny();
+        return static::canViewAny() && (! method_exists($record, 'trashed') || ! $record->trashed());
     }
 
     public static function canDelete(Model $record): bool
     {
-        return static::canViewAny();
+        return static::canViewAny() && (! method_exists($record, 'trashed') || ! $record->trashed());
     }
 
     public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canRestoreAny(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canForceDeleteAny(): bool
     {
         return static::canViewAny();
     }

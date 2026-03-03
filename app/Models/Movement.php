@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,7 @@ use App\Models\Maintenance;
 class Movement extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     private const MAINTENANCE_TOLERANCE_KM = 500;
 
@@ -65,6 +67,14 @@ class Movement extends Model
             }
         });
 
+        static::deleting(function (self $movement): void {
+            if ($movement->trashed()) {
+                return;
+            }
+
+            self::refundStationCharge($movement);
+        });
+
         static::created(function (self $movement) {
             $movement->notifyTelegram();
         });
@@ -88,6 +98,15 @@ class Movement extends Model
         static::deleted(function (self $movement) {
             if ($movement->vehicle_id) {
                 self::syncVehicleCurrentKm($movement->vehicle_id);
+            }
+        });
+
+        static::restored(function (self $movement): void {
+            self::applyStationCharge($movement);
+
+            if ($movement->vehicle_id) {
+                self::syncVehicleCurrentKm($movement->vehicle_id);
+                self::notifyUpcomingMaintenanceIfNeeded($movement->vehicle_id);
             }
         });
     }
@@ -134,6 +153,30 @@ class Movement extends Model
             // `vehicles.current_km` is NOT NULL: fallback to 0 when no movements remain.
             'current_km' => $latestKm ?? 0,
         ]);
+    }
+
+    protected static function refundStationCharge(self $movement): void
+    {
+        $stationId = $movement->station_id;
+        $charge = (float) ($movement->station_charge ?? 0);
+
+        if (! $stationId || $charge <= 0) {
+            return;
+        }
+
+        Station::adjustCreditBalance((int) $stationId, $charge);
+    }
+
+    protected static function applyStationCharge(self $movement): void
+    {
+        $stationId = $movement->station_id;
+        $charge = (float) ($movement->station_charge ?? 0);
+
+        if (! $stationId || $charge <= 0) {
+            return;
+        }
+
+        Station::adjustCreditBalance((int) $stationId, -$charge);
     }
 
     public static function resolveKmStartForVehicleAtDate(int $vehicleId, string|Carbon $referenceDate): ?int
