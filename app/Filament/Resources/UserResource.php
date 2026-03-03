@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\DocumentFoldersRelationManager;
 use App\Models\User;
@@ -10,9 +11,12 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
@@ -51,8 +55,32 @@ class UserResource extends Resource
                         'admin' => 'Admin',
                         'worker' => 'Operatore',
                     ])
-                    ->required()
-                    ->default('worker'),
+                    ->required(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->default('worker')
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->dehydrated(fn (): bool => auth()->user()?->isAdmin() ?? false),
+                Forms\Components\CheckboxList::make('panel_modules')
+                    ->label('Abilitazioni pannello')
+                    ->options(User::panelModuleOptions())
+                    ->columns(1)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->dehydrated(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->helperText('Assegna uno o piu moduli: manutenzione, rifornimenti, documenti.'),
+                Forms\Components\Placeholder::make('panel_modules_readonly')
+                    ->label('Abilitazioni pannello')
+                    ->visible(fn (?User $record): bool => ! (auth()->user()?->isAdmin() ?? false) && $record !== null)
+                    ->content(function (?User $record): string {
+                        if (! $record) {
+                            return '-';
+                        }
+
+                        $labels = array_map(
+                            fn (string $module): string => User::panelModuleOptions()[$module] ?? $module,
+                            $record->getSanitizedPanelModules()
+                        );
+
+                        return empty($labels) ? 'Nessuna' : implode(', ', $labels);
+                    }),
                 Forms\Components\Toggle::make('is_approved')
                     ->label('Approvato')
                     ->default(false),
@@ -93,6 +121,17 @@ class UserResource extends Resource
                         'primary' => 'worker',
                     ])
                     ->formatStateUsing(fn (string $state) => $state === 'admin' ? 'Admin' : 'Operatore'),
+                Tables\Columns\TextColumn::make('panel_modules')
+                    ->label('Abilitazioni')
+                    ->badge()
+                    ->formatStateUsing(function (User $record): string {
+                        $labels = array_map(
+                            fn (string $module): string => User::panelModuleOptions()[$module] ?? $module,
+                            $record->getSanitizedPanelModules()
+                        );
+
+                        return empty($labels) ? 'Nessuna' : implode(', ', $labels);
+                    }),
                 Tables\Columns\BadgeColumn::make('is_approved')
                     ->label('Stato')
                     ->colors([
@@ -152,5 +191,30 @@ class UserResource extends Resource
         return [
             DocumentFoldersRelationManager::class,
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules(User::allowedPanelModules());
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

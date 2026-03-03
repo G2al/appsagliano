@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\MaintenanceReportResource\Pages;
 use App\Models\Maintenance;
 use App\Models\Supplier;
+use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
@@ -13,9 +15,12 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class MaintenanceReportResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = Maintenance::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
@@ -120,5 +125,15 @@ class MaintenanceReportResource extends Resource
         return [
             'index' => Pages\ListMaintenanceReports::route('/'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_MAINTENANCE]);
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return static::canViewAny();
     }
 }

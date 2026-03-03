@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\UserDocumentFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +14,7 @@ class UserDocumentDownloadController extends Controller
     {
         $user = $request->user();
 
-        if (! $user || $user->role !== 'admin') {
+        if (! $user instanceof User || ! $user->canManageUserDocuments()) {
             abort(403);
         }
 

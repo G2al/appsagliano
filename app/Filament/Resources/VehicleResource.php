@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\VehicleResource\Pages;
 use App\Filament\Resources\VehicleResource\RelationManagers;
 use App\Models\Movement;
+use App\Models\User;
 use App\Models\Vehicle;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,9 +14,12 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class VehicleResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = Vehicle::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
@@ -163,5 +168,33 @@ class VehicleResource extends Resource
             'create' => Pages\CreateVehicle::route('/create'),
             'edit' => Pages\EditVehicle::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([
+            User::PANEL_MODULE_MAINTENANCE,
+            User::PANEL_MODULE_REFUELS,
+        ]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Maintenance;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -12,6 +13,12 @@ class MaintenanceBolleDownloadController extends Controller
 {
     public function __invoke(Request $request): BinaryFileResponse
     {
+        $user = $request->user();
+
+        if (! $user instanceof User || ! $user->canAccessMaintenanceArea()) {
+            abort(403);
+        }
+
         $token = $request->query('token');
 
         if (!$token) {

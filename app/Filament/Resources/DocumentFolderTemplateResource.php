@@ -2,17 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\DocumentFolderTemplateResource\Pages;
 use App\Models\DocumentFolderTemplate;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 
 class DocumentFolderTemplateResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = DocumentFolderTemplate::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
@@ -68,5 +73,30 @@ class DocumentFolderTemplateResource extends Resource
             'create' => Pages\CreateDocumentFolderTemplate::route('/create'),
             'edit' => Pages\EditDocumentFolderTemplate::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_DOCUMENTS]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

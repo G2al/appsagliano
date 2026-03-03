@@ -2,17 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\UserDocumentFolderResource\Pages;
 use App\Filament\Resources\UserDocumentFolderResource\RelationManagers\FilesRelationManager;
+use App\Models\User;
 use App\Models\UserDocumentFolder;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserDocumentFolderResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = UserDocumentFolder::class;
 
     protected static bool $shouldRegisterNavigation = false;
@@ -78,5 +83,30 @@ class UserDocumentFolderResource extends Resource
             'index' => Pages\ListUserDocumentFolders::route('/'),
             'edit' => Pages\EditUserDocumentFolder::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_DOCUMENTS]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

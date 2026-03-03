@@ -10,6 +10,15 @@ class EditUser extends EditRecord
 {
     protected static string $resource = UserResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (! (auth()->user()?->isAdmin() ?? false)) {
+            unset($data['role'], $data['panel_modules']);
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

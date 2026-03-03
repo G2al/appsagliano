@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\MaintenanceResource\Pages;
 use App\Models\Maintenance;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Form;
@@ -11,10 +13,13 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class MaintenanceResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = Maintenance::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
@@ -190,5 +195,30 @@ class MaintenanceResource extends Resource
             'create' => Pages\CreateMaintenance::route('/create'),
             'edit' => Pages\EditMaintenance::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_MAINTENANCE]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

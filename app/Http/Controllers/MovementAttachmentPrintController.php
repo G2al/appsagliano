@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Movement;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class MovementAttachmentPrintController extends Controller
     {
         $user = $request->user();
 
-        if (! $user || $user->role !== 'admin') {
+        if (! $user instanceof User || ! $user->canAccessRefuelsArea()) {
             abort(403);
         }
 

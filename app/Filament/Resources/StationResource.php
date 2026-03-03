@@ -2,17 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\StationResource\Pages;
 use App\Filament\Resources\StationResource\RelationManagers;
 use App\Models\Station;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class StationResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = Station::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
@@ -91,5 +96,30 @@ class StationResource extends Resource
             'create' => Pages\CreateStation::route('/create'),
             'edit' => Pages\EditStation::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_REFUELS]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

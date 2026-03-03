@@ -19,6 +19,10 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const PANEL_MODULE_MAINTENANCE = 'maintenance';
+    public const PANEL_MODULE_REFUELS = 'refuels';
+    public const PANEL_MODULE_DOCUMENTS = 'documents';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -31,6 +35,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role',
+        'panel_modules',
         'is_approved',
     ];
 
@@ -75,13 +80,144 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'panel_modules' => 'array',
             'is_approved' => 'boolean',
         ];
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if (! $this->is_approved) {
+            return false;
+        }
+
+        return $this->hasAnyPanelModules();
+    }
+
+    public function isAdmin(): bool
+    {
         return $this->role === 'admin';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function allowedPanelModules(): array
+    {
+        return [
+            self::PANEL_MODULE_MAINTENANCE,
+            self::PANEL_MODULE_REFUELS,
+            self::PANEL_MODULE_DOCUMENTS,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function panelModuleOptions(): array
+    {
+        return [
+            self::PANEL_MODULE_MAINTENANCE => 'Manutenzione',
+            self::PANEL_MODULE_REFUELS => 'Rifornimenti',
+            self::PANEL_MODULE_DOCUMENTS => 'Documenti',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getSanitizedPanelModules(): array
+    {
+        $raw = $this->panel_modules;
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $allowed = self::allowedPanelModules();
+        $sanitized = array_values(array_unique(array_map('strval', $raw)));
+
+        return array_values(array_intersect($allowed, $sanitized));
+    }
+
+    public function hasPanelModule(string $module): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return in_array($module, $this->getSanitizedPanelModules(), true);
+    }
+
+    /**
+     * @param  array<int, string>|null  $modules
+     */
+    public function hasAnyPanelModules(?array $modules = null): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $ownedModules = $this->getSanitizedPanelModules();
+        if (empty($ownedModules)) {
+            return false;
+        }
+
+        $modulesToCheck = $modules ?: self::allowedPanelModules();
+
+        return ! empty(array_intersect($ownedModules, $modulesToCheck));
+    }
+
+    public function canAccessMaintenanceArea(): bool
+    {
+        return $this->hasPanelModule(self::PANEL_MODULE_MAINTENANCE);
+    }
+
+    public function canAccessRefuelsArea(): bool
+    {
+        return $this->hasPanelModule(self::PANEL_MODULE_REFUELS);
+    }
+
+    public function canAccessDocumentsArea(): bool
+    {
+        return $this->hasPanelModule(self::PANEL_MODULE_DOCUMENTS);
+    }
+
+    public function canAccessUsersArea(): bool
+    {
+        return $this->hasAnyPanelModules([
+            self::PANEL_MODULE_MAINTENANCE,
+            self::PANEL_MODULE_REFUELS,
+            self::PANEL_MODULE_DOCUMENTS,
+        ]);
+    }
+
+    public function canAccessVehiclesArea(): bool
+    {
+        return $this->hasAnyPanelModules([
+            self::PANEL_MODULE_MAINTENANCE,
+            self::PANEL_MODULE_REFUELS,
+        ]);
+    }
+
+    public function canManageUserDocuments(): bool
+    {
+        return $this->canAccessDocumentsArea();
+    }
+
+    public function setPanelModulesAttribute($value): void
+    {
+        $values = is_array($value) ? $value : (is_null($value) ? [] : [$value]);
+        $values = array_values(array_unique(array_map('strval', $values)));
+        $allowed = self::allowedPanelModules();
+        $sanitized = array_values(array_intersect($allowed, $values));
+
+        $this->attributes['panel_modules'] = empty($sanitized)
+            ? null
+            : json_encode($sanitized, JSON_UNESCAPED_UNICODE);
     }
 
     public function getFullNameAttribute(): string

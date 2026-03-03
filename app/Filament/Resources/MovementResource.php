@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\MovementResource\Pages;
 use App\Models\Movement;
 use App\Models\Station;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Forms\Form;
@@ -13,12 +15,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\DB;
 
 class MovementResource extends Resource
 {
+    use ChecksPanelModules;
+
     protected static ?string $model = Movement::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-refund';
@@ -226,5 +231,30 @@ class MovementResource extends Resource
             'create' => Pages\CreateMovement::route('/create'),
             'edit' => Pages\EditMovement::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_REFUELS]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny();
     }
 }

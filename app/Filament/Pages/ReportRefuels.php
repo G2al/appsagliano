@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Form;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
@@ -60,5 +61,16 @@ class ReportRefuels extends Page
         return [
             RefuelsListTable::class,
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->isAdmin() || $user->canAccessRefuelsArea();
     }
 }

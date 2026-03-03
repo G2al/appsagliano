@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use App\Filament\Widgets\MaintenancesStats;
 use App\Filament\Widgets\MaintenancesBySupplierTable;
 use App\Filament\Widgets\MaintenancesByVehicleTable;
@@ -61,5 +62,16 @@ class ReportMaintenances extends Page
         return [
             MaintenancesListTable::class,
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->isAdmin() || $user->canAccessMaintenanceArea();
     }
 }

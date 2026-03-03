@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\UserDocumentFolderResource\RelationManagers;
 
+use App\Models\User;
 use App\Models\UserDocumentFile;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class FilesRelationManager extends RelationManager
@@ -17,6 +19,17 @@ class FilesRelationManager extends RelationManager
     protected static ?string $title = 'File cartella';
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->canManageUserDocuments();
+    }
 
     public function form(Form $form): Form
     {

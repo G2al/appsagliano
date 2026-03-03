@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\StationResource;
 use App\Models\Station;
+use App\Models\User;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard as BaseDashboard;
@@ -16,6 +17,11 @@ class Dashboard extends BaseDashboard
 
     public function mount(): void
     {
+        $user = auth()->user();
+        if ($user instanceof User && ! $user->canAccessRefuelsArea()) {
+            return;
+        }
+
         $this->notifyLowCreditStations();
     }
 

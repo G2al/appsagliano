@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
 use App\Filament\Resources\UserDocumentFolderResource;
+use App\Models\User;
 use App\Models\UserDocumentFolder;
 use App\Services\UserDocumentFolderTemplateSyncService;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class DocumentFoldersRelationManager extends RelationManager
 {
@@ -16,6 +18,17 @@ class DocumentFoldersRelationManager extends RelationManager
     protected static ?string $title = 'Cartelle documenti';
 
     protected static ?string $recordTitleAttribute = 'title';
+
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->canManageUserDocuments();
+    }
 
     public function table(Table $table): Table
     {
