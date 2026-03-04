@@ -7,7 +7,9 @@ use App\Models\UserDocumentFile;
 use App\Models\UserDocumentFolder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserDocumentController extends Controller
@@ -54,6 +56,9 @@ class UserDocumentController extends Controller
     public function open(Request $request, UserDocumentFile $file): JsonResponse
     {
         $this->authorizeFileAccess($request, $file);
+        if (! $file->opened_at) {
+            $this->validateAccountPassword($request);
+        }
 
         if (! $file->file_path || ! Storage::disk('local')->exists($file->file_path)) {
             abort(404);
@@ -70,6 +75,9 @@ class UserDocumentController extends Controller
     public function download(Request $request, UserDocumentFile $file): StreamedResponse
     {
         $this->authorizeFileAccess($request, $file);
+        if (! $file->opened_at) {
+            $this->validateAccountPassword($request);
+        }
 
         if (! $file->file_path || ! Storage::disk('local')->exists($file->file_path)) {
             abort(404);
@@ -84,6 +92,18 @@ class UserDocumentController extends Controller
             $downloadName,
             ['Content-Type' => $file->mime_type ?: 'application/octet-stream']
         );
+    }
+
+    private function validateAccountPassword(Request $request): void
+    {
+        $password = (string) ($request->input('password') ?? $request->header('X-Document-Password', ''));
+        $user = $request->user();
+
+        if ($password === '' || ! $user || ! Hash::check($password, (string) $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password account non corretta.'],
+            ]);
+        }
     }
 
     private function authorizeFileAccess(Request $request, UserDocumentFile $file): void

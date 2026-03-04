@@ -189,7 +189,22 @@
 
         container.querySelectorAll('.open-document-btn').forEach((button) => {
             button.addEventListener('click', () => {
-                pendingFileId = Number(button.dataset.fileId || 0);
+                const fileId = Number(button.dataset.fileId || 0);
+                const file = getFileById(fileId);
+
+                if (!file) {
+                    return;
+                }
+
+                if (file.opened_at) {
+                    hideAlert();
+                    downloadFile(file.id, file.title || 'documento').catch((error) => {
+                        showAlert(error.message || 'Errore durante apertura documento.');
+                    });
+                    return;
+                }
+
+                pendingFileId = fileId;
                 openConfirmationModal();
             });
         });
@@ -208,9 +223,18 @@
         if (!file) return;
 
         const message = document.getElementById('open-document-message');
+        const passwordInput = document.getElementById('open-document-password');
+        const passwordToggler = document.getElementById('open-document-password-toggler');
         if (message) {
-            message.textContent = `Confermi l'apertura del documento "${file.title || 'Documento'}"?`;
+            message.textContent = `Inserisci la password del tuo account per aprire "${file.title || 'Documento'}".`;
         }
+
+        if (passwordInput) {
+            passwordInput.value = '';
+            passwordInput.type = 'password';
+            passwordInput.setCustomValidity('');
+        }
+        passwordToggler?.classList.remove('show');
 
         if (!openModal) {
             const modalEl = document.getElementById('openDocumentModal');
@@ -219,6 +243,7 @@
         }
 
         openModal.show();
+        setTimeout(() => passwordInput?.focus(), 50);
     };
 
     const parseFileName = (contentDisposition) => {
@@ -241,7 +266,9 @@
         });
 
         if (!response.ok) {
-            throw new Error('Impossibile aprire il documento.');
+            const data = await response.json().catch(() => ({}));
+            const validationMessage = data?.message || Object.values(data?.errors || {})?.[0]?.[0];
+            throw new Error(validationMessage || 'Impossibile aprire il documento.');
         }
 
         const blob = await response.blob();
@@ -265,14 +292,28 @@
         if (!pendingFileId) return;
 
         const button = document.getElementById('confirm-open-document');
+        const passwordInput = document.getElementById('open-document-password');
         const file = getFileById(pendingFileId);
 
         if (!file) return;
 
+        const password = String(passwordInput?.value || '');
+        if (password.length === 0) {
+            if (passwordInput) {
+                passwordInput.setCustomValidity('Inserisci la password.');
+                passwordInput.reportValidity();
+            }
+            return;
+        }
+
         const originalText = button?.textContent || 'Apri documento';
+        let opened = false;
         if (button) {
             button.disabled = true;
             button.textContent = 'Apertura...';
+        }
+        if (passwordInput) {
+            passwordInput.setCustomValidity('');
         }
 
         hideAlert();
@@ -280,23 +321,28 @@
         try {
             const response = await api(`/documents/files/${pendingFileId}/open`, {
                 method: 'POST',
-                body: JSON.stringify({}),
+                body: JSON.stringify({ password }),
             });
 
-            const openedAt = response?.opened_at || new Date().toISOString();
-            file.opened_at = openedAt;
-
+            file.opened_at = response?.opened_at || new Date().toISOString();
             await downloadFile(file.id, file.title || 'documento');
             renderDocuments();
             openModal?.hide();
+            opened = true;
         } catch (error) {
+            if (passwordInput) {
+                passwordInput.setCustomValidity(error.message || 'Password non valida.');
+                passwordInput.reportValidity();
+            }
             showAlert(error.message || 'Errore durante apertura documento.');
         } finally {
             if (button) {
                 button.disabled = false;
                 button.textContent = originalText;
             }
-            pendingFileId = null;
+            if (opened) {
+                pendingFileId = null;
+            }
         }
     };
 
@@ -310,6 +356,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-documents');
         const confirmButton = document.getElementById('confirm-open-document');
+        const passwordInput = document.getElementById('open-document-password');
+        const passwordToggler = document.getElementById('open-document-password-toggler');
+        const openModalElement = document.getElementById('openDocumentModal');
+
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        searchQuery = '';
 
         if (searchInput) {
             searchInput.addEventListener('input', (event) => {
@@ -319,9 +373,40 @@
         }
 
         confirmButton?.addEventListener('click', confirmOpenDocument);
+        passwordInput?.addEventListener('input', () => {
+            passwordInput.setCustomValidity('');
+        });
+        passwordInput?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            event.preventDefault();
+            confirmOpenDocument();
+        });
+        openModalElement?.addEventListener('hidden.bs.modal', () => {
+            pendingFileId = null;
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.type = 'password';
+                passwordInput.setCustomValidity('');
+            }
+            passwordToggler?.classList.remove('show');
+        });
 
         loadDocuments().catch((error) => {
             showAlert(error.message || 'Impossibile caricare i documenti.');
         });
+    });
+
+    window.addEventListener('pageshow', () => {
+        const searchInput = document.getElementById('search-documents');
+        if (!searchInput) {
+            return;
+        }
+
+        searchInput.value = '';
+        searchQuery = '';
+        renderDocuments();
     });
 })();

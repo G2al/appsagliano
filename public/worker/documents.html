@@ -50,7 +50,7 @@
                 <h6 class="title-color mb-0" id="user-greeting">Ciao</h6>
             </div>
             <div class="form-input">
-                <input type="search" class="form-control with-icon" id="search-documents" placeholder="Cerca documento">
+                <input type="search" class="form-control with-icon" id="search-documents" name="documents_search" placeholder="Cerca documento" autocomplete="off" autocapitalize="off" spellcheck="false">
                 <i class="iconsax search-icon" data-icon="search-normal-2"></i>
             </div>
         </div>
@@ -117,11 +117,23 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="openDocumentModalLabel">Conferma apertura</h5>
+                    <h5 class="modal-title" id="openDocumentModalLabel">Verifica password</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0" id="open-document-message">Vuoi aprire questo documento?</p>
+                    <p class="mb-2" id="open-document-message">Inserisci la password del tuo account per aprire il documento.</p>
+                    <div class="auth-form mt-0">
+                        <div class="form-group mb-0">
+                            <div class="position-relative">
+                                <input type="password" class="form-control with-eye" id="open-document-password" placeholder="Password account" autocomplete="current-password">
+                                <i class="iconsax icon" data-icon="lock-2"></i>
+                            </div>
+                            <div class="show-hide toggler" id="open-document-password-toggler">
+                                <i class="iconsax eye-icon icon-eye" data-icon="eye"></i>
+                                <i class="iconsax eye-icon icon-eye-splash" data-icon="eye-slash"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
@@ -137,6 +149,7 @@
     <script src="js/template-setting.js"></script>
     <script src="js/script.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/password-show.js"></script>
     <script src="js/documents.js"></script>
     <script>
         (function () {
