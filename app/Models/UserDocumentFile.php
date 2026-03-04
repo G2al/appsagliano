@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -43,6 +45,7 @@ class UserDocumentFile extends Model
                 return;
             }
 
+            /** @var FilesystemAdapter $disk */
             $disk = Storage::disk('local');
 
             if (! $disk->exists($file->file_path)) {
@@ -99,6 +102,57 @@ class UserDocumentFile extends Model
             'opened_ip' => $ip,
             'opened_user_agent' => $userAgent,
         ])->saveQuietly();
+
+        $this->notifyTelegramFirstOpen();
+    }
+
+    protected function notifyTelegramFirstOpen(): void
+    {
+        $token = env('TELEGRAM_DOCUMENT_OPENED_BOT_TOKEN');
+        $chatId = env('TELEGRAM_DOCUMENT_OPENED_CHAT_ID');
+
+        if (! $token || ! $chatId) {
+            return;
+        }
+
+        $folder = $this->folder()
+            ->with([
+                'user:id,name,surname',
+                'template:id,title',
+            ])
+            ->first();
+
+        $worker = $folder?->user;
+        $workerName = trim((string) ($worker?->name ?? '') . ' ' . (string) ($worker?->surname ?? ''));
+        $workerName = $workerName !== '' ? $workerName : 'N/D';
+        $folderTitle = trim((string) ($folder?->title ?? ''));
+
+        if ($folderTitle === '') {
+            $folderTitle = trim((string) ($folder?->template?->title ?? ''));
+        }
+
+        if ($folderTitle === '') {
+            $folderTitle = $this->user_document_folder_id
+                ? 'Cartella #' . $this->user_document_folder_id
+                : 'N/D';
+        }
+
+        $lines = [];
+        $lines[] = '✅ <b>DOCUMENTO VISUALIZZATO</b>';
+        $lines[] = '👤 <b>Utente:</b> ' . e($workerName);
+        $lines[] = '🗂️ <b>Cartella:</b> ' . e($folderTitle);
+        $lines[] = '📄 <b>Documento:</b> ' . e((string) ($this->title ?? 'N/D'));
+        $lines[] = '🕒 <b>Visualizzato il:</b> ' . ($this->opened_at?->format('d/m/Y H:i:s') ?? now()->format('d/m/Y H:i:s'));
+
+        try {
+            Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => implode("\n", $lines),
+                'parse_mode' => 'HTML',
+            ]);
+        } catch (\Throwable $e) {
+            
+        }
     }
 
     public function downloadName(): string
