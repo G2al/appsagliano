@@ -17,6 +17,13 @@ class UserDocumentFolder extends Model
         'title',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $folder): void {
+            $folder->files()->get()->each->delete();
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

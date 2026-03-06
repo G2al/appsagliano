@@ -28,6 +28,15 @@ class DocumentFolderTemplate extends Model
 
             app(UserDocumentFolderTemplateSyncService::class)->syncTemplateTitle($template);
         });
+
+        static::deleting(function (self $template): void {
+            $template->userFolders()
+                ->with('files')
+                ->get()
+                ->each(function (UserDocumentFolder $folder): void {
+                    $folder->delete();
+                });
+        });
     }
 
     public function userFolders(): HasMany
