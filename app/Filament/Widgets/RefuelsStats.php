@@ -16,6 +16,7 @@ class RefuelsStats extends StatsOverviewWidget
         [$start, $end] = $this->resolveDateRange();
 
         $totals = Movement::query()
+            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->selectRaw('
                 COUNT(*) as movements_count,

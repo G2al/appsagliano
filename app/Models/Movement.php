@@ -31,6 +31,7 @@ class Movement extends Model
         'liters',
         'price',
         'station_charge',
+        'is_voucher',
         'adblue',
         'notes',
         'photo_path',
@@ -44,6 +45,7 @@ class Movement extends Model
         'km_per_liter' => 'decimal:2',
         'price' => 'decimal:2',
         'station_charge' => 'decimal:2',
+        'is_voucher' => 'boolean',
         'adblue' => 'decimal:2',
     ];
 
@@ -277,6 +279,8 @@ class Movement extends Model
             $lines[] = '💶 <b>Prezzo:</b> ' . number_format((float) $this->price, 2, ',', '.') . ' €';
         }
 
+        $lines[] = '<b>Pagamento:</b> ' . ($this->is_voucher ? 'Buono' : 'Credito stazione');
+
         if ($this->adblue !== null) {
             $lines[] = '💧 <b>AdBlue:</b> ' . number_format((float) $this->adblue, 2, ',', '.') . ' L';
         }
@@ -314,3 +318,4 @@ class Movement extends Model
         }
     }
 }
+

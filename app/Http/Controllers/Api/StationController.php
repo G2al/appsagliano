@@ -11,7 +11,7 @@ class StationController extends Controller
     public function index(): JsonResponse
     {
         return response()->json(
-            Station::select('id', 'name', 'address', 'credit_balance')->orderBy('name')->get()
+            Station::select('id', 'name', 'address', 'credit_balance', 'uses_vouchers')->orderBy('name')->get()
         );
     }
 }

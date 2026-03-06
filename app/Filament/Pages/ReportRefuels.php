@@ -18,7 +18,7 @@ class ReportRefuels extends Page
     use HasFiltersForm;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    protected static ?string $navigationLabel = 'Report rifornimenti';
+    protected static ?string $navigationLabel = 'Report rifornimenti (credito)';
     protected static ?string $navigationGroup = 'Report';
     protected static string $view = 'filament.pages.report-refuels';
 

@@ -221,6 +221,15 @@
                                 <input type="number" class="form-control" name="price" min="0" step="0.01" required>
                                 <div class="form-text text-info small mt-1" style="font-size: 12px;">Info: il prezzo deve essere maggiore dei litri.</div>
                             </div>
+                            <div class="col-12 movement-step d-none" data-movement-step="6" id="voucher-toggle-wrapper">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="is-voucher" name="is_voucher">
+                                    <label class="form-check-label" for="is-voucher">Rifornimento con buono</label>
+                                </div>
+                                <div class="form-text text-info small mt-1" style="font-size: 12px;">
+                                    Se attivo, il prezzo non scala il credito della stazione.
+                                </div>
+                            </div>
                             <div class="col-12 movement-step d-none" data-movement-step="6">
                                 <div id="ticket-efficiency" class="mt-2 d-none"></div>
                             </div>
@@ -281,3 +290,5 @@
 </body>
 
 </html>
+
+

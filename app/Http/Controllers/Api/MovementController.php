@@ -94,6 +94,7 @@ class MovementController extends Controller
             'km_end' => ['required', 'integer', 'min:0'],
             'liters' => ['required', 'numeric', 'min:0'],
             'price' => ['required', 'numeric', 'min:0', 'gt:liters'],
+            'is_voucher' => ['nullable', 'boolean'],
             'adblue' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'photo' => ['required', 'file', 'max:16384'],
@@ -125,9 +126,20 @@ class MovementController extends Controller
             $photoPath = $request->file('photo')->store('receipts', 'public');
         }
 
-        $station = Station::select('id', 'credit_balance')->find($validated['station_id']);
+        $station = Station::select('id', 'credit_balance', 'uses_vouchers')->find($validated['station_id']);
+        $stationUsesVouchers = (bool) ($station?->uses_vouchers ?? false);
+        $requestedVoucher = $request->boolean('is_voucher');
+
+        if ($requestedVoucher && ! $stationUsesVouchers) {
+            throw ValidationException::withMessages([
+                'is_voucher' => ['La stazione selezionata non consente rifornimenti con buono.'],
+            ]);
+        }
+
+        $isVoucher = $stationUsesVouchers && $requestedVoucher;
+
         $stationCharge = ($station && $station->credit_balance !== null)
-            ? (float) $validated['price']
+            ? ($isVoucher ? 0.0 : (float) $validated['price'])
             : 0.0;
 
         if ($stationCharge > 0) {
@@ -153,13 +165,14 @@ class MovementController extends Controller
             ]);
         }
 
-        $movement = DB::transaction(function () use ($validated, $photoPath, $stationCharge, $user, $kmStart) {
+        $movement = DB::transaction(function () use ($validated, $photoPath, $stationCharge, $isVoucher, $user, $kmStart) {
             $movement = Movement::create([
                 ...$validated,
                 'km_start' => $kmStart,
                 'photo_path' => $photoPath,
                 'user_id' => $user->id,
                 'station_charge' => $stationCharge,
+                'is_voucher' => $isVoucher,
             ]);
 
             if ($stationCharge > 0 && ! empty($validated['station_id'])) {

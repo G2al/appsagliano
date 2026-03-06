@@ -21,11 +21,22 @@ class CreateMovement extends CreateRecord
         }
 
         $station = isset($data['station_id'])
-            ? Station::select('id', 'credit_balance')->find($data['station_id'])
+            ? Station::select('id', 'credit_balance', 'uses_vouchers')->find($data['station_id'])
             : null;
 
+        $requestedVoucher = (bool) ($data['is_voucher'] ?? false);
+        $canUseVoucher = (bool) ($station?->uses_vouchers ?? false);
+
+        if ($requestedVoucher && ! $canUseVoucher) {
+            throw ValidationException::withMessages([
+                'is_voucher' => ['La stazione selezionata non consente rifornimenti con buono.'],
+            ]);
+        }
+
+        $data['is_voucher'] = $canUseVoucher && $requestedVoucher;
+
         $data['station_charge'] = ($station && $station->credit_balance !== null)
-            ? (float) ($data['price'] ?? 0)
+            ? ($data['is_voucher'] ? 0.0 : (float) ($data['price'] ?? 0))
             : 0.0;
 
         if ($data['station_charge'] > 0) {

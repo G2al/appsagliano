@@ -15,10 +15,12 @@ class Station extends Model
         'name',
         'address',
         'credit_balance',
+        'uses_vouchers',
     ];
 
     protected $casts = [
         'credit_balance' => 'decimal:2',
+        'uses_vouchers' => 'boolean',
     ];
 
     public function movements(): HasMany

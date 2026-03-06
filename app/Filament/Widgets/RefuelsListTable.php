@@ -24,6 +24,7 @@ class RefuelsListTable extends BaseWidget
 
         return Movement::query()
             ->with(['vehicle', 'station', 'user'])
+            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }

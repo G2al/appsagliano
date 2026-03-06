@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\StationResource\Pages;
-use App\Filament\Resources\StationResource\RelationManagers;
 use App\Models\Station;
 use App\Models\User;
 use Filament\Forms;
@@ -40,11 +39,15 @@ class StationResource extends Resource
                     ->nullable(),
                 Forms\Components\TextInput::make('credit_balance')
                     ->label('Credito carta')
-                    ->prefix('€')
+                    ->prefix('EUR')
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0)
                     ->nullable(),
+                Forms\Components\Toggle::make('uses_vouchers')
+                    ->label('Utilizza buoni')
+                    ->default(false)
+                    ->inline(false),
             ]);
     }
 
@@ -62,7 +65,11 @@ class StationResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('credit_balance')
                     ->label('Credito carta')
-                    ->formatStateUsing(fn ($state) => $state === null ? '—' : '€ ' . number_format((float) $state, 2, ',', '.'))
+                    ->formatStateUsing(fn ($state) => $state === null ? '-' : 'EUR ' . number_format((float) $state, 2, ',', '.'))
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('uses_vouchers')
+                    ->label('Buoni')
+                    ->boolean()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creata il')

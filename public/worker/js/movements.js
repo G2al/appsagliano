@@ -69,6 +69,27 @@
         box.classList.add('d-none');
     };
 
+    const stationSupportsVouchers = () => {
+        const stationSelect = document.getElementById('station-select');
+        if (!stationSelect) return false;
+        const station = stationsById.get(String(stationSelect.value || ''));
+        return Boolean(station?.uses_vouchers);
+    };
+
+    const updateVoucherAvailabilityFromSelection = () => {
+        const wrapper = document.getElementById('voucher-toggle-wrapper');
+        const input = document.querySelector('#movement-form [name="is_voucher"]');
+        if (!wrapper || !input) return;
+
+        if (stationSupportsVouchers()) {
+            wrapper.classList.remove('d-none');
+            return;
+        }
+
+        input.checked = false;
+        wrapper.classList.add('d-none');
+    };
+
     const api = async (path, options = {}) => {
         const token = getToken();
         const headers = {
@@ -130,6 +151,8 @@
             const liters = movement?.liters ? `${movement.liters} L` : '—';
             const price = movement?.price ? `${movement.price} €` : '—';
             const adblue = movement?.adblue ? `${movement.adblue} L AdBlue` : null;
+            const isVoucher = Boolean(movement?.is_voucher);
+            const paymentLabel = isVoucher ? 'Buono' : 'Credito';
             const ticketKmPerLiter = movement?.km_per_liter ?? null;
             const ticketKmPerLiterFormatted = formatKmPerLiter(ticketKmPerLiter);
             const ticketKmPerLiterBadgeClass = getKmPerLiterBadgeClass(ticketKmPerLiter);
@@ -168,6 +191,7 @@
                             <ul class="content-list">
                                 <li><i class="iconsax icon" data-icon="map"></i>${stationName}</li>
                                 <li><i class="iconsax icon" data-icon="car"></i>${vehicleName} (${vehiclePlate})</li>
+                                <li>Pagamento: ${paymentLabel}</li>
                                 <li><i class="iconsax icon" data-icon="speedometer"></i>Media ticket: ${ticketKmPerLiterBadge}</li>
                                 ${adblue ? `<li><i class="iconsax icon" data-icon="drop"></i>${adblue}</li>` : ''}
                             </ul>
@@ -399,9 +423,14 @@
         }
 
         form.querySelectorAll('.movement-step').forEach((el) => {
+            if (el.id === 'voucher-toggle-wrapper') {
+                return;
+            }
             const step = Number(el.dataset.movementStep || '1');
             el.classList.toggle('d-none', stage < step);
         });
+
+        updateVoucherAvailabilityFromSelection();
     };
 
     const updateTicketEfficiencyFromForm = () => {
@@ -489,9 +518,11 @@
                 stationSelect.innerHTML = `<option value="">Seleziona</option>` + stationOptions;
                 stationSelect.onchange = () => {
                     updateStationCreditFromSelection();
+                    updateVoucherAvailabilityFromSelection();
                     updateMovementSteps();
                 };
                 updateStationCreditFromSelection();
+                updateVoucherAvailabilityFromSelection();
             }
 
             if (vehicleSelect) {
@@ -609,6 +640,8 @@
             if (value !== '') formData.append(field, value);
         });
 
+        formData.append('is_voucher', form.elements['is_voucher']?.checked ? '1' : '0');
+
         if (form.photo && form.photo.files.length) {
             formData.append('photo', form.photo.files[0]);
             }
@@ -626,9 +659,10 @@
 
             const stationIdForLocal = form.station_id?.value;
             const priceForLocal = Number(form.price?.value);
+            const isVoucherForLocal = Boolean(form.elements['is_voucher']?.checked);
             if (stationIdForLocal && Number.isFinite(priceForLocal)) {
                 const station = stationsById.get(stationIdForLocal);
-                if (station && station.credit_balance !== null && station.credit_balance !== undefined && station.credit_balance !== '') {
+                if (!isVoucherForLocal && station && station.credit_balance !== null && station.credit_balance !== undefined && station.credit_balance !== '') {
                     const current = Number(station.credit_balance);
                     const nextBalance = Number.isFinite(current) ? current - priceForLocal : station.credit_balance;
                     stationsById.set(stationIdForLocal, { ...station, credit_balance: nextBalance });
@@ -652,6 +686,7 @@
             updateVehicleEfficiencyFromSelection();
             updateTicketEfficiencyFromForm();
             updateStationCreditFromSelection();
+            updateVoucherAvailabilityFromSelection();
             updateMovementSteps();
             await loadMovements();
         } catch (error) {
@@ -683,6 +718,7 @@
             if (form) {
                 form.reset();
                 updateStationCreditFromSelection();
+                updateVoucherAvailabilityFromSelection();
                 updateVehicleEfficiencyFromSelection();
                 updateTicketEfficiencyFromForm();
             }
@@ -699,6 +735,7 @@
                 dateInput.value = formatted;
             }
             await updateKmStartFromSelection();
+            updateVoucherAvailabilityFromSelection();
             updateMovementSteps();
         });
         const movementModal = document.getElementById('movementModal');
@@ -753,3 +790,4 @@
         updateMovementSteps();
     });
 })();
+

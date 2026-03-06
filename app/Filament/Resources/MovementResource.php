@@ -9,6 +9,7 @@ use App\Models\Station;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -58,6 +59,12 @@ class MovementResource extends Resource
                                 ->toArray())
                             ->searchable()
                             ->preload()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if (! static::stationUsesVouchers($state)) {
+                                    $set('is_voucher', false);
+                                }
+                            })
                             ->required(),
                         Forms\Components\Select::make('vehicle_id')
                             ->label('Veicolo')
@@ -120,6 +127,12 @@ class MovementResource extends Resource
                                 };
                             })
                             ->required(),
+                        Forms\Components\Toggle::make('is_voucher')
+                            ->label('Rifornimento con buono')
+                            ->inline(false)
+                            ->helperText('Disponibile solo per stazioni abilitate ai buoni. Se attivo, non scala il credito stazione.')
+                            ->visible(fn (Get $get): bool => static::stationUsesVouchers($get('station_id')))
+                            ->default(false),
                         Forms\Components\TextInput::make('adblue')
                             ->label('AdBlue')
                             ->numeric()
@@ -180,6 +193,12 @@ class MovementResource extends Resource
                     ->label('Prezzo')
                     ->money('EUR', true)
                     ->sortable(),
+                Tables\Columns\TextColumn::make('is_voucher')
+                    ->label('Pagamento')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => (bool) $state ? 'Buono' : 'Credito')
+                    ->color(fn ($state): string => (bool) $state ? 'warning' : 'success')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creato il')
                     ->dateTime('d/m/Y H:i')
@@ -213,6 +232,17 @@ class MovementResource extends Resource
                     Tables\Actions\ForceDeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function stationUsesVouchers(mixed $stationId): bool
+    {
+        if (! $stationId) {
+            return false;
+        }
+
+        return (bool) Station::query()
+            ->whereKey($stationId)
+            ->value('uses_vouchers');
     }
 
     public static function getEloquentQuery(): Builder

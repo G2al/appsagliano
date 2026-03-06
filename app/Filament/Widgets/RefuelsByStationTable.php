@@ -22,6 +22,7 @@ class RefuelsByStationTable extends BaseWidget
         [$start, $end] = $this->resolveDateRange();
 
         return Movement::query()
+            ->where('movements.is_voucher', false)
             ->selectRaw("
                 MIN(movements.id) as id,
                 stations.id as station_id,
@@ -77,6 +78,7 @@ class RefuelsByStationTable extends BaseWidget
 
         $rows = Movement::with(['vehicle', 'station'])
             ->where('station_id', $stationId)
+            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date')
             ->limit(50)
