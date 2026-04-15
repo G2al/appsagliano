@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use App\Models\Station;
 use App\Models\Vehicle;
@@ -10,10 +11,12 @@ use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class RefuelsListTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Movimenti rifornimento';
@@ -32,6 +35,7 @@ class RefuelsListTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('date')
                 ->label('Data')
                 ->dateTime('d/m/Y H:i')
@@ -73,6 +77,11 @@ class RefuelsListTable extends BaseWidget
                 ->openUrlInNewTab()
                 ->toggleable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'movement:' . $record->getKey();
     }
 
     protected function getTableFilters(): array

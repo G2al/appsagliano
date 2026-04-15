@@ -2,17 +2,20 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Maintenance;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
 class MaintenancesByVehicleTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Manutenzioni per veicolo';
@@ -47,6 +50,7 @@ class MaintenancesByVehicleTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')))
@@ -59,6 +63,11 @@ class MaintenancesByVehicleTable extends BaseWidget
                 ->label('Interventi')
                 ->sortable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'vehicle:' . (int) $record->vehicle_id;
     }
 
     protected function getTableActions(): array

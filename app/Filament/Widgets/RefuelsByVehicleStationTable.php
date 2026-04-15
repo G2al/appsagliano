@@ -2,17 +2,20 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
 class RefuelsByVehicleStationTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Spesa per veicolo / stazione';
@@ -43,6 +46,7 @@ class RefuelsByVehicleStationTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->vehicle_name ?? '')))
@@ -62,6 +66,11 @@ class RefuelsByVehicleStationTable extends BaseWidget
                 ->label('Movimenti')
                 ->sortable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'vehicle:' . (int) $record->vehicle_id . '|station:' . (int) $record->station_id;
     }
 
     protected function getTableActions(): array

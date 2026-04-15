@@ -2,17 +2,20 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
 class RefuelsByStationTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Rifornimenti per stazione';
@@ -39,6 +42,7 @@ class RefuelsByStationTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('name')
                 ->label('Stazione')
                 ->searchable(['stations.name']),
@@ -54,6 +58,11 @@ class RefuelsByStationTable extends BaseWidget
                 ->label('Movimenti')
                 ->sortable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'station:' . (int) $record->station_id;
     }
 
     protected function getTableActions(): array

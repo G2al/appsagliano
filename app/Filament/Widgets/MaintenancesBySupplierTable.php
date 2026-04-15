@@ -2,17 +2,20 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Maintenance;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
 class MaintenancesBySupplierTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Manutenzioni per fornitore';
@@ -46,6 +49,7 @@ class MaintenancesBySupplierTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('name')
                 ->label('Fornitore')
                 ->searchable(['suppliers.name']),
@@ -57,6 +61,11 @@ class MaintenancesBySupplierTable extends BaseWidget
                 ->label('Interventi')
                 ->sortable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'supplier:' . (int) $record->supplier_id;
     }
 
     protected function getTableActions(): array

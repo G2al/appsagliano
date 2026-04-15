@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Maintenance;
 use App\Models\Supplier;
 use App\Models\Vehicle;
@@ -10,10 +11,13 @@ use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class MaintenancesListTable extends BaseWidget
 {
     use InteractsWithPageFilters;
+    use InteractsWithReportTableChecks;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Movimenti manutenzione';
 
@@ -30,6 +34,7 @@ class MaintenancesListTable extends BaseWidget
     protected function getTableColumns(): array
     {
         return [
+            $this->getReportTableCheckColumn(),
             Tables\Columns\TextColumn::make('date')
                 ->label('Data')
                 ->dateTime('d/m/Y H:i')
@@ -66,6 +71,11 @@ class MaintenancesListTable extends BaseWidget
                 ->openUrlInNewTab()
                 ->toggleable(),
         ];
+    }
+
+    protected function getReportTableRowKey(Model $record): string
+    {
+        return 'maintenance:' . $record->getKey();
     }
 
     protected function getTableFilters(): array
