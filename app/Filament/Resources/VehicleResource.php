@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\VehicleResource\Pages;
-use App\Filament\Resources\VehicleResource\RelationManagers;
+use App\Filament\Resources\VehicleResource\RelationManagers\DocumentsRelationManager;
 use App\Models\Movement;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -157,7 +157,7 @@ class VehicleResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            DocumentsRelationManager::class,
         ];
     }
 

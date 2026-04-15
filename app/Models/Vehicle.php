@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Movement;
 
 class Vehicle extends Model
 {
@@ -19,6 +18,13 @@ class Vehicle extends Model
         'maintenance_km',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $vehicle): void {
+            $vehicle->documents()->get()->each->delete();
+        });
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(Movement::class);
@@ -27,5 +33,10 @@ class Vehicle extends Model
     public function maintenances(): HasMany
     {
         return $this->hasMany(Maintenance::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(VehicleDocument::class)->latest('id');
     }
 }
