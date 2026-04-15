@@ -25,6 +25,7 @@ class Maintenance extends Model
         'km_after',
         'next_maintenance_date',
         'price',
+        'vat_percentage',
         'invoice_number',
         'notes',
         'attachment_path',
@@ -36,6 +37,7 @@ class Maintenance extends Model
         'km_after' => 'integer',
         'next_maintenance_date' => 'date',
         'price' => 'decimal:2',
+        'vat_percentage' => 'decimal:2',
         'next_maintenance_alert_sent_at' => 'datetime',
     ];
 
@@ -52,6 +54,12 @@ class Maintenance extends Model
                 $maintenance->isDirty('vehicle_id')
             ) {
                 $maintenance->next_maintenance_alert_sent_at = null;
+            }
+        });
+
+        static::creating(function (self $maintenance): void {
+            if ($maintenance->vat_percentage === null) {
+                $maintenance->vat_percentage = VatSetting::currentPercentage();
             }
         });
 

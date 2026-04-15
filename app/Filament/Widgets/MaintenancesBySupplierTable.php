@@ -30,6 +30,7 @@ class MaintenancesBySupplierTable extends BaseWidget
                 suppliers.id as supplier_id,
                 suppliers.name,
                 SUM(maintenances.price) as price_total,
+                ROUND(SUM(maintenances.price * (1 + (COALESCE(maintenances.vat_percentage, 0) / 100))), 2) as price_total_with_vat,
                 COUNT(*) as maintenances_count
             ")
             ->join('suppliers', 'suppliers.id', '=', 'maintenances.supplier_id')
@@ -55,6 +56,10 @@ class MaintenancesBySupplierTable extends BaseWidget
                 ->searchable(['suppliers.name']),
             Tables\Columns\TextColumn::make('price_total')
                 ->label('Spesa')
+                ->money('EUR', true)
+                ->sortable(),
+            Tables\Columns\TextColumn::make('price_total_with_vat')
+                ->label('Spesa (IVA)')
                 ->money('EUR', true)
                 ->sortable(),
             Tables\Columns\TextColumn::make('maintenances_count')
