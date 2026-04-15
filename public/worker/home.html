@@ -199,9 +199,11 @@
                             </div>
                             <div class="col-12 movement-step d-none" data-movement-step="2">
                                 <label class="form-label mb-1">Veicolo</label>
+                                <input type="search" class="form-control mb-2" id="movement-vehicle-search" placeholder="Cerca targa o nome veicolo" autocomplete="off">
                                 <select class="form-select" name="vehicle_id" id="vehicle-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
+                                <small class="text-muted d-block mt-1" id="movement-last-vehicle-hint">Cerca per targa o nome del veicolo.</small>
                                 <div id="vehicle-efficiency" class="mt-2 d-none"></div>
                             </div>
                             <div class="col-6 movement-step d-none" data-movement-step="3">
@@ -290,5 +292,4 @@
 </body>
 
 </html>
-
 

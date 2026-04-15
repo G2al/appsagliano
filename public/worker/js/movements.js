@@ -61,6 +61,83 @@
         return 'bg-success';
     };
 
+    const formatVehicleLabel = (vehicle) => {
+        if (!vehicle) return 'Senza nome';
+        return [vehicle.plate, vehicle.name].filter(Boolean).join(' - ') || 'Senza nome';
+    };
+
+    const getVehicleSearchQuery = () =>
+        String(document.getElementById('movement-vehicle-search')?.value || '').trim().toLowerCase();
+
+    const getFilteredVehicles = () => {
+        const query = getVehicleSearchQuery();
+        if (!query) {
+            return vehiclesCache;
+        }
+
+        return vehiclesCache.filter((vehicle) => {
+            const searchable = [vehicle?.plate, vehicle?.name]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return searchable.includes(query);
+        });
+    };
+
+    const updateVehicleSelectionHint = (selectedVehicleId = null) => {
+        const hint = document.getElementById('movement-last-vehicle-hint');
+        if (!hint) return;
+
+        const query = getVehicleSearchQuery();
+        const filteredVehicles = getFilteredVehicles();
+        const effectiveVehicleId = String(selectedVehicleId ?? document.getElementById('vehicle-select')?.value ?? '');
+        const selectedVehicle = vehiclesById.get(effectiveVehicleId);
+        const lastVehicle = vehiclesById.get(String(getLastVehicle()));
+
+        if (query && filteredVehicles.length === 0) {
+            hint.textContent = 'Nessun veicolo trovato per questa ricerca.';
+            return;
+        }
+
+        if (selectedVehicle && effectiveVehicleId !== '') {
+            const prefix = effectiveVehicleId === String(getLastVehicle())
+                ? 'Ultimo veicolo usato selezionato'
+                : 'Veicolo selezionato';
+            hint.textContent = `${prefix}: ${formatVehicleLabel(selectedVehicle)}`;
+            return;
+        }
+
+        if (lastVehicle) {
+            hint.textContent = `Ultimo veicolo usato: ${formatVehicleLabel(lastVehicle)}`;
+            return;
+        }
+
+        hint.textContent = 'Cerca per targa o nome del veicolo.';
+    };
+
+    const syncVehicleSelectOptions = async (preferredVehicleId = null) => {
+        const vehicleSelect = document.getElementById('vehicle-select');
+        if (!vehicleSelect) return;
+
+        const nextValue = String(preferredVehicleId ?? vehicleSelect.value ?? '');
+        const filteredVehicles = getFilteredVehicles();
+
+        vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + filteredVehicles
+            .map((vehicle) => `<option value="${vehicle.id}">${formatVehicleLabel(vehicle)}</option>`)
+            .join('');
+
+        if (filteredVehicles.some((vehicle) => String(vehicle.id) === nextValue)) {
+            vehicleSelect.value = nextValue;
+        } else {
+            vehicleSelect.value = '';
+        }
+
+        updateVehicleSelectionHint(vehicleSelect.value);
+        await updateKmStartFromSelection();
+        updateVehicleEfficiencyFromSelection();
+    };
+
     const updateStationCreditFromSelection = () => {
         const box = document.getElementById('station-credit');
         if (!box) return;
@@ -526,31 +603,22 @@
             }
 
             if (vehicleSelect) {
-                const vehicleOptions = vehicles.map((v) => {
-                    const label = [v.plate, v.name].filter(Boolean).join(' - ') || 'Senza nome';
-                    return `<option value="${v.id}">${label}</option>`;
-                }).join('');
-                vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + vehicleOptions;
+                vehiclesCache = Array.isArray(vehicles) ? vehicles : [];
 
                 // Ripristina l'ultimo veicolo selezionato
                 const lastVehicle = getLastVehicle();
-                if (lastVehicle) {
-                    vehicleSelect.value = lastVehicle;
-                }
 
                 vehicleSelect.onchange = async () => {
                     await updateKmStartFromSelection();
                     updateVehicleEfficiencyFromSelection();
+                    updateVehicleSelectionHint(vehicleSelect.value);
                     updateMovementSteps();
                     if (vehicleSelect.value) {
                         setLastVehicle(vehicleSelect.value);
                     }
                 };
-                await updateKmStartFromSelection();
-                updateVehicleEfficiencyFromSelection();
-                updateMovementSteps();
+                await syncVehicleSelectOptions(lastVehicle || vehicleSelect.value || '');
                 if (isAdmin) {
-                    vehiclesCache = vehicles;
                     renderVehicleTabs();
                 }
             }
@@ -706,21 +774,29 @@
             searchInput.addEventListener('input', (e) => filterMovements(e.target.value || ''));
         }
 
+        const vehicleSearchInput = document.getElementById('movement-vehicle-search');
+        vehicleSearchInput?.addEventListener('input', async () => {
+            await syncVehicleSelectOptions();
+        });
+
         const submitBtn = document.getElementById('movement-submit');
         if (submitBtn) {
             submitBtn.addEventListener('click', submitMovement);
         }
 
-        document.getElementById('movementModal')?.addEventListener('show.bs.modal', loadOptions);
         document.getElementById('movementModal')?.addEventListener('show.bs.modal', async () => {
             const form = document.getElementById('movement-form');
             const alertBox = document.getElementById('movement-alert');
+            const vehicleSearch = document.getElementById('movement-vehicle-search');
             if (form) {
                 form.reset();
                 updateStationCreditFromSelection();
                 updateVoucherAvailabilityFromSelection();
                 updateVehicleEfficiencyFromSelection();
                 updateTicketEfficiencyFromForm();
+            }
+            if (vehicleSearch) {
+                vehicleSearch.value = '';
             }
             if (alertBox) {
                 alertBox.classList.add('d-none');
@@ -734,9 +810,8 @@
                 const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
                 dateInput.value = formatted;
             }
-            await updateKmStartFromSelection();
-            updateVoucherAvailabilityFromSelection();
-            updateMovementSteps();
+            await loadOptions();
+            updateVehicleSelectionHint();
         });
         const movementModal = document.getElementById('movementModal');
         if (movementModal) {
@@ -788,6 +863,6 @@
         loadOptions();
         loadMovements();
         updateMovementSteps();
+        updateVehicleSelectionHint();
     });
 })();
-

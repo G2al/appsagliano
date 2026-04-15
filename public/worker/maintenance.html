@@ -153,9 +153,11 @@
                             </div>
                             <div class="col-12 maintenance-step d-none" data-maintenance-step="2">
                                 <label class="form-label mb-1">Veicolo</label>
+                                <input type="search" class="form-control mb-2" id="maintenance-vehicle-search" placeholder="Cerca targa o nome veicolo" autocomplete="off">
                                 <select class="form-select" name="vehicle_id" id="vehicle-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
+                                <small class="text-muted d-block mt-1" id="maintenance-last-vehicle-hint">Cerca per targa o nome del veicolo.</small>
                             </div>
                             <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
                                 <label class="form-label mb-1">Km manutenzione</label>

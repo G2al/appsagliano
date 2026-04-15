@@ -5,6 +5,7 @@
     const LAST_VEHICLE_KEY = 'app_sagliano_last_vehicle';
 
     let maintenancesCache = [];
+    let vehiclesCache = [];
     let vehiclesById = new Map();
     let selectedVehicleId = '';
     let searchQuery = '';
@@ -21,6 +22,82 @@
     };
     const getLastVehicle = () => localStorage.getItem(LAST_VEHICLE_KEY) || '';
     const setLastVehicle = (vehicleId) => vehicleId && localStorage.setItem(LAST_VEHICLE_KEY, vehicleId);
+
+    const formatVehicleLabel = (vehicle) => {
+        if (!vehicle) return 'Senza nome';
+        return [vehicle.plate, vehicle.name].filter(Boolean).join(' - ') || 'Senza nome';
+    };
+
+    const getVehicleSearchQuery = () =>
+        String(document.getElementById('maintenance-vehicle-search')?.value || '').trim().toLowerCase();
+
+    const getFilteredVehicles = () => {
+        const query = getVehicleSearchQuery();
+        if (!query) {
+            return vehiclesCache;
+        }
+
+        return vehiclesCache.filter((vehicle) => {
+            const searchable = [vehicle?.plate, vehicle?.name]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return searchable.includes(query);
+        });
+    };
+
+    const updateVehicleSelectionHint = (selectedVehicleId = null) => {
+        const hint = document.getElementById('maintenance-last-vehicle-hint');
+        if (!hint) return;
+
+        const query = getVehicleSearchQuery();
+        const filteredVehicles = getFilteredVehicles();
+        const effectiveVehicleId = String(selectedVehicleId ?? document.getElementById('vehicle-select')?.value ?? '');
+        const selectedVehicle = vehiclesById.get(effectiveVehicleId);
+        const lastVehicle = vehiclesById.get(String(getLastVehicle()));
+
+        if (query && filteredVehicles.length === 0) {
+            hint.textContent = 'Nessun veicolo trovato per questa ricerca.';
+            return;
+        }
+
+        if (selectedVehicle && effectiveVehicleId !== '') {
+            const prefix = effectiveVehicleId === String(getLastVehicle())
+                ? 'Ultimo veicolo usato selezionato'
+                : 'Veicolo selezionato';
+            hint.textContent = `${prefix}: ${formatVehicleLabel(selectedVehicle)}`;
+            return;
+        }
+
+        if (lastVehicle) {
+            hint.textContent = `Ultimo veicolo usato: ${formatVehicleLabel(lastVehicle)}`;
+            return;
+        }
+
+        hint.textContent = 'Cerca per targa o nome del veicolo.';
+    };
+
+    const syncVehicleSelectOptions = (preferredVehicleId = null) => {
+        const vehicleSelect = document.getElementById('vehicle-select');
+        if (!vehicleSelect) return;
+
+        const nextValue = String(preferredVehicleId ?? vehicleSelect.value ?? '');
+        const filteredVehicles = getFilteredVehicles();
+
+        vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + filteredVehicles
+            .map((vehicle) => `<option value="${vehicle.id}">${formatVehicleLabel(vehicle)}</option>`)
+            .join('');
+
+        if (filteredVehicles.some((vehicle) => String(vehicle.id) === nextValue)) {
+            vehicleSelect.value = nextValue;
+        } else {
+            vehicleSelect.value = '';
+        }
+
+        updateKmCurrent();
+        updateVehicleSelectionHint(vehicleSelect.value);
+    };
 
     const api = async (path, options = {}) => {
         const token = getToken();
@@ -228,6 +305,7 @@
                 api('/vehicles'),
             ]);
 
+            vehiclesCache = Array.isArray(vehicles) ? vehicles : [];
             vehiclesById = new Map(vehicles.map((v) => [String(v.id), v]));
             const supplierSelect = document.getElementById('supplier-select');
             const vehicleSelect = document.getElementById('vehicle-select');
@@ -238,16 +316,13 @@
             }
 
             if (vehicleSelect) {
-                const vehicleOptions = vehicles.map((v) => {
-                    const label = [v.plate, v.name].filter(Boolean).join(' - ') || 'Senza nome';
-                    return `<option value="${v.id}">${label}</option>`;
-                }).join('');
-                vehicleSelect.innerHTML = `<option value="">Seleziona</option>` + vehicleOptions;
-                updateKmCurrent();
-                vehicleSelect.addEventListener('change', () => {
+                const lastVehicle = getLastVehicle();
+                vehicleSelect.onchange = () => {
                     updateKmCurrent();
+                    updateVehicleSelectionHint(vehicleSelect.value);
                     if (vehicleSelect.value) setLastVehicle(vehicleSelect.value);
-                });
+                };
+                syncVehicleSelectOptions(lastVehicle || vehicleSelect.value || '');
                 renderVehicleTabs(isAdmin ? vehicles.map((v) => ({ id: v.id, label: v.plate || v.name })) : deriveVehiclesFromMaintenances());
             }
         } catch (_) {
@@ -417,12 +492,21 @@
             searchInput.addEventListener('input', (e) => filterMaintenances(e.target.value || ''));
         }
 
+        const vehicleSearchInput = document.getElementById('maintenance-vehicle-search');
+        vehicleSearchInput?.addEventListener('input', () => {
+            syncVehicleSelectOptions();
+        });
+
         document.getElementById('maintenance-submit')?.addEventListener('click', submitMaintenance);
         document.getElementById('maintenanceModal')?.addEventListener('show.bs.modal', () => {
             const form = document.getElementById('maintenance-form');
             const alertBox = document.getElementById('maintenance-alert');
+            const vehicleSearch = document.getElementById('maintenance-vehicle-search');
             if (form) {
                 form.reset();
+            }
+            if (vehicleSearch) {
+                vehicleSearch.value = '';
             }
             if (alertBox) {
                 alertBox.classList.add('d-none');
@@ -431,6 +515,7 @@
             setDefaultDate();
             loadOptions();
             updateMaintenanceSteps();
+            updateVehicleSelectionHint();
         });
 
         ['supplier_id', 'vehicle_id', 'km', 'km_after', 'next_maintenance_date', 'invoice_number', 'price', 'notes', 'attachment'].forEach((name) => {
@@ -443,5 +528,6 @@
         loadOptions().then(setDefaultDate);
         loadMaintenances();
         updateMaintenanceSteps();
+        updateVehicleSelectionHint();
     });
 })();
