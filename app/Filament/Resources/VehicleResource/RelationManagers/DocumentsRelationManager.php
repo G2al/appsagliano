@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\Storage;
 class DocumentsRelationManager extends RelationManager
 {
     private const MAX_FILES = 10;
+    private const ACCEPTED_FILE_TYPES = ['image/*', 'application/pdf'];
 
     protected static string $relationship = 'documents';
 
-    protected static ?string $title = 'Foto veicolo';
+    protected static ?string $title = 'Documenti veicolo';
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -25,11 +26,22 @@ class DocumentsRelationManager extends RelationManager
         return $table
             ->paginated(false)
             ->columns([
-                Tables\Columns\ImageColumn::make('file_path')
-                    ->label('Foto')
-                    ->disk('public')
-                    ->square()
-                    ->size(84),
+                Tables\Columns\IconColumn::make('mime_type')
+                    ->label('Tipo')
+                    ->icon(fn (?string $state): string => match (true) {
+                        str_starts_with((string) $state, 'image/') => 'heroicon-o-photo',
+                        $state === 'application/pdf' => 'heroicon-o-document-text',
+                        default => 'heroicon-o-document',
+                    })
+                    ->color(fn (?string $state): string => match (true) {
+                        str_starts_with((string) $state, 'image/') => 'primary',
+                        $state === 'application/pdf' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('file_path')
+                    ->label('File')
+                    ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'N/D')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('file_size')
                     ->label('Dimensione')
                     ->formatStateUsing(fn ($state): string => $this->formatBytes((int) ($state ?? 0))),
@@ -40,21 +52,21 @@ class DocumentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\Action::make('upload_photos')
-                    ->label('Carica foto')
-                    ->icon('heroicon-o-photo')
+                    ->label('Carica file')
+                    ->icon('heroicon-o-arrow-up-tray')
                     ->visible(fn (): bool => $this->remainingSlots() > 0)
-                    ->modalHeading('Carica foto veicolo')
+                    ->modalHeading('Carica documenti veicolo')
                     ->form([
                         Forms\Components\FileUpload::make('files')
-                            ->label('Foto')
-                            ->image()
+                            ->label('File')
                             ->multiple()
+                            ->acceptedFileTypes(self::ACCEPTED_FILE_TYPES)
                             ->disk('public')
                             ->directory(fn (): string => 'vehicle-documents/' . $this->ownerRecord->getKey())
                             ->visibility('public')
                             ->maxFiles(fn (): int => $this->remainingSlots())
                             ->required()
-                            ->helperText(fn (): string => 'Puoi caricare fino a ' . self::MAX_FILES . ' foto per veicolo.'),
+                            ->helperText(fn (): string => 'Puoi caricare fino a ' . self::MAX_FILES . ' file per veicolo. Formati accettati: immagini e PDF.'),
                     ])
                     ->action(function (array $data): void {
                         $paths = array_values(array_filter((array) ($data['files'] ?? [])));
@@ -68,8 +80,8 @@ class DocumentsRelationManager extends RelationManager
                             Storage::disk('public')->delete($paths);
 
                             Notification::make()
-                                ->title('Limite foto raggiunto')
-                                ->body('Ogni veicolo puo avere al massimo ' . self::MAX_FILES . ' foto.')
+                                ->title('Limite documenti raggiunto')
+                                ->body('Ogni veicolo puo avere al massimo ' . self::MAX_FILES . ' file.')
                                 ->danger()
                                 ->send();
 
@@ -83,7 +95,7 @@ class DocumentsRelationManager extends RelationManager
                         }
 
                         Notification::make()
-                            ->title('Foto caricate')
+                            ->title('File caricati')
                             ->success()
                             ->send();
                     }),
@@ -98,8 +110,8 @@ class DocumentsRelationManager extends RelationManager
                     ->label('Sostituisci')
                     ->form([
                         Forms\Components\FileUpload::make('file_path')
-                            ->label('Foto')
-                            ->image()
+                            ->label('File')
+                            ->acceptedFileTypes(self::ACCEPTED_FILE_TYPES)
                             ->disk('public')
                             ->directory(fn (): string => 'vehicle-documents/' . $this->ownerRecord->getKey())
                             ->visibility('public')
