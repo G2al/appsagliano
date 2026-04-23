@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'app_sagliano_token';
-    const USER_KEY = 'app_sagliano_user';
-    const LAST_VEHICLE_KEY = 'app_sagliano_last_vehicle';
+    const TOKEN_KEY = 'tony_trans_token';
+    const USER_KEY = 'tony_trans_user';
+    const LAST_VEHICLE_KEY = 'tony_trans_last_vehicle';
 
     let maintenancesCache = [];
     let vehiclesCache = [];

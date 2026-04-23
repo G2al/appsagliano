@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sagliano-worker-v2';
+const CACHE_NAME = 'tony-trans-worker-v1';
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
@@ -20,8 +20,8 @@ const ASSETS = [
   '/worker/js/bootstrap.bundle.min.js',
   '/worker/js/iconsax.js',
   '/worker/fonts/GTWalsheimPro-Regular.woff2',
-  '/worker/images/logo/user/user-logo.svg',
-  '/worker/images/logo/user/144.png',
+  '/worker/images/logo/logo_tony_trans.png',
+  '/worker/images/logo/user/logo-pwa-utenti.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('sagliano-worker-') && key !== CACHE_NAME)
+          .filter((key) => key.startsWith('tony-trans-worker-') && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())

@@ -27,13 +27,13 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Sky,
             ])
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
-                    <link rel="manifest" href="/admin-manifest.json?v=4">
-                    <meta name="theme-color" content="#ffffff">
+                    <link rel="manifest" href="/admin-manifest.json?v=5">
+                    <meta name="theme-color" content="#005d94">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                 HTML
             )

@@ -78,7 +78,7 @@
 <body>
     <div class="receipt">
         <div class="center">
-            <strong>APP SAGLIANO</strong><br>
+            <strong>AUTOTRASPORTI TONY TRANS</strong><br>
             <span class="muted">Ricevuta movimento carburante</span><br>
             <span class="muted">ID: {{ $movement->id }}</span>
         </div>

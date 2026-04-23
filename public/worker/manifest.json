@@ -1,13 +1,13 @@
 {
-  "name": "App Sagliano",
-  "short_name": "Sagliano",
+  "name": "Tony Trans",
+  "short_name": "Tony Trans",
   "lang": "it-IT",
   "start_url": "/worker/home.html",
   "scope": "/worker/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "description": "Gestione rifornimenti e ricevute per operatori",
+  "background_color": "#000000",
+  "theme_color": "#005d94",
+  "description": "Gestione rifornimenti e ricevute per Autotrasporti Tony Trans",
   "icons": [
     {
       "src": "images/logo/user/logo-pwa-utenti.png",

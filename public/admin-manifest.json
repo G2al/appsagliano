@@ -1,13 +1,13 @@
 {
-  "name": "App Sagliano - Admin",
-  "short_name": "Sagliano Admin",
+  "name": "Tony Trans - Admin",
+  "short_name": "Tony Trans Admin",
   "lang": "it-IT",
   "start_url": "/admin",
   "scope": "/admin/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "description": "Pannello amministrazione App Sagliano",
+  "background_color": "#000000",
+  "theme_color": "#005d94",
+  "description": "Pannello amministrazione Autotrasporti Tony Trans",
   "icons": [
     {
       "src": "/worker/images/logo/user/logo-pwa-admin.png",
