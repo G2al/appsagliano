@@ -10,7 +10,7 @@
   "description": "Pannello amministrazione Autotrasporti Tony Trans",
   "icons": [
     {
-      "src": "/worker/images/logo/user/logo-pwa-admin.png",
+      "src": "/worker/images/logo/logo_pwa_tony_trans_admin.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

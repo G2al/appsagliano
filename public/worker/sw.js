@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tony-trans-worker-v2';
+const CACHE_NAME = 'tony-trans-worker-v3';
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
@@ -22,7 +22,8 @@ const ASSETS = [
   '/worker/fonts/GTWalsheimPro-Regular.woff2',
   '/worker/images/logo/logo_tony_trans.png',
   '/worker/images/logo/logo_tony_trans_white.png',
-  '/worker/images/logo/user/logo-pwa-utenti.png',
+  '/worker/images/logo/logo_pwa_tony_trans.png',
+  '/worker/images/logo/favicon.png',
 ];
 
 self.addEventListener('install', (event) => {

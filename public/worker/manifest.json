@@ -10,7 +10,7 @@
   "description": "Gestione rifornimenti e ricevute per Autotrasporti Tony Trans",
   "icons": [
     {
-      "src": "images/logo/user/logo-pwa-utenti.png",
+      "src": "images/logo/logo_pwa_tony_trans.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
