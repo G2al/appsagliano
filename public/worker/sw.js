@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tony-trans-worker-v1';
+const CACHE_NAME = 'tony-trans-worker-v2';
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
@@ -21,6 +21,7 @@ const ASSETS = [
   '/worker/js/iconsax.js',
   '/worker/fonts/GTWalsheimPro-Regular.woff2',
   '/worker/images/logo/logo_tony_trans.png',
+  '/worker/images/logo/logo_tony_trans_white.png',
   '/worker/images/logo/user/logo-pwa-utenti.png',
 ];
 
