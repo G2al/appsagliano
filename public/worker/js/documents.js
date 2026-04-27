@@ -1,6 +1,6 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'giovanni_basco_token';
+    const TOKEN_KEY = 'gennaro_basco_token';
 
     let foldersCache = [];
     let searchQuery = '';

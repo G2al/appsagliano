@@ -1,5 +1,5 @@
 {
-  "name": "Giovanni Basco - Admin",
+  "name": "Gennaro Basco - Admin",
   "short_name": "Basco Admin",
   "lang": "it-IT",
   "start_url": "/admin",
@@ -7,7 +7,7 @@
   "display": "standalone",
   "background_color": "#1b1b1d",
   "theme_color": "#132b4f",
-  "description": "Pannello amministrazione Giovanni Basco",
+  "description": "Pannello amministrazione Gennaro Basco",
   "icons": [
     {
       "src": "/worker/images/logo/logo_basco_demo_pwa_admin.png",

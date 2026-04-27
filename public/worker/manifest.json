@@ -1,5 +1,5 @@
 {
-  "name": "Giovanni Basco",
+  "name": "Gennaro Basco",
   "short_name": "Basco",
   "lang": "it-IT",
   "start_url": "/worker/home.html",
@@ -7,7 +7,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#132b4f",
-  "description": "Gestione logistica, rifornimenti e documenti per Giovanni Basco",
+  "description": "Gestione logistica, rifornimenti e documenti per Gennaro Basco",
   "icons": [
     {
       "src": "images/logo/logo_basco_demo.png",

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'giovanni-basco-worker-v1';
+const CACHE_NAME = 'gennaro-basco-worker-v1';
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('giovanni-basco-worker-') && key !== CACHE_NAME)
+          .filter((key) => key.startsWith('gennaro-basco-worker-') && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())

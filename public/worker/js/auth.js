@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'giovanni_basco_token';
-    const USER_KEY = 'giovanni_basco_user';
-    const REMEMBER_KEY = 'giovanni_basco_remember';
+    const TOKEN_KEY = 'gennaro_basco_token';
+    const USER_KEY = 'gennaro_basco_user';
+    const REMEMBER_KEY = 'gennaro_basco_remember';
 
     const showAlert = (element, message) => {
         if (!element) return;

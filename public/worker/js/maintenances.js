@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'giovanni_basco_token';
-    const USER_KEY = 'giovanni_basco_user';
-    const LAST_VEHICLE_KEY = 'giovanni_basco_last_vehicle';
+    const TOKEN_KEY = 'gennaro_basco_token';
+    const USER_KEY = 'gennaro_basco_user';
+    const LAST_VEHICLE_KEY = 'gennaro_basco_last_vehicle';
 
     let maintenancesCache = [];
     let vehiclesCache = [];

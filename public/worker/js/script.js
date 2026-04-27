@@ -60,7 +60,7 @@ window.addEventListener("load", () => {
                 const keys = await caches.keys();
                 await Promise.all(
                     keys
-                        .filter((key) => key.startsWith("giovanni-basco-worker-"))
+                        .filter((key) => key.startsWith("gennaro-basco-worker-"))
                         .map((key) => caches.delete(key))
                 );
             }
