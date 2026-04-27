@@ -3398,10 +3398,10 @@ body.dark .auth-header .logo {
 
 .main-header .header-panel {
     position: relative;
-    padding-bottom: 20px;
+    padding-bottom: 12px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     line-height: 1;
     z-index: 1;
 }
@@ -3454,10 +3454,19 @@ body.dark .main-header .header-panel .logo-dark {
 
 .header-brand-logo {
     display: block;
-    width: min(168px, 58vw) !important;
-    height: 50px !important;
+    width: min(140px, 44vw) !important;
+    height: auto !important;
+    max-height: none !important;
     object-fit: contain;
     object-position: left center;
+}
+
+@media (max-width: 600px) {
+    .header-brand-logo {
+        width: min(136px, 42vw) !important;
+        height: auto !important;
+        max-height: none !important;
+    }
 }
 
 @media (max-width: 600px) {
@@ -3475,6 +3484,7 @@ body.dark .main-header .header-panel .logo-dark {
 }
 
 .main-header .header-panel a {
+    padding-top: 6px;
     z-index: 1;
 }
 
