@@ -1,16 +1,16 @@
 {
-  "name": "App Sagliano",
-  "short_name": "Sagliano",
+  "name": "Giovanni Basco",
+  "short_name": "Basco",
   "lang": "it-IT",
   "start_url": "/worker/home.html",
   "scope": "/worker/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "description": "Gestione rifornimenti e ricevute per operatori",
+  "theme_color": "#132b4f",
+  "description": "Gestione logistica, rifornimenti e documenti per Giovanni Basco",
   "icons": [
     {
-      "src": "images/logo/user/logo-pwa-utenti.png",
+      "src": "images/logo/logo_basco_demo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

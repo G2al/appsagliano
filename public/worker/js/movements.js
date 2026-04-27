@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'app_sagliano_token';
-    const USER_KEY = 'app_sagliano_user';
-    const LAST_VEHICLE_KEY = 'app_sagliano_last_vehicle';
+    const TOKEN_KEY = 'giovanni_basco_token';
+    const USER_KEY = 'giovanni_basco_user';
+    const LAST_VEHICLE_KEY = 'giovanni_basco_last_vehicle';
     let movementsCache = [];
     let vehiclesCache = [];
     let vehiclesById = new Map();
@@ -254,7 +254,7 @@
                                     <img class="img-fluid coupon-img" src="${photo}" alt="ricevuta">
                                     <div>
                                         <h5 class="fw-normal title-color" style="
-                                                color: #2f4c94 !important;
+                                                color: #132b4f !important;
                                                 font-weight: 500!important;
                                             ">${userName}</h5>
                                         <p class="content-color mb-0 role-label">${roleLabel}</p>

@@ -1,16 +1,16 @@
 {
-  "name": "App Sagliano - Admin",
-  "short_name": "Sagliano Admin",
+  "name": "Giovanni Basco - Admin",
+  "short_name": "Basco Admin",
   "lang": "it-IT",
   "start_url": "/admin",
   "scope": "/admin/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "description": "Pannello amministrazione App Sagliano",
+  "background_color": "#1b1b1d",
+  "theme_color": "#132b4f",
+  "description": "Pannello amministrazione Giovanni Basco",
   "icons": [
     {
-      "src": "/worker/images/logo/user/logo-pwa-admin.png",
+      "src": "/worker/images/logo/logo_basco_demo_pwa_admin.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
