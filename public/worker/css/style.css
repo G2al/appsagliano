@@ -3385,9 +3385,9 @@ body.dark .auth-header .logo {
     position: sticky;
     top: 0;
     padding-top: 25px;
-    background-color: rgba(var(--white), 1);
+    background-color: rgba(var(--theme-color), 1);
     z-index: 2;
-    border-bottom: 1px solid rgba(var(--line-color), 1);
+    border-bottom: none;
 }
 
 @media (max-width: 600px) {
