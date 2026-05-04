@@ -3,13 +3,14 @@
     const TOKEN_KEY = 'app_sagliano_token';
     const USER_KEY = 'app_sagliano_user';
     const LAST_VEHICLE_KEY = 'app_sagliano_last_vehicle';
+    const PANEL_MODULE_REFUELS = 'refuels';
     let movementsCache = [];
     let vehiclesCache = [];
     let vehiclesById = new Map();
     let stationsById = new Map();
     let selectedVehicleId = '';
     let searchQuery = '';
-    let isAdmin = false;
+    let canViewAllRefuels = false;
     let kmStartRequestSeq = 0;
 
     const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -20,6 +21,11 @@
         } catch {
             return null;
         }
+    };
+
+    const userHasPanelModule = (module) => {
+        const modules = getCurrentUser()?.panel_modules;
+        return Array.isArray(modules) && modules.includes(module);
     };
 
     const getLastVehicle = () => localStorage.getItem(LAST_VEHICLE_KEY) || '';
@@ -396,11 +402,15 @@
         showSkeleton();
         const data = await api('/movements?per_page=all');
         movementsCache = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        if (!isAdmin) {
+        if (!canViewAllRefuels) {
             vehiclesCache = deriveVehiclesFromMovements();
             if (selectedVehicleId && !vehiclesCache.find((v) => String(v.id) === String(selectedVehicleId))) {
                 selectedVehicleId = '';
             }
+            renderVehicleTabs();
+        } else {
+            const tabVehicles = vehiclesCache.length ? vehiclesCache : deriveVehiclesFromMovements();
+            vehiclesCache = tabVehicles;
             renderVehicleTabs();
         }
         applyFilters();
@@ -618,7 +628,7 @@
                     }
                 };
                 await syncVehicleSelectOptions(lastVehicle || vehicleSelect.value || '');
-                if (isAdmin) {
+                if (canViewAllRefuels) {
                     renderVehicleTabs();
                 }
             }
@@ -768,7 +778,8 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        isAdmin = getCurrentUser()?.role === 'admin';
+        const currentUser = getCurrentUser();
+        canViewAllRefuels = currentUser?.role === 'admin' || userHasPanelModule(PANEL_MODULE_REFUELS);
         const searchInput = document.getElementById('search-movements');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => filterMovements(e.target.value || ''));

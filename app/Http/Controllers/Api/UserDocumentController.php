@@ -17,9 +17,11 @@ class UserDocumentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $canViewAllDocuments = $user && $user->canViewAllFrontendDocuments();
 
         $folders = UserDocumentFolder::query()
             ->with([
+                'user:id,name,surname',
                 'files' => fn ($query) => $query
                     ->select([
                         'id',
@@ -32,13 +34,15 @@ class UserDocumentController extends Controller
                     ])
                     ->orderByDesc('id'),
             ])
-            ->where('user_id', $user->id)
+            ->when(! $canViewAllDocuments, fn ($query) => $query->where('user_id', $user->id))
             ->orderByDesc('id')
             ->get();
 
         return response()->json(
             $folders->map(fn (UserDocumentFolder $folder) => [
                 'id' => $folder->id,
+                'user_id' => $folder->user_id,
+                'owner_name' => $folder->user?->full_name,
                 'title' => $folder->title,
                 'created_at' => $folder->created_at,
                 'files' => $folder->files->map(fn (UserDocumentFile $file) => [
@@ -115,7 +119,7 @@ class UserDocumentController extends Controller
             abort(401);
         }
 
-        if ($user->role === 'admin') {
+        if ($user->canViewAllFrontendDocuments()) {
             return;
         }
 

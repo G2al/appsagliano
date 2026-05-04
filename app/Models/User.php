@@ -176,14 +176,29 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasPanelModule(self::PANEL_MODULE_MAINTENANCE);
     }
 
+    public function canViewAllFrontendMaintenances(): bool
+    {
+        return $this->canAccessMaintenanceArea();
+    }
+
     public function canAccessRefuelsArea(): bool
     {
         return $this->hasPanelModule(self::PANEL_MODULE_REFUELS);
     }
 
+    public function canViewAllFrontendRefuels(): bool
+    {
+        return $this->canAccessRefuelsArea();
+    }
+
     public function canAccessDocumentsArea(): bool
     {
         return $this->hasPanelModule(self::PANEL_MODULE_DOCUMENTS);
+    }
+
+    public function canViewAllFrontendDocuments(): bool
+    {
+        return $this->canAccessDocumentsArea();
     }
 
     public function canAccessUsersArea(): bool

@@ -18,7 +18,7 @@ class MaintenanceController extends Controller
         $user = $request->user();
 
         $query = Maintenance::with(['vehicle', 'supplier', 'user'])
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user->canViewAllFrontendMaintenances(), fn ($q) => $q->where('user_id', $user->id))
             ->latest();
 
         $perPage = $request->query('per_page');

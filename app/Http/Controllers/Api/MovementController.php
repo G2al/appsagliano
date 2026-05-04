@@ -53,7 +53,7 @@ class MovementController extends Controller
         $user = $request->user();
 
         $query = Movement::with(['station', 'vehicle', 'user', 'updatedBy'])
-            ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
+            ->when(! $user->canViewAllFrontendRefuels(), fn ($q) => $q->where('user_id', $user->id))
             ->latest();
 
         if ($request->filled('vehicle_id')) {

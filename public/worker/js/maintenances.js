@@ -3,13 +3,14 @@
     const TOKEN_KEY = 'app_sagliano_token';
     const USER_KEY = 'app_sagliano_user';
     const LAST_VEHICLE_KEY = 'app_sagliano_last_vehicle';
+    const PANEL_MODULE_MAINTENANCE = 'maintenance';
 
     let maintenancesCache = [];
     let vehiclesCache = [];
     let vehiclesById = new Map();
     let selectedVehicleId = '';
     let searchQuery = '';
-    let isAdmin = false;
+    let canViewAllMaintenances = false;
 
     const getToken = () => localStorage.getItem(TOKEN_KEY);
     const getCurrentUser = () => {
@@ -19,6 +20,11 @@
         } catch {
             return null;
         }
+    };
+
+    const userHasPanelModule = (module) => {
+        const modules = getCurrentUser()?.panel_modules;
+        return Array.isArray(modules) && modules.includes(module);
     };
     const getLastVehicle = () => localStorage.getItem(LAST_VEHICLE_KEY) || '';
     const setLastVehicle = (vehicleId) => vehicleId && localStorage.setItem(LAST_VEHICLE_KEY, vehicleId);
@@ -281,8 +287,13 @@
         showSkeleton();
         const data = await api('/maintenances?per_page=all');
         maintenancesCache = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        if (!isAdmin) {
+        if (!canViewAllMaintenances) {
             renderVehicleTabs(deriveVehiclesFromMaintenances());
+        } else {
+            const vehicles = vehiclesCache.length
+                ? vehiclesCache.map((v) => ({ id: v.id, label: v.plate || v.name }))
+                : deriveVehiclesFromMaintenances();
+            renderVehicleTabs(vehicles);
         }
         applyFilters();
     };
@@ -323,7 +334,7 @@
                     if (vehicleSelect.value) setLastVehicle(vehicleSelect.value);
                 };
                 syncVehicleSelectOptions(lastVehicle || vehicleSelect.value || '');
-                renderVehicleTabs(isAdmin ? vehicles.map((v) => ({ id: v.id, label: v.plate || v.name })) : deriveVehiclesFromMaintenances());
+                renderVehicleTabs(canViewAllMaintenances ? vehicles.map((v) => ({ id: v.id, label: v.plate || v.name })) : deriveVehiclesFromMaintenances());
             }
         } catch (_) {
             // fail silent
@@ -485,7 +496,8 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        isAdmin = getCurrentUser()?.role === 'admin';
+        const currentUser = getCurrentUser();
+        canViewAllMaintenances = currentUser?.role === 'admin' || userHasPanelModule(PANEL_MODULE_MAINTENANCE);
 
         const searchInput = document.getElementById('search-maintenances');
         if (searchInput) {

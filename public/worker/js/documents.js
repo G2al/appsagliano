@@ -1,13 +1,24 @@
 (() => {
     const API_BASE = '/api';
     const TOKEN_KEY = 'app_sagliano_token';
+    const USER_KEY = 'app_sagliano_user';
+    const PANEL_MODULE_DOCUMENTS = 'documents';
 
     let foldersCache = [];
     let searchQuery = '';
     let pendingFileId = null;
     let openModal = null;
+    let canViewAllDocuments = false;
 
     const getToken = () => localStorage.getItem(TOKEN_KEY);
+    const getCurrentUser = () => {
+        try {
+            const raw = localStorage.getItem(USER_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    };
 
     const showAlert = (message) => {
         const box = document.getElementById('documents-alert');
@@ -141,6 +152,10 @@
                 const collapseId = `folder-collapse-${folder.id}`;
                 const headingId = `folder-heading-${folder.id}`;
                 const filesCount = folder.files?.length || 0;
+                const ownerName = String(folder.owner_name || '').trim();
+                const folderLabel = canViewAllDocuments && ownerName
+                    ? `${escapeHtml(folder.title || 'Cartella')} - ${escapeHtml(ownerName)} (${filesCount})`
+                    : `${escapeHtml(folder.title || 'Cartella')} (${filesCount})`;
 
                 const filesHtml = filesCount
                     ? folder.files
@@ -174,7 +189,7 @@
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="${headingId}">
                             <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="${collapseId}">
-                                ${escapeHtml(folder.title || 'Cartella')} (${filesCount})
+                                ${folderLabel}
                             </button>
                         </h2>
                         <div id="${collapseId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" aria-labelledby="${headingId}" data-bs-parent="#documents-accordion">
@@ -354,6 +369,10 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+        const currentUser = getCurrentUser();
+        const modules = currentUser?.panel_modules;
+        canViewAllDocuments = currentUser?.role === 'admin' || (Array.isArray(modules) && modules.includes(PANEL_MODULE_DOCUMENTS));
+
         const searchInput = document.getElementById('search-documents');
         const confirmButton = document.getElementById('confirm-open-document');
         const passwordInput = document.getElementById('open-document-password');
