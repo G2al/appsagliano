@@ -827,12 +827,13 @@
         kmInputs.forEach((name) => {
             const input = document.querySelector(`#movement-form [name="${name}"]`);
             if (!input) return;
-            input.addEventListener('focus', () => {
+            const sanitizeValue = () => {
                 input.value = normalizeInteger(input.value);
+            };
+            input.addEventListener('focus', () => {
+                sanitizeValue();
             });
-            input.addEventListener('blur', () => {
-                input.value = formatInteger(input.value);
-            });
+            input.addEventListener('blur', sanitizeValue);
         });
 
         ['km_start', 'km_end', 'liters', 'price', 'adblue', 'notes'].forEach((name) => {
