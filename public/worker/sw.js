@@ -1,4 +1,7 @@
-const CACHE_NAME = 'gennaro-basco-worker-v1';
+const APP_VERSION = '6';
+const CACHE_PREFIX = 'gennaro-basco-worker-';
+const CACHE_NAME = `${CACHE_PREFIX}v${APP_VERSION}`;
+const withVersion = (path) => `${path}?v=${APP_VERSION}`;
 const ASSETS = [
   '/worker/',
   '/worker/home.html',
@@ -6,22 +9,23 @@ const ASSETS = [
   '/worker/documents.html',
   '/worker/login.html',
   '/worker/signup.html',
-  '/worker/css/style.css',
-  '/worker/css/GTWalsheimPro.css',
-  '/worker/css/vendors/bootstrap.css',
-  '/worker/css/vendors/iconsax.css',
-  '/worker/js/movements.js',
-  '/worker/js/maintenances.js',
-  '/worker/js/documents.js',
-  '/worker/js/auth.js',
-  '/worker/js/script.js',
-  '/worker/js/template-setting.js',
-  '/worker/js/sticky-header.js',
-  '/worker/js/bootstrap.bundle.min.js',
-  '/worker/js/iconsax.js',
+  withVersion('/worker/css/style.css'),
+  withVersion('/worker/css/GTWalsheimPro.css'),
+  withVersion('/worker/css/vendors/bootstrap.css'),
+  withVersion('/worker/css/vendors/iconsax.css'),
+  withVersion('/worker/js/movements.js'),
+  withVersion('/worker/js/maintenances.js'),
+  withVersion('/worker/js/documents.js'),
+  withVersion('/worker/js/auth.js'),
+  withVersion('/worker/js/script.js'),
+  withVersion('/worker/js/template-setting.js'),
+  withVersion('/worker/js/sticky-header.js'),
+  withVersion('/worker/js/bootstrap.bundle.min.js'),
+  withVersion('/worker/js/iconsax.js'),
   '/worker/fonts/GTWalsheimPro-Regular.woff2',
   '/worker/images/logo/logo_basco_demo_without_bg.png',
   '/worker/images/logo/logo_basco_demo.png',
+  '/worker/images/logo/logo_basco_only_white.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -35,11 +39,17 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('gennaro-basco-worker-') && key !== CACHE_NAME)
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 const isAssetRequest = (request) =>
