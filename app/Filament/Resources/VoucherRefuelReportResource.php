@@ -9,8 +9,12 @@ use App\Models\Station;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\Alignment;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -97,6 +101,51 @@ class VoucherRefuelReportResource extends Resource
                         DatePicker::make('end')
                             ->label('Al')
                             ->default(fn () => Carbon::now()),
+                        Actions::make([
+                            FormAction::make('preset_today')
+                                ->label('Oggi')
+                                ->color('gray')
+                                ->action(function (Set $set): void {
+                                    $today = Carbon::today()->toDateString();
+
+                                    $set('start', $today);
+                                    $set('end', $today);
+                                }),
+                            FormAction::make('preset_last_7_days')
+                                ->label('Ultimi 7 giorni')
+                                ->color('gray')
+                                ->action(function (Set $set): void {
+                                    $set('start', Carbon::today()->subDays(6)->toDateString());
+                                    $set('end', Carbon::today()->toDateString());
+                                }),
+                            FormAction::make('preset_this_month')
+                                ->label('Questo mese')
+                                ->color('gray')
+                                ->action(function (Set $set): void {
+                                    $set('start', Carbon::now()->startOfMonth()->toDateString());
+                                    $set('end', Carbon::today()->toDateString());
+                                }),
+                            FormAction::make('preset_last_month')
+                                ->label('Mese scorso')
+                                ->color('gray')
+                                ->action(function (Set $set): void {
+                                    $lastMonth = Carbon::now()->subMonthNoOverflow();
+
+                                    $set('start', $lastMonth->copy()->startOfMonth()->toDateString());
+                                    $set('end', $lastMonth->copy()->endOfMonth()->toDateString());
+                                }),
+                            FormAction::make('preset_all')
+                                ->label('Tutto')
+                                ->color('gray')
+                                ->action(function (Set $set): void {
+                                    $set('start', null);
+                                    $set('end', null);
+                                }),
+                        ])
+                            ->alignment(Alignment::Start)
+                            ->columnSpanFull()
+                            ->fullWidth()
+                            ->key('voucher_date_presets'),
                     ])
                     ->default([
                         'start' => Carbon::now()->startOfMonth()->toDateString(),
@@ -170,4 +219,3 @@ class VoucherRefuelReportResource extends Resource
         return false;
     }
 }
-

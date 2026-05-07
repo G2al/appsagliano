@@ -2,29 +2,32 @@
 
 namespace App\Filament\Resources\VoucherRefuelReportResource\Widgets;
 
-use App\Models\Movement;
+use App\Filament\Resources\VoucherRefuelReportResource\Pages\ListVoucherRefuelReports;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class VoucherRefuelStatsWidget extends StatsOverviewWidget
 {
+    use InteractsWithPageTable;
+
     protected function getColumns(): int
     {
         return 2;
     }
 
+    protected function getTablePage(): string
+    {
+        return ListVoucherRefuelReports::class;
+    }
+
     protected function getStats(): array
     {
-        $totals = Movement::query()
-            ->where('is_voucher', true)
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw('COALESCE(SUM(price), 0) as price_total')
-            ->selectRaw('COALESCE(SUM(liters), 0) as liters_total')
-            ->first();
+        $query = $this->getPageTableQuery();
 
-        $total = (int) ($totals?->total ?? 0);
-        $priceTotal = (float) ($totals?->price_total ?? 0);
-        $litersTotal = (float) ($totals?->liters_total ?? 0);
+        $total = (int) (clone $query)->count();
+        $priceTotal = (float) (clone $query)->sum('price');
+        $litersTotal = (float) (clone $query)->sum('liters');
         $avgPrice = $total > 0 ? $priceTotal / $total : 0;
 
         return [

@@ -7,12 +7,14 @@ use App\Filament\Resources\VoucherRefuelReportResource\Widgets\VoucherRefuelStat
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use Carbon\Carbon;
+use Filament\Pages\Concerns\ExposesTableToWidgets;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 class ListVoucherRefuelReports extends ListRecords
 {
+    use ExposesTableToWidgets;
     use InteractsWithReportTableChecks;
 
     protected static string $resource = VoucherRefuelReportResource::class;
