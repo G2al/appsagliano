@@ -102,29 +102,6 @@ class VoucherRefuelReportResource extends Resource
                             ->label('Al')
                             ->default(fn () => Carbon::now()),
                         Actions::make([
-                            FormAction::make('preset_today')
-                                ->label('Oggi')
-                                ->color('gray')
-                                ->action(function (Set $set): void {
-                                    $today = Carbon::today()->toDateString();
-
-                                    $set('start', $today);
-                                    $set('end', $today);
-                                }),
-                            FormAction::make('preset_last_7_days')
-                                ->label('Ultimi 7 giorni')
-                                ->color('gray')
-                                ->action(function (Set $set): void {
-                                    $set('start', Carbon::today()->subDays(6)->toDateString());
-                                    $set('end', Carbon::today()->toDateString());
-                                }),
-                            FormAction::make('preset_this_month')
-                                ->label('Questo mese')
-                                ->color('gray')
-                                ->action(function (Set $set): void {
-                                    $set('start', Carbon::now()->startOfMonth()->toDateString());
-                                    $set('end', Carbon::today()->toDateString());
-                                }),
                             FormAction::make('preset_last_month')
                                 ->label('Mese scorso')
                                 ->color('gray')
@@ -133,13 +110,6 @@ class VoucherRefuelReportResource extends Resource
 
                                     $set('start', $lastMonth->copy()->startOfMonth()->toDateString());
                                     $set('end', $lastMonth->copy()->endOfMonth()->toDateString());
-                                }),
-                            FormAction::make('preset_all')
-                                ->label('Tutto')
-                                ->color('gray')
-                                ->action(function (Set $set): void {
-                                    $set('start', null);
-                                    $set('end', null);
                                 }),
                         ])
                             ->alignment(Alignment::Start)
