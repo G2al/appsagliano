@@ -8,10 +8,14 @@ use App\Filament\Widgets\MaintenancesBySupplierTable;
 use App\Filament\Widgets\MaintenancesByVehicleTable;
 use App\Filament\Widgets\MaintenancesByVehicleSupplierTable;
 use App\Filament\Widgets\MaintenancesListTable;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Alignment;
 
 class ReportMaintenances extends Page
 {
@@ -37,6 +41,21 @@ class ReportMaintenances extends Page
                     ->default(now())
                     ->required()
                     ->live(),
+                Actions::make([
+                    FormAction::make('preset_last_month')
+                        ->label('Mese scorso')
+                        ->color('gray')
+                        ->action(function (Set $set): void {
+                            $lastMonth = now()->subMonthNoOverflow();
+
+                            $set('start_date', $lastMonth->copy()->startOfMonth()->toDateString());
+                            $set('end_date', $lastMonth->copy()->endOfMonth()->toDateString());
+                        }),
+                ])
+                    ->alignment(Alignment::Start)
+                    ->columnSpanFull()
+                    ->fullWidth()
+                    ->key('report_maintenances_last_month_preset'),
             ]);
     }
 

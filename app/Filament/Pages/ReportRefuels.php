@@ -3,7 +3,10 @@
 namespace App\Filament\Pages;
 
 use App\Models\User;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Pages\Page;
@@ -12,6 +15,7 @@ use App\Filament\Widgets\RefuelsByStationTable;
 use App\Filament\Widgets\RefuelsByVehicleTable;
 use App\Filament\Widgets\RefuelsByVehicleStationTable;
 use App\Filament\Widgets\RefuelsListTable;
+use Filament\Support\Enums\Alignment;
 
 class ReportRefuels extends Page
 {
@@ -36,6 +40,21 @@ class ReportRefuels extends Page
                     ->default(now())
                     ->required()
                     ->live(),
+                Actions::make([
+                    FormAction::make('preset_last_month')
+                        ->label('Mese scorso')
+                        ->color('gray')
+                        ->action(function (Set $set): void {
+                            $lastMonth = now()->subMonthNoOverflow();
+
+                            $set('start_date', $lastMonth->copy()->startOfMonth()->toDateString());
+                            $set('end_date', $lastMonth->copy()->endOfMonth()->toDateString());
+                        }),
+                ])
+                    ->alignment(Alignment::Start)
+                    ->columnSpanFull()
+                    ->fullWidth()
+                    ->key('report_refuels_last_month_preset'),
             ]);
     }
 
