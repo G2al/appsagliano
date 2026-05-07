@@ -35,11 +35,6 @@ class AdminPanelProvider extends PanelProvider
                     <link rel="manifest" href="/admin-manifest.json?v=4">
                     <meta name="theme-color" content="#ffffff">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-                    <style>
-                        .fi-dropdown-panel {
-                            z-index: 30 !important;
-                        }
-                    </style>
                 HTML
             )
             ->renderHook(

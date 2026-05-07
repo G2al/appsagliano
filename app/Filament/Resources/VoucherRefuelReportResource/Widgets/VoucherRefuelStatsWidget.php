@@ -8,6 +8,11 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class VoucherRefuelStatsWidget extends StatsOverviewWidget
 {
+    protected function getColumns(): int
+    {
+        return 2;
+    }
+
     protected function getStats(): array
     {
         $totals = Movement::query()
@@ -34,4 +39,3 @@ class VoucherRefuelStatsWidget extends StatsOverviewWidget
         ];
     }
 }
-
