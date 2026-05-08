@@ -149,6 +149,25 @@ class MovementResource extends Resource
                             ->disk('public')
                             ->visibility('public')
                             ->required(),
+                        Forms\Components\Placeholder::make('receipt_actions')
+                            ->label('Allegato ricevuta')
+                            ->columnSpanFull()
+                            ->visible(fn (?Movement $record): bool => filled($record?->photo_url))
+                            ->content(function (?Movement $record): HtmlString {
+                                if (! $record?->photo_url) {
+                                    return new HtmlString('-');
+                                }
+
+                                $openUrl = e($record->photo_url);
+                                $downloadUrl = e(route('movements.attachment.download', $record));
+
+                                return new HtmlString(
+                                    '<div class="flex flex-wrap gap-3">'
+                                    . '<a href="' . $openUrl . '" target="_blank" class="text-primary-600 font-medium">Apri</a>'
+                                    . '<a href="' . $downloadUrl . '" class="text-primary-600 font-medium">Scarica</a>'
+                                    . '</div>'
+                                );
+                            }),
                     ]),
             ]);
     }

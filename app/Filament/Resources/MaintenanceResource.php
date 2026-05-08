@@ -113,6 +113,25 @@ class MaintenanceResource extends Resource
                             ->disk('public')
                             ->visibility('public')
                             ->required(),
+                        Forms\Components\Placeholder::make('attachment_actions')
+                            ->label('Allegato manutenzione')
+                            ->columnSpanFull()
+                            ->visible(fn (?Maintenance $record): bool => filled($record?->attachment_url))
+                            ->content(function (?Maintenance $record): \Illuminate\Support\HtmlString {
+                                if (! $record?->attachment_url) {
+                                    return new \Illuminate\Support\HtmlString('-');
+                                }
+
+                                $openUrl = e($record->attachment_url);
+                                $downloadUrl = e(route('maintenances.attachment.download', $record));
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div class="flex flex-wrap gap-3">'
+                                    . '<a href="' . $openUrl . '" target="_blank" class="text-primary-600 font-medium">Apri</a>'
+                                    . '<a href="' . $downloadUrl . '" class="text-primary-600 font-medium">Scarica</a>'
+                                    . '</div>'
+                                );
+                            }),
                     ]),
             ]);
     }
