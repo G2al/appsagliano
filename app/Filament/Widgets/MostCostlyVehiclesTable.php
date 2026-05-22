@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Filament\Widgets\Concerns\InteractsWithFinancialReportData;
 use App\Support\FinancialReport;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,9 +39,8 @@ class MostCostlyVehiclesTable extends BaseWidget
         ];
     }
 
-    public function table(Table $table): Table
+    protected function isTablePaginationEnabled(): bool
     {
-        return $table
-            ->paginated(false);
+        return false;
     }
 }
