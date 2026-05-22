@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers\DocumentFoldersRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\SalariesRelationManager;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -190,6 +191,7 @@ class UserResource extends Resource
     {
         return [
             DocumentFoldersRelationManager::class,
+            SalariesRelationManager::class,
         ];
     }
 

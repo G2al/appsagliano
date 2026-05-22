@@ -236,6 +236,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Maintenance::class);
     }
 
+    public function salaries(): HasMany
+    {
+        return $this->hasMany(UserSalary::class)->latest('date')->latest('id');
+    }
+
     public function documentFolders(): HasMany
     {
         return $this->hasMany(UserDocumentFolder::class)->latest('id');
