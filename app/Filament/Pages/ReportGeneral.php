@@ -15,6 +15,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Pages\Page;
+use Illuminate\Contracts\View\View;
 
 class ReportGeneral extends Page
 {
@@ -64,6 +65,11 @@ class ReportGeneral extends Page
         return [
             'filters' => $this->filters,
         ];
+    }
+
+    public function getHeader(): ?View
+    {
+        return view('filament.pages.report-general-header');
     }
 
     protected function getHeaderWidgets(): array
