@@ -15,7 +15,6 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Pages\Page;
-use Illuminate\Contracts\View\View;
 
 class ReportGeneral extends Page
 {
@@ -67,12 +66,12 @@ class ReportGeneral extends Page
         ];
     }
 
-    public function getHeader(): ?View
+    protected function getHeaderWidgets(): array
     {
-        return view('filament.pages.report-general-header');
+        return [];
     }
 
-    protected function getHeaderWidgets(): array
+    protected function getFooterWidgets(): array
     {
         return [
             FinancialOverviewStats::class,
