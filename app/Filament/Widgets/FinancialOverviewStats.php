@@ -13,6 +13,8 @@ class FinancialOverviewStats extends StatsOverviewWidget
     use InteractsWithPageFilters;
     use InteractsWithFinancialReportData;
 
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
 
     protected function getColumns(): int

@@ -18,6 +18,8 @@ class VehicleFinancialTable extends BaseWidget
     use InteractsWithPageFilters;
     use InteractsWithFinancialReportData;
 
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?string $heading = 'Performance veicoli';

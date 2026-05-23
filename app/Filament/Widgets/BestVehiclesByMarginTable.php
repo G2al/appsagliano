@@ -14,6 +14,8 @@ class BestVehiclesByMarginTable extends BaseWidget
     use InteractsWithPageFilters;
     use InteractsWithFinancialReportData;
 
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 1;
 
     protected static ?string $heading = 'Veicoli migliori';
