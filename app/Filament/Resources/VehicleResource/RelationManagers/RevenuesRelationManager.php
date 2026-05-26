@@ -37,6 +37,10 @@ class RevenuesRelationManager extends RelationManager
                     ->label('Data')
                     ->default(now()->toDateString())
                     ->required(),
+                Forms\Components\TextInput::make('name')
+                    ->label('Nome entrata')
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('amount_ex_vat')
                     ->label('Entrata senza IVA')
                     ->prefix('EUR')
@@ -65,6 +69,12 @@ class RevenuesRelationManager extends RelationManager
                     ->disabled()
                     ->dehydrated()
                     ->helperText('Calcolata automaticamente in base all IVA configurata nel sistema.'),
+                Forms\Components\FileUpload::make('attachment_path')
+                    ->label('Allegato')
+                    ->disk('public')
+                    ->directory(fn (): string => 'vehicle-revenues/' . $this->ownerRecord->getKey())
+                    ->visibility('public')
+                    ->nullable(),
             ]);
     }
 
@@ -77,6 +87,10 @@ class RevenuesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('date')
                     ->label('Data')
                     ->date('d/m/Y')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nome')
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('amount_ex_vat')
                     ->label('Entrata senza IVA')
@@ -95,12 +109,22 @@ class RevenuesRelationManager extends RelationManager
                         fn ($state): string => 'EUR ' . number_format((float) $state, 2, ',', '.')
                     )
                     ->sortable(),
+                Tables\Columns\IconColumn::make('attachment_path')
+                    ->label('Allegato')
+                    ->boolean()
+                    ->state(fn (VehicleRevenue $record): bool => filled($record->attachment_path)),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->label('Nuova entrata'),
             ])
             ->actions([
+                Tables\Actions\Action::make('openAttachment')
+                    ->label('Apri allegato')
+                    ->icon('heroicon-o-paper-clip')
+                    ->url(fn (VehicleRevenue $record): ?string => $record->attachment_url)
+                    ->openUrlInNewTab()
+                    ->visible(fn (VehicleRevenue $record): bool => filled($record->attachment_url)),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ]);

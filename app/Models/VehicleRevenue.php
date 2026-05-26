@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Storage;
 
 class VehicleRevenue extends Model
 {
@@ -13,9 +15,11 @@ class VehicleRevenue extends Model
     protected $fillable = [
         'vehicle_id',
         'date',
+        'name',
         'amount_ex_vat',
         'vat_percentage',
         'amount_inc_vat',
+        'attachment_path',
     ];
 
     protected $casts = [
@@ -23,6 +27,10 @@ class VehicleRevenue extends Model
         'amount_ex_vat' => 'decimal:2',
         'vat_percentage' => 'decimal:2',
         'amount_inc_vat' => 'decimal:2',
+    ];
+
+    protected $appends = [
+        'attachment_url',
     ];
 
     protected static function booted(): void
@@ -39,10 +47,40 @@ class VehicleRevenue extends Model
                 2
             );
         });
+
+        static::updated(function (self $revenue): void {
+            if (! $revenue->wasChanged('attachment_path')) {
+                return;
+            }
+
+            $originalPath = $revenue->getOriginal('attachment_path');
+
+            if ($originalPath) {
+                Storage::disk('public')->delete($originalPath);
+            }
+        });
+
+        static::deleting(function (self $revenue): void {
+            if ($revenue->attachment_path) {
+                Storage::disk('public')->delete($revenue->attachment_path);
+            }
+        });
     }
 
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    public function getAttachmentUrlAttribute(): ?string
+    {
+        if (! $this->attachment_path) {
+            return null;
+        }
+
+        /** @var FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+
+        return $disk->url($this->attachment_path);
     }
 }

@@ -109,11 +109,17 @@ class VehicleFinancialTable extends BaseWidget
             ->get();
 
         $revenueRows = $revenues->map(function ($revenue): string {
+            $attachment = $revenue->attachment_url
+                ? '<a href="' . e($revenue->attachment_url) . '" target="_blank" class="text-primary-500">Apri allegato</a>'
+                : 'N/D';
+
             return '<tr>'
                 . '<td class="px-2 py-1 text-sm whitespace-nowrap">' . e($revenue->date?->format('d/m/Y') ?? '-') . '</td>'
+                . '<td class="px-2 py-1 text-sm">' . e($revenue->name ?? '-') . '</td>'
                 . '<td class="px-2 py-1 text-sm whitespace-nowrap">' . e($this->formatMoney($revenue->amount_ex_vat)) . '</td>'
                 . '<td class="px-2 py-1 text-sm whitespace-nowrap">' . e(number_format((float) $revenue->vat_percentage, 2, ',', '.') . '%') . '</td>'
                 . '<td class="px-2 py-1 text-sm whitespace-nowrap">' . e($this->formatMoney($revenue->amount_inc_vat)) . '</td>'
+                . '<td class="px-2 py-1 text-sm whitespace-nowrap">' . $attachment . '</td>'
                 . '</tr>';
         })->implode('');
 
@@ -133,7 +139,7 @@ class VehicleFinancialTable extends BaseWidget
                 . '</tr>';
         })->implode('');
 
-        $revenueRows = $revenueRows !== '' ? $revenueRows : '<tr><td colspan="4" class="px-2 py-3 text-sm text-center text-gray-500">Nessuna entrata registrata</td></tr>';
+        $revenueRows = $revenueRows !== '' ? $revenueRows : '<tr><td colspan="6" class="px-2 py-3 text-sm text-center text-gray-500">Nessuna entrata registrata</td></tr>';
         $movementRows = $movementRows !== '' ? $movementRows : '<tr><td colspan="3" class="px-2 py-3 text-sm text-center text-gray-500">Nessun rifornimento registrato</td></tr>';
         $maintenanceRows = $maintenanceRows !== '' ? $maintenanceRows : '<tr><td colspan="3" class="px-2 py-3 text-sm text-center text-gray-500">Nessuna manutenzione registrata</td></tr>';
 
@@ -149,9 +155,11 @@ class VehicleFinancialTable extends BaseWidget
                                 <thead class="bg-gray-50 dark:bg-gray-800">
                                     <tr>
                                         <th class="px-2 py-2 font-medium">Data</th>
+                                        <th class="px-2 py-2 font-medium">Nome</th>
                                         <th class="px-2 py-2 font-medium">Netto IVA</th>
                                         <th class="px-2 py-2 font-medium">IVA</th>
                                         <th class="px-2 py-2 font-medium">Con IVA</th>
+                                        <th class="px-2 py-2 font-medium">Allegato</th>
                                     </tr>
                                 </thead>
                                 <tbody>{$revenueRows}</tbody>
