@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Maintenance;
 use App\Models\Movement;
+use App\Models\ExtraCost;
 use App\Models\TollRoadExpense;
 use App\Models\UserSalary;
 use App\Models\Vehicle;
@@ -60,15 +61,25 @@ class FinancialReport
             ')
             ->first();
 
+        $extraCostsQuery = ExtraCost::query();
+        $period->applyToBuilder($extraCostsQuery, 'date');
+        $extraCosts = $extraCostsQuery
+            ->selectRaw('
+                COUNT(*) as extra_cost_records_count,
+                COALESCE(SUM(amount), 0) as extra_costs_total
+            ')
+            ->first();
+
         $revenuesExVatTotal = (float) ($revenues?->revenues_ex_vat_total ?? 0);
         $revenuesIncVatTotal = (float) ($revenues?->revenues_inc_vat_total ?? 0);
         $refuelsTotal = (float) ($refuels?->refuels_total ?? 0);
         $maintenancesTotal = (float) ($maintenances?->maintenances_total ?? 0);
         $salariesTotal = (float) ($salaries?->salaries_total ?? 0);
         $tollsTotal = (float) ($tolls?->tolls_total ?? 0);
+        $extraCostsTotal = (float) ($extraCosts?->extra_costs_total ?? 0);
 
         $vehicleOperatingCosts = $refuelsTotal + $maintenancesTotal;
-        $totalCosts = $vehicleOperatingCosts + $salariesTotal + $tollsTotal;
+        $totalCosts = $vehicleOperatingCosts + $salariesTotal + $tollsTotal + $extraCostsTotal;
 
         return [
             'revenues_ex_vat_total' => $revenuesExVatTotal,
@@ -77,6 +88,7 @@ class FinancialReport
             'maintenances_total' => $maintenancesTotal,
             'salaries_total' => $salariesTotal,
             'tolls_total' => $tollsTotal,
+            'extra_costs_total' => $extraCostsTotal,
             'vehicle_operating_costs_total' => $vehicleOperatingCosts,
             'total_costs' => $totalCosts,
             'vehicle_margin_total' => $revenuesExVatTotal - $vehicleOperatingCosts,
@@ -86,6 +98,7 @@ class FinancialReport
             'maintenances_count' => (int) ($maintenances?->maintenances_count ?? 0),
             'salary_records_count' => (int) ($salaries?->salary_records_count ?? 0),
             'toll_records_count' => (int) ($tolls?->toll_records_count ?? 0),
+            'extra_cost_records_count' => (int) ($extraCosts?->extra_cost_records_count ?? 0),
         ];
     }
 

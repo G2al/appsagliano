@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Maintenance;
 use App\Models\Movement;
+use App\Models\ExtraCost;
 use App\Models\TollRoad;
 use App\Models\TollRoadExpense;
 use App\Models\UserSalary;
@@ -136,6 +137,12 @@ class FinancialReportTest extends TestCase
             'amount' => 342,
         ]);
 
+        ExtraCost::query()->create([
+            'date' => '2026-05-24',
+            'description' => 'PC aziendale',
+            'amount' => 200,
+        ]);
+
         $period = FinancialReportPeriod::custom('2026-05-01', '2026-05-31');
         $summary = FinancialReport::summary($period);
 
@@ -145,8 +152,9 @@ class FinancialReportTest extends TestCase
         $this->assertSame(80.0, $summary['maintenances_total']);
         $this->assertSame(1500.0, $summary['salaries_total']);
         $this->assertSame(342.0, $summary['tolls_total']);
+        $this->assertSame(200.0, $summary['extra_costs_total']);
         $this->assertSame(2270.0, $summary['vehicle_margin_total']);
-        $this->assertSame(428.0, $summary['net_margin_total']);
+        $this->assertSame(228.0, $summary['net_margin_total']);
 
         $vehicles = FinancialReport::vehiclePerformanceQuery($period)
             ->orderByDesc('operating_margin')
