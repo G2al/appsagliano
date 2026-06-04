@@ -4,7 +4,9 @@ namespace App\Filament\Resources\MovementResource\Pages;
 
 use App\Filament\Resources\MovementResource;
 use App\Filament\Resources\MovementResource\Widgets\MovementStatsWidget;
+use App\Models\Movement;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -16,6 +18,24 @@ class ListMovements extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+            Actions\Action::make('recalculateTicketAverages')
+                ->label('Ricalcola medie')
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->size('sm')
+                ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                ->requiresConfirmation()
+                ->modalHeading('Ricalcolare km iniziali e medie ticket?')
+                ->modalDescription('Attenzione: questa azione riallinea tutti i rifornimenti in ordine cronologico per veicolo e ricalcola km iniziali e media ticket. Non modifica prezzi, litri, credito stazione, ricevute o notifiche.')
+                ->action(function (): void {
+                    $result = Movement::realignAllVehicleSequences();
+
+                    Notification::make()
+                        ->title('Ricalcolo completato')
+                        ->body("Veicoli: {$result['vehicles']} · Rifornimenti analizzati: {$result['movements']} · Record aggiornati: {$result['updated']}")
+                        ->success()
+                        ->send();
+                }),
         ];
     }
 

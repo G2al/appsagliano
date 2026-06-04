@@ -19,6 +19,7 @@ class Movement extends Model
     use SoftDeletes;
 
     private const MAINTENANCE_TOLERANCE_KM = 500;
+    private const KM_PER_LITER_PRECISION = 2;
 
     protected $fillable = [
         'user_id',
@@ -56,18 +57,11 @@ class Movement extends Model
     protected static function booted(): void
     {
         static::saving(function (self $movement) {
-            $kmStart = $movement->km_start;
-            $kmEnd = $movement->km_end;
-            $liters = $movement->liters;
-
-            $movement->km_per_liter = null;
-            if ($kmStart !== null && $kmEnd !== null && $liters !== null) {
-                $distance = (float) $kmEnd - (float) $kmStart;
-                $litersValue = (float) $liters;
-                if ($distance >= 0 && $litersValue > 0) {
-                    $movement->km_per_liter = round($distance / $litersValue, 2);
-                }
-            }
+            $movement->km_per_liter = self::calculateKmPerLiter(
+                $movement->km_start,
+                $movement->km_end,
+                $movement->liters,
+            );
         });
 
         static::deleting(function (self $movement): void {
@@ -84,23 +78,18 @@ class Movement extends Model
 
 
         static::saved(function (self $movement) {
-            $vehicleId = $movement->vehicle_id;
-            if ($vehicleId) {
-                self::syncVehicleCurrentKm($vehicleId);
-                self::notifyUpcomingMaintenanceIfNeeded($vehicleId);
+            foreach (self::affectedVehicleIds($movement) as $vehicleId) {
+                self::realignVehicleSequence($vehicleId);
             }
 
-            if ($movement->wasChanged('vehicle_id')) {
-                $originalVehicleId = $movement->getOriginal('vehicle_id');
-                if ($originalVehicleId) {
-                    self::syncVehicleCurrentKm($originalVehicleId);
-                }
+            if ($movement->vehicle_id) {
+                self::notifyUpcomingMaintenanceIfNeeded((int) $movement->vehicle_id);
             }
         });
 
         static::deleted(function (self $movement) {
             if ($movement->vehicle_id) {
-                self::syncVehicleCurrentKm($movement->vehicle_id);
+                self::realignVehicleSequence((int) $movement->vehicle_id);
             }
         });
 
@@ -108,10 +97,87 @@ class Movement extends Model
             self::applyStationCharge($movement);
 
             if ($movement->vehicle_id) {
-                self::syncVehicleCurrentKm($movement->vehicle_id);
-                self::notifyUpcomingMaintenanceIfNeeded($movement->vehicle_id);
+                self::realignVehicleSequence((int) $movement->vehicle_id);
+                self::notifyUpcomingMaintenanceIfNeeded((int) $movement->vehicle_id);
             }
         });
+    }
+
+    /**
+     * @return array{vehicles:int,movements:int,updated:int}
+     */
+    public static function realignAllVehicleSequences(): array
+    {
+        $vehicleIds = self::query()
+            ->whereNotNull('vehicle_id')
+            ->distinct()
+            ->orderBy('vehicle_id')
+            ->pluck('vehicle_id');
+
+        $summary = [
+            'vehicles' => 0,
+            'movements' => 0,
+            'updated' => 0,
+        ];
+
+        foreach ($vehicleIds as $vehicleId) {
+            $stats = self::realignVehicleSequence((int) $vehicleId);
+            $summary['vehicles']++;
+            $summary['movements'] += $stats['movements'];
+            $summary['updated'] += $stats['updated'];
+        }
+
+        return $summary;
+    }
+
+    /**
+     * @return array{movements:int,updated:int}
+     */
+    public static function realignVehicleSequence(int $vehicleId): array
+    {
+        if ($vehicleId <= 0) {
+            return ['movements' => 0, 'updated' => 0];
+        }
+
+        $movements = self::query()
+            ->where('vehicle_id', $vehicleId)
+            ->orderBy('date')
+            ->orderBy('id')
+            ->get();
+
+        $previousKmEnd = null;
+        $updated = 0;
+
+        foreach ($movements as $movement) {
+            $expectedKmStart = $previousKmEnd ?? $movement->km_start;
+            $expectedKmPerLiter = self::calculateKmPerLiter(
+                $expectedKmStart,
+                $movement->km_end,
+                $movement->liters,
+            );
+
+            if (
+                ! self::sameIntegerValue($movement->km_start, $expectedKmStart)
+                || ! self::sameDecimalValue($movement->km_per_liter, $expectedKmPerLiter)
+            ) {
+                $movement->timestamps = false;
+                $movement->km_start = $expectedKmStart;
+                $movement->km_per_liter = $expectedKmPerLiter;
+                $movement->saveQuietly();
+                $updated++;
+            }
+
+            $previousKmEnd = $movement->km_end !== null
+                ? (int) $movement->km_end
+                : null;
+        }
+
+        self::syncVehicleCurrentKm($vehicleId);
+
+        return [
+            'movements' => $movements->count(),
+            'updated' => $updated,
+        ];
     }
 
     public function user(): BelongsTo
@@ -196,6 +262,61 @@ class Movement extends Model
             ->value('km_end');
 
         return $kmStart !== null ? (int) $kmStart : null;
+    }
+
+    protected static function calculateKmPerLiter(mixed $kmStart, mixed $kmEnd, mixed $liters): ?float
+    {
+        if ($kmStart === null || $kmEnd === null || $liters === null) {
+            return null;
+        }
+
+        $distance = (float) $kmEnd - (float) $kmStart;
+        $litersValue = (float) $liters;
+
+        if ($distance < 0 || $litersValue <= 0) {
+            return null;
+        }
+
+        return round($distance / $litersValue, self::KM_PER_LITER_PRECISION);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected static function affectedVehicleIds(self $movement): array
+    {
+        $vehicleIds = [];
+
+        if ($movement->vehicle_id) {
+            $vehicleIds[] = (int) $movement->vehicle_id;
+        }
+
+        if ($movement->wasChanged('vehicle_id')) {
+            $originalVehicleId = $movement->getOriginal('vehicle_id');
+            if ($originalVehicleId) {
+                $vehicleIds[] = (int) $originalVehicleId;
+            }
+        }
+
+        return array_values(array_unique($vehicleIds));
+    }
+
+    protected static function sameIntegerValue(mixed $current, mixed $expected): bool
+    {
+        if ($current === null || $expected === null) {
+            return $current === $expected;
+        }
+
+        return (int) $current === (int) $expected;
+    }
+
+    protected static function sameDecimalValue(mixed $current, ?float $expected): bool
+    {
+        if ($current === null || $expected === null) {
+            return $current === $expected;
+        }
+
+        return abs((float) $current - $expected) < 0.0001;
     }
 
     protected static function notifyUpcomingMaintenanceIfNeeded(int $vehicleId): void
@@ -318,4 +439,3 @@ class Movement extends Model
         }
     }
 }
-
