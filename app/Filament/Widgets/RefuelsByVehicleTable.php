@@ -90,45 +90,63 @@ class RefuelsByVehicleTable extends BaseWidget
     {
         [$start, $end] = $this->resolveDateRange();
 
-        $rows = Movement::with(['vehicle', 'station'])
+        $movements = Movement::with(['vehicle', 'station'])
             ->where('vehicle_id', $vehicleId)
-            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date')
             ->limit(50)
-            ->get()
-            ->map(function (Movement $m) {
-                $date = $m->date?->format('d/m/Y H:i') ?? 'N/D';
-                $station = $m->station?->name ?? 'Stazione';
-                $liters = $m->liters !== null ? number_format((float) $m->liters, 2, ',', '.') . ' L' : '0,00 L';
-                $price = $m->price !== null ? '€ ' . number_format((float) $m->price, 2, ',', '.') : '€ 0,00';
-                $note = $m->notes ?: '';
-                $attachment = $m->photo_path
-                    ? '<a href="' . e(asset('storage/' . $m->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+            ->get();
+
+        $creditCount = $movements->where('is_voucher', false)->count();
+        $voucherCount = $movements->where('is_voucher', true)->count();
+        $totalCount = $movements->count();
+
+        $rows = $movements
+            ->map(function (Movement $movement) {
+                $date = $movement->date?->format('d/m/Y H:i') ?? 'N/D';
+                $station = $movement->station?->name ?? 'Stazione';
+                $liters = $movement->liters !== null ? number_format((float) $movement->liters, 2, ',', '.') . ' L' : '0,00 L';
+                $price = $movement->price !== null ? 'EUR ' . number_format((float) $movement->price, 2, ',', '.') : 'EUR 0,00';
+                $paymentLabel = $movement->is_voucher ? 'Buono' : 'Credito';
+                $paymentClasses = $movement->is_voucher
+                    ? 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-300'
+                    : 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-300';
+                $paymentBadge = '<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ' . $paymentClasses . '">' . $paymentLabel . '</span>';
+                $note = $movement->notes ?: '';
+                $attachment = $movement->photo_path
+                    ? '<a href="' . e(asset('storage/' . $movement->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
                     : 'N/D';
 
                 return "<tr>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$date}</td>
+                    <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$paymentBadge}</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$station}</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$liters}</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$price}</td>
                     <td class=\"px-2 py-1 text-sm\">" . e($note) . "</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$attachment}</td>
                 </tr>";
-            })->implode('');
+            })
+            ->implode('');
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="6" class="px-2 py-3 text-sm text-center text-gray-500">Nessun movimento</td></tr>';
+            $rows = '<tr><td colspan="7" class="px-2 py-3 text-sm text-center text-gray-500">Nessun movimento</td></tr>';
         }
 
         return <<<HTML
             <div class="space-y-2">
                 <div class="text-sm font-semibold">Veicolo: {$label}</div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">Totale: {$totalCount}</span>
+                    <span class="inline-flex items-center rounded-md bg-success-100 px-2 py-1 font-medium text-success-700 dark:bg-success-500/10 dark:text-success-300">Credito: {$creditCount}</span>
+                    <span class="inline-flex items-center rounded-md bg-warning-100 px-2 py-1 font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-300">Buono: {$voucherCount}</span>
+                </div>
                 <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                     <table class="min-w-full text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th class="px-2 py-2 font-medium">Data</th>
+                                <th class="px-2 py-2 font-medium">Pagamento</th>
                                 <th class="px-2 py-2 font-medium">Stazione</th>
                                 <th class="px-2 py-2 font-medium">Litri</th>
                                 <th class="px-2 py-2 font-medium">Prezzo</th>
