@@ -27,7 +27,6 @@ class RefuelsListTable extends BaseWidget
 
         return Movement::query()
             ->with(['vehicle', 'station', 'user'])
-            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -53,6 +52,12 @@ class RefuelsListTable extends BaseWidget
             Tables\Columns\TextColumn::make('station.name')
                 ->label('Stazione')
                 ->searchable()
+                ->sortable(),
+            Tables\Columns\TextColumn::make('is_voucher')
+                ->label('Pagamento')
+                ->badge()
+                ->formatStateUsing(fn ($state): string => (bool) $state ? 'Buono' : 'Credito')
+                ->color(fn ($state): string => (bool) $state ? 'warning' : 'success')
                 ->sortable(),
             Tables\Columns\TextColumn::make('liters')
                 ->label('Litri')
@@ -92,7 +97,7 @@ class RefuelsListTable extends BaseWidget
                 ->options(fn () => Vehicle::query()
                     ->orderBy('plate')
                     ->get()
-                    ->mapWithKeys(fn ($v) => [$v->id => trim(($v->plate ? $v->plate . ' - ' : '') . ($v->name ?? ''))])
+                    ->mapWithKeys(fn ($vehicle) => [$vehicle->id => trim(($vehicle->plate ? $vehicle->plate . ' - ' : '') . ($vehicle->name ?? ''))])
                     ->toArray()),
             Tables\Filters\SelectFilter::make('station_id')
                 ->label('Stazione')

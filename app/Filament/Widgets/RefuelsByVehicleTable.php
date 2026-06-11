@@ -25,7 +25,6 @@ class RefuelsByVehicleTable extends BaseWidget
         [$start, $end] = $this->resolveDateRange();
 
         return Movement::query()
-            ->where('movements.is_voucher', false)
             ->selectRaw("
                 MIN(movements.id) as id,
                 vehicles.id as vehicle_id,
