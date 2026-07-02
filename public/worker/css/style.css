@@ -3297,6 +3297,13 @@ body.dark .auth-header .logo {
 }
 
 @media (max-width: 600px) {
+    .auth-brand-logo {
+        margin-top: -28px;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 600px) {
     .auth-header .logo.user-logo {
                 /* PRIMA: 16px minimo, 20px massimo */
         height: calc(16px + 4 * (100vw - 320px) / 280);
