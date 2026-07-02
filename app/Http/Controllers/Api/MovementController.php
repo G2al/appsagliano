@@ -142,15 +142,6 @@ class MovementController extends Controller
             ? ($isVoucher ? 0.0 : (float) $validated['price'])
             : 0.0;
 
-        if ($stationCharge > 0) {
-            $balance = (float) $station->credit_balance;
-            if ($balance < $stationCharge) {
-                throw ValidationException::withMessages([
-                    'price' => ['Credito insufficiente sulla stazione selezionata.'],
-                ]);
-            }
-        }
-
         $resolvedKmStart = Movement::resolveKmStartForVehicleAtDate(
             (int) $validated['vehicle_id'],
             $validated['date']

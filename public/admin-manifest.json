@@ -1,16 +1,16 @@
 {
-  "name": "Tony Trans - Admin",
-  "short_name": "Tony Trans Admin",
+  "name": "Vialo - Admin",
+  "short_name": "Vialo Admin",
   "lang": "it-IT",
   "start_url": "/admin",
   "scope": "/admin/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#005d94",
-  "description": "Pannello amministrazione Autotrasporti Tony Trans",
+  "background_color": "#14151d",
+  "theme_color": "#007a69",
+  "description": "Pannello amministrazione Vialo",
   "icons": [
     {
-      "src": "/worker/images/logo/logo_pwa_tony_trans_admin.png",
+      "src": "/worker/images/logo/logo-vialo-pwa-admin.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

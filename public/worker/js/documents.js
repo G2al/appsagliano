@@ -1,6 +1,6 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'tony_trans_token';
+    const TOKEN_KEY = 'vialo_token';
 
     let foldersCache = [];
     let searchQuery = '';

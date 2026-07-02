@@ -1,11 +1,75 @@
 /*========================
     Manifest / Service Worker
  ==========================*/
+const WORKER_APP_VERSION = "7";
+const WORKER_CACHE_PREFIX = "vialo-worker-";
+const WORKER_SW_URL = `sw.js?v=${WORKER_APP_VERSION}`;
+let workerRefreshTriggered = false;
+
+const hardRefreshWorkerApp = () => {
+    if (workerRefreshTriggered) return;
+    workerRefreshTriggered = true;
+
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set("appv", WORKER_APP_VERSION);
+    nextUrl.searchParams.set("ts", Date.now().toString());
+    window.location.replace(nextUrl.toString());
+};
+
+const clearWorkerCaches = async () => {
+    if (!("caches" in window)) return;
+
+    const keys = await caches.keys();
+    await Promise.all(
+        keys
+            .filter((key) => key.startsWith(WORKER_CACHE_PREFIX))
+            .map((key) => caches.delete(key))
+    );
+};
+
+const forceLatestWorker = async () => {
+    if (!("serviceWorker" in navigator)) return null;
+
+    const registration = await navigator.serviceWorker.register(WORKER_SW_URL);
+    await registration.update().catch(() => {});
+
+    if (registration.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        return registration;
+    }
+
+    const installingWorker = registration.installing;
+    if (!installingWorker) {
+        return registration;
+    }
+
+    await new Promise((resolve) => {
+        const timeoutId = window.setTimeout(resolve, 3000);
+        installingWorker.addEventListener("statechange", () => {
+            if (
+                installingWorker.state === "installed" ||
+                installingWorker.state === "activated" ||
+                installingWorker.state === "redundant"
+            ) {
+                window.clearTimeout(timeoutId);
+                if (registration.waiting) {
+                    registration.waiting.postMessage({ type: "SKIP_WAITING" });
+                }
+                resolve();
+            }
+        });
+    });
+
+    return registration;
+};
+
 if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+        hardRefreshWorkerApp();
+    });
+
     window.addEventListener("load", () => {
-        navigator.serviceWorker
-            .register("sw.js")
-            .then((registration) => registration.update().catch(() => {}))
+        forceLatestWorker()
             .catch(() => {
                 /* ignore if sw not available */
             });
@@ -49,23 +113,10 @@ window.addEventListener("load", () => {
         refreshBtn.textContent = "Aggiornamento...";
 
         try {
-            if ("serviceWorker" in navigator) {
-                const registration = await navigator.serviceWorker.getRegistration();
-                if (registration) {
-                    await registration.update().catch(() => {});
-                }
-            }
-
-            if ("caches" in window) {
-                const keys = await caches.keys();
-                await Promise.all(
-                    keys
-                        .filter((key) => key.startsWith("tony-trans-worker-"))
-                        .map((key) => caches.delete(key))
-                );
-            }
+            await forceLatestWorker();
+            await clearWorkerCaches();
         } finally {
-            window.location.reload();
+            hardRefreshWorkerApp();
         }
     });
 });

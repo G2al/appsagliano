@@ -1,16 +1,16 @@
 {
-  "name": "Tony Trans",
-  "short_name": "Tony Trans",
+  "name": "Vialo",
+  "short_name": "Vialo",
   "lang": "it-IT",
   "start_url": "/worker/home.html",
   "scope": "/worker/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#005d94",
-  "description": "Gestione rifornimenti e ricevute per Autotrasporti Tony Trans",
+  "background_color": "#ffffff",
+  "theme_color": "#007a69",
+  "description": "Controllo costi, rifornimenti, manutenzioni e documenti con Vialo",
   "icons": [
     {
-      "src": "images/logo/logo_pwa_tony_trans.png",
+      "src": "images/logo/logo-vialo-pwa-worker.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

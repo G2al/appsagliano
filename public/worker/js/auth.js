@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'tony_trans_token';
-    const USER_KEY = 'tony_trans_user';
-    const REMEMBER_KEY = 'tony_trans_remember';
+    const TOKEN_KEY = 'vialo_token';
+    const USER_KEY = 'vialo_user';
+    const REMEMBER_KEY = 'vialo_remember';
 
     const showAlert = (element, message) => {
         if (!element) return;

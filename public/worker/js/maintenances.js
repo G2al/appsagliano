@@ -1,8 +1,8 @@
 (() => {
     const API_BASE = '/api';
-    const TOKEN_KEY = 'tony_trans_token';
-    const USER_KEY = 'tony_trans_user';
-    const LAST_VEHICLE_KEY = 'tony_trans_last_vehicle';
+    const TOKEN_KEY = 'vialo_token';
+    const USER_KEY = 'vialo_user';
+    const LAST_VEHICLE_KEY = 'vialo_last_vehicle';
 
     let maintenancesCache = [];
     let vehiclesCache = [];
@@ -162,7 +162,7 @@
                                 <div class="coupon-name">
                                     <img class="img-fluid coupon-img" src="${photo}" alt="allegato">
                                     <div>
-                                        <h5 class="fw-normal title-color" style="color: #2f4c94 !important; font-weight: 500!important;">${userName}</h5>
+                                        <h5 class="fw-normal title-color" style="color: #007a69 !important; font-weight: 500!important;">${userName}</h5>
                                         <p class="content-color mb-0 role-label">Manutenzione</p>
                                     </div>
                                 </div>

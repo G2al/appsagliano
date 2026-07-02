@@ -27,15 +27,15 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Sky,
+                'primary' => Color::Emerald,
             ])
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
-                    <link rel="manifest" href="/admin-manifest.json?v=6">
-                    <link rel="icon" href="/worker/images/logo/favicon-admin.png" type="image/png">
-                    <link rel="apple-touch-icon" href="/worker/images/logo/logo_pwa_tony_trans_admin.png">
-                    <meta name="theme-color" content="#005d94">
+                    <link rel="manifest" href="/admin-manifest.json?v=7">
+                    <link rel="icon" href="/worker/images/logo/logo-vialo-pwa-worker.png" type="image/png">
+                    <link rel="apple-touch-icon" href="/worker/images/logo/logo-vialo-pwa-admin.png">
+                    <meta name="theme-color" content="#007a69">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                 HTML
             )

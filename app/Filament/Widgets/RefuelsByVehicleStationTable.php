@@ -25,7 +25,6 @@ class RefuelsByVehicleStationTable extends BaseWidget
         [$start, $end] = $this->resolveDateRange();
 
         return Movement::query()
-            ->where('movements.is_voucher', false)
             ->selectRaw("
                 MIN(movements.id) as id,
                 vehicles.id as vehicle_id,
@@ -101,22 +100,23 @@ class RefuelsByVehicleStationTable extends BaseWidget
         $rows = Movement::with(['vehicle', 'station'])
             ->where('vehicle_id', $vehicleId)
             ->where('station_id', $stationId)
-            ->where('is_voucher', false)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date')
             ->limit(50)
             ->get()
-            ->map(function (Movement $m) {
-                $date = $m->date?->format('d/m/Y H:i') ?? 'N/D';
-                $liters = $m->liters !== null ? number_format((float) $m->liters, 2, ',', '.') . ' L' : '0,00 L';
-                $price = $m->price !== null ? '€ ' . number_format((float) $m->price, 2, ',', '.') : '€ 0,00';
-                $note = $m->notes ?: '';
-                $attachment = $m->photo_path
-                    ? '<a href="' . e(asset('storage/' . $m->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+            ->map(function (Movement $movement) {
+                $date = $movement->date?->format('d/m/Y H:i') ?? 'N/D';
+                $liters = $movement->liters !== null ? number_format((float) $movement->liters, 2, ',', '.') . ' L' : '0,00 L';
+                $price = $movement->price !== null ? 'EUR ' . number_format((float) $movement->price, 2, ',', '.') : 'EUR 0,00';
+                $paymentLabel = $movement->is_voucher ? 'Buono' : 'Credito';
+                $note = $movement->notes ?: '';
+                $attachment = $movement->photo_path
+                    ? '<a href="' . e(asset('storage/' . $movement->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
                     : 'N/D';
 
                 return "<tr>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$date}</td>
+                    <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$paymentLabel}</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$liters}</td>
                     <td class=\"px-2 py-1 whitespace-nowrap text-sm\">{$price}</td>
                     <td class=\"px-2 py-1 text-sm\">" . e($note) . "</td>
@@ -125,7 +125,7 @@ class RefuelsByVehicleStationTable extends BaseWidget
             })->implode('');
 
         if ($rows === '') {
-            $rows = '<tr><td colspan="5" class="px-2 py-3 text-sm text-center text-gray-500">Nessun movimento</td></tr>';
+            $rows = '<tr><td colspan="6" class="px-2 py-3 text-sm text-center text-gray-500">Nessun movimento</td></tr>';
         }
 
         return <<<HTML
@@ -137,6 +137,7 @@ class RefuelsByVehicleStationTable extends BaseWidget
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th class="px-2 py-2 font-medium">Data</th>
+                                <th class="px-2 py-2 font-medium">Pagamento</th>
                                 <th class="px-2 py-2 font-medium">Litri</th>
                                 <th class="px-2 py-2 font-medium">Prezzo</th>
                                 <th class="px-2 py-2 font-medium">Note</th>
