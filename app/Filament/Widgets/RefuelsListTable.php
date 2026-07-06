@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\MovementResource;
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use App\Models\Station;
@@ -82,6 +83,17 @@ class RefuelsListTable extends BaseWidget
     protected function getReportTableRowKey(Model $record): string
     {
         return 'movement:' . $record->getKey();
+    }
+
+    protected function getTableActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('edit')
+                ->label('Modifica')
+                ->icon('heroicon-o-pencil-square')
+                ->url(fn (Movement $record): string => MovementResource::getUrl('edit', ['record' => $record]))
+                ->visible(fn (Movement $record): bool => MovementResource::canEdit($record)),
+        ];
     }
 
     protected function getTableFilters(): array

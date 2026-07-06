@@ -25,4 +25,9 @@ class EditMaintenance extends EditRecord
 
         return $data;
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->previousUrl ?? MaintenanceResource::getUrl('index');
+    }
 }

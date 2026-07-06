@@ -97,4 +97,9 @@ class EditMovement extends EditRecord
             Station::adjustCreditBalance((int) $stationId, (float) $delta);
         }
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->previousUrl ?? MovementResource::getUrl('index');
+    }
 }

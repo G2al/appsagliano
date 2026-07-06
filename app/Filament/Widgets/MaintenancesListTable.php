@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\MaintenanceResource;
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Maintenance;
 use App\Models\Supplier;
@@ -76,6 +77,17 @@ class MaintenancesListTable extends BaseWidget
     protected function getReportTableRowKey(Model $record): string
     {
         return 'maintenance:' . $record->getKey();
+    }
+
+    protected function getTableActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('edit')
+                ->label('Modifica')
+                ->icon('heroicon-o-pencil-square')
+                ->url(fn (Maintenance $record): string => MaintenanceResource::getUrl('edit', ['record' => $record]))
+                ->visible(fn (Maintenance $record): bool => MaintenanceResource::canEdit($record)),
+        ];
     }
 
     protected function getTableFilters(): array
