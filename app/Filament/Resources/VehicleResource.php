@@ -17,7 +17,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class VehicleResource extends Resource
@@ -155,25 +154,6 @@ class VehicleResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-                Tables\Actions\BulkAction::make('download_revenue_attachments')
-                    ->label('Scarica entrate')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->form(self::getRevenueDownloadFormSchema())
-                    ->action(function (Collection $records, array $data) {
-                        $vehicleIds = $records
-                            ->pluck('id')
-                            ->map(fn ($id): int => (int) $id)
-                            ->all();
-
-                        if (empty($vehicleIds)) {
-                            return;
-                        }
-
-                        return redirect()->route('vehicles.revenues.download', [
-                            'token' => self::buildRevenueDownloadToken($vehicleIds, $data['month'] ?? null),
-                        ]);
-                    })
-                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 

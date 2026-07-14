@@ -3,14 +3,17 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithFinancialReportData;
+use App\Filament\Resources\VehicleResource;
 use App\Models\Maintenance;
 use App\Models\Movement;
 use App\Models\Vehicle;
 use App\Support\FinancialReport;
 use Filament\Tables;
+use Filament\Notifications\Notification;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\HtmlString;
 
 class VehicleFinancialTable extends BaseWidget
@@ -80,6 +83,144 @@ class VehicleFinancialTable extends BaseWidget
                 ->modalContent(fn (Vehicle $record): HtmlString => new HtmlString(
                     $this->renderVehicleDetails($record)
                 )),
+        ];
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('download_performance_pdf')
+                ->label('PDF performance')
+                ->icon('heroicon-o-document-arrow-down')
+                ->action(function () {
+                    $vehicleIds = $this->getFilteredSortedTableQuery()
+                        ->get()
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        Notification::make()
+                            ->title('Nessun veicolo da esportare')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    return redirect()->route('report-general.vehicle-performance.download', [
+                        'token' => $this->buildPerformancePdfDownloadToken($vehicleIds, 'full'),
+                    ]);
+                }),
+            Tables\Actions\Action::make('download_revenues_pdf')
+                ->label('PDF entrate')
+                ->icon('heroicon-o-document-text')
+                ->action(function () {
+                    $vehicleIds = $this->getFilteredSortedTableQuery()
+                        ->get()
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        Notification::make()
+                            ->title('Nessun veicolo da esportare')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    return redirect()->route('report-general.vehicle-performance.download', [
+                        'token' => $this->buildPerformancePdfDownloadToken($vehicleIds, 'revenues'),
+                    ]);
+                }),
+            Tables\Actions\Action::make('download_revenue_attachments')
+                ->label('Scarica entrate')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->modalHeading('Scarica allegati entrate veicoli')
+                ->form(VehicleResource::getRevenueDownloadFormSchema())
+                ->action(function (array $data) {
+                    $vehicleIds = $this->getFilteredSortedTableQuery()
+                        ->get()
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        Notification::make()
+                            ->title('Nessun veicolo disponibile')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    return redirect()->route('vehicles.revenues.download', [
+                        'token' => VehicleResource::buildRevenueDownloadToken($vehicleIds, $data['month'] ?? null),
+                    ]);
+                }),
+        ];
+    }
+
+    protected function getTableBulkActions(): array
+    {
+        return [
+            Tables\Actions\BulkAction::make('download_selected_performance_pdf')
+                ->label('PDF performance selezionati')
+                ->icon('heroicon-o-document-arrow-down')
+                ->action(function (Collection $records) {
+                    $vehicleIds = $records
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        return;
+                    }
+
+                    return redirect()->route('report-general.vehicle-performance.download', [
+                        'token' => $this->buildPerformancePdfDownloadToken($vehicleIds, 'full'),
+                    ]);
+                })
+                ->deselectRecordsAfterCompletion(),
+            Tables\Actions\BulkAction::make('download_selected_revenues_pdf')
+                ->label('PDF entrate selezionati')
+                ->icon('heroicon-o-document-text')
+                ->action(function (Collection $records) {
+                    $vehicleIds = $records
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        return;
+                    }
+
+                    return redirect()->route('report-general.vehicle-performance.download', [
+                        'token' => $this->buildPerformancePdfDownloadToken($vehicleIds, 'revenues'),
+                    ]);
+                })
+                ->deselectRecordsAfterCompletion(),
+            Tables\Actions\BulkAction::make('download_selected_revenue_attachments')
+                ->label('Scarica entrate selezionati')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->form(VehicleResource::getRevenueDownloadFormSchema())
+                ->action(function (Collection $records, array $data) {
+                    $vehicleIds = $records
+                        ->pluck('id')
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if (empty($vehicleIds)) {
+                        return;
+                    }
+
+                    return redirect()->route('vehicles.revenues.download', [
+                        'token' => VehicleResource::buildRevenueDownloadToken($vehicleIds, $data['month'] ?? null),
+                    ]);
+                })
+                ->deselectRecordsAfterCompletion(),
         ];
     }
 
@@ -201,5 +342,14 @@ class VehicleFinancialTable extends BaseWidget
                 </div>
             </div>
         HTML;
+    }
+
+    private function buildPerformancePdfDownloadToken(array $vehicleIds, string $layout): string
+    {
+        return base64_encode(json_encode([
+            'vehicle_ids' => array_values(array_unique(array_map('intval', $vehicleIds))),
+            'filters' => $this->filters ?? [],
+            'layout' => $layout,
+        ]));
     }
 }

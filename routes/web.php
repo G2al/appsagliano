@@ -7,6 +7,7 @@ use App\Http\Controllers\MaintenanceReceiptController;
 use App\Http\Controllers\MaintenanceAttachmentPrintController;
 use App\Http\Controllers\MaintenanceBolleDownloadController;
 use App\Http\Controllers\UserDocumentDownloadController;
+use App\Http\Controllers\VehiclePerformancePdfDownloadController;
 use App\Http\Controllers\VehicleRevenueAttachmentsDownloadController;
 
 Route::get('/', function () {
@@ -41,3 +42,7 @@ Route::get('/admin/user-documents/files/{file}/download', UserDocumentDownloadCo
 Route::get('/admin/vehicles/revenues/download', VehicleRevenueAttachmentsDownloadController::class)
     ->middleware('auth')
     ->name('vehicles.revenues.download');
+
+Route::get('/admin/report-general/vehicle-performance/download', VehiclePerformancePdfDownloadController::class)
+    ->middleware('auth')
+    ->name('report-general.vehicle-performance.download');
