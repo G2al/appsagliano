@@ -5,6 +5,7 @@ namespace App\Filament\Resources\VehicleResource\RelationManagers;
 use App\Models\User;
 use App\Models\VatSetting;
 use App\Models\VehicleRevenue;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -12,6 +13,7 @@ use Filament\Forms\Set;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class RevenuesRelationManager extends RelationManager
@@ -118,6 +120,56 @@ class RevenuesRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Nuova entrata'),
             ])
+            ->filters([
+                Tables\Filters\Filter::make('period')
+                    ->label('Periodo')
+                    ->form([
+                        Forms\Components\Select::make('period_preset')
+                            ->label('Periodo')
+                            ->options([
+                                'current_month' => 'Questo mese',
+                                'last_month' => 'Mese scorso',
+                                'current_year' => 'Anno corrente',
+                                'last_30_days' => 'Ultimi 30 giorni',
+                                'total' => 'Totale',
+                            ])
+                            ->default('current_month')
+                            ->live()
+                            ->afterStateHydrated(function (Set $set, ?string $state): void {
+                                $this->applyPeriodPreset($set, $state);
+                            })
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                $this->applyPeriodPreset($set, $state);
+                            }),
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Dal')
+                            ->default(now()->startOfMonth()->toDateString())
+                            ->disabled(fn (Get $get): bool => $get('period_preset') === 'total')
+                            ->live(),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Al')
+                            ->default(now()->toDateString())
+                            ->disabled(fn (Get $get): bool => $get('period_preset') === 'total')
+                            ->live(),
+                    ])
+                    ->columns(3)
+                    ->default([
+                        'period_preset' => 'current_month',
+                        'start_date' => now()->startOfMonth()->toDateString(),
+                        'end_date' => now()->toDateString(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if ($data['start_date'] ?? null) {
+                            $query->whereDate('date', '>=', $data['start_date']);
+                        }
+
+                        if ($data['end_date'] ?? null) {
+                            $query->whereDate('date', '<=', $data['end_date']);
+                        }
+
+                        return $query;
+                    }),
+            ])
             ->actions([
                 Tables\Actions\Action::make('openAttachment')
                     ->label('Apri allegato')
@@ -136,5 +188,43 @@ class RevenuesRelationManager extends RelationManager
         $vat = (float) ($vatPercentage ?? 0);
 
         return round($amount * (1 + ($vat / 100)), 2);
+    }
+
+    private function applyPeriodPreset(Set $set, ?string $preset): void
+    {
+        if ($preset === 'total') {
+            $set('start_date', null);
+            $set('end_date', null);
+
+            return;
+        }
+
+        if ($preset === 'last_month') {
+            $start = Carbon::now()->subMonthNoOverflow()->startOfMonth();
+
+            $set('start_date', $start->toDateString());
+            $set('end_date', $start->copy()->endOfMonth()->toDateString());
+
+            return;
+        }
+
+        if ($preset === 'current_year') {
+            $start = Carbon::now()->startOfYear();
+
+            $set('start_date', $start->toDateString());
+            $set('end_date', Carbon::now()->toDateString());
+
+            return;
+        }
+
+        if ($preset === 'last_30_days') {
+            $set('start_date', Carbon::now()->subDays(29)->toDateString());
+            $set('end_date', Carbon::now()->toDateString());
+
+            return;
+        }
+
+        $set('start_date', Carbon::now()->startOfMonth()->toDateString());
+        $set('end_date', Carbon::now()->toDateString());
     }
 }

@@ -9,12 +9,15 @@ use App\Filament\Resources\VehicleResource\RelationManagers\RevenuesRelationMana
 use App\Models\Movement;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleRevenue;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class VehicleResource extends Resource
@@ -152,6 +155,25 @@ class VehicleResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+                Tables\Actions\BulkAction::make('download_revenue_attachments')
+                    ->label('Scarica entrate')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->form(self::getRevenueDownloadFormSchema())
+                    ->action(function (Collection $records, array $data) {
+                        $vehicleIds = $records
+                            ->pluck('id')
+                            ->map(fn ($id): int => (int) $id)
+                            ->all();
+
+                        if (empty($vehicleIds)) {
+                            return;
+                        }
+
+                        return redirect()->route('vehicles.revenues.download', [
+                            'token' => self::buildRevenueDownloadToken($vehicleIds, $data['month'] ?? null),
+                        ]);
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 
@@ -198,5 +220,46 @@ class VehicleResource extends Resource
     public static function canDeleteAny(): bool
     {
         return static::canViewAny();
+    }
+
+    public static function getRevenueDownloadFormSchema(): array
+    {
+        return [
+            Forms\Components\Select::make('month')
+                ->label('Mese')
+                ->placeholder('Tutti i mesi')
+                ->options(self::getRevenueDownloadMonthOptions())
+                ->searchable()
+                ->helperText('Se selezioni un mese, lo ZIP conterra una cartella del mese con dentro le cartelle dei veicoli. Se lasci vuoto, ogni veicolo avra le sue cartelle mensili.'),
+        ];
+    }
+
+    public static function getRevenueDownloadMonthOptions(): array
+    {
+        return VehicleRevenue::query()
+            ->selectRaw("DATE_FORMAT(`date`, '%Y-%m') as revenue_month")
+            ->whereNotNull('date')
+            ->groupByRaw("DATE_FORMAT(`date`, '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(`date`, '%Y-%m') DESC")
+            ->pluck('revenue_month')
+            ->filter()
+            ->mapWithKeys(function (string $revenueMonth): array {
+                $date = Carbon::createFromFormat('Y-m', $revenueMonth)->locale('it');
+
+                return [
+                    $revenueMonth => ucfirst($date->translatedFormat('F Y')),
+                ];
+            })
+            ->all();
+    }
+
+    public static function buildRevenueDownloadToken(array $vehicleIds, ?string $month = null): string
+    {
+        $payload = [
+            'vehicle_ids' => array_values(array_unique(array_map('intval', $vehicleIds))),
+            'month' => filled($month) ? (string) $month : null,
+        ];
+
+        return base64_encode(json_encode($payload));
     }
 }

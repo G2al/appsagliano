@@ -153,15 +153,15 @@ class FinancialReportTest extends TestCase
         $this->assertSame(1500.0, $summary['salaries_total']);
         $this->assertSame(342.0, $summary['tolls_total']);
         $this->assertSame(200.0, $summary['extra_costs_total']);
-        $this->assertSame(2270.0, $summary['vehicle_margin_total']);
-        $this->assertSame(228.0, $summary['net_margin_total']);
+        $this->assertSame(2820.0, $summary['vehicle_margin_total']);
+        $this->assertSame(778.0, $summary['net_margin_total']);
 
         $vehicles = FinancialReport::vehiclePerformanceQuery($period)
             ->orderByDesc('operating_margin')
             ->get()
             ->keyBy('plate');
 
-        $this->assertSame(1770.0, (float) $vehicles['GB001AA']->operating_margin);
-        $this->assertSame(500.0, (float) $vehicles['GB002AA']->operating_margin);
+        $this->assertSame(2210.0, (float) $vehicles['GB001AA']->operating_margin);
+        $this->assertSame(610.0, (float) $vehicles['GB002AA']->operating_margin);
     }
 }

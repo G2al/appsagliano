@@ -91,8 +91,8 @@ class FinancialReport
             'extra_costs_total' => $extraCostsTotal,
             'vehicle_operating_costs_total' => $vehicleOperatingCosts,
             'total_costs' => $totalCosts,
-            'vehicle_margin_total' => $revenuesExVatTotal - $vehicleOperatingCosts,
-            'net_margin_total' => $revenuesExVatTotal - $totalCosts,
+            'vehicle_margin_total' => $revenuesIncVatTotal - $vehicleOperatingCosts,
+            'net_margin_total' => $revenuesIncVatTotal - $totalCosts,
             'revenue_records_count' => (int) ($revenues?->revenue_records_count ?? 0),
             'refuels_count' => (int) ($refuels?->refuels_count ?? 0),
             'maintenances_count' => (int) ($maintenances?->maintenances_count ?? 0),
@@ -161,7 +161,7 @@ class FinancialReport
             ')
             ->selectRaw('
                 (
-                    COALESCE(revenue_stats.revenues_ex_vat_total, 0) -
+                    COALESCE(revenue_stats.revenues_inc_vat_total, 0) -
                     COALESCE(refuel_stats.refuels_total, 0) -
                     COALESCE(maintenance_stats.maintenances_total, 0)
                 ) as operating_margin
