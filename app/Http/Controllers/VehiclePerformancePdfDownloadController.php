@@ -77,7 +77,18 @@ class VehiclePerformancePdfDownloadController extends Controller
         $pdf->SetMargins(8, 8, 8);
         $pdf->AddPage();
 
-        $this->renderHeading($pdf, $layout, $period, $vehicles->count());
+        $this->renderHeading(
+            $pdf,
+            $layout,
+            $period,
+            $vehicles->count(),
+            $layout === 'revenues'
+                ? [
+                    'revenues_ex_vat_total' => (float) $vehicles->sum('revenues_ex_vat_total'),
+                    'revenues_inc_vat_total' => (float) $vehicles->sum('revenues_inc_vat_total'),
+                ]
+                : null,
+        );
 
         if ($layout === 'revenues') {
             $this->renderRevenuesTable($pdf, $vehicles);
@@ -92,7 +103,13 @@ class VehiclePerformancePdfDownloadController extends Controller
         ])->deleteFileAfterSend(true);
     }
 
-    private function renderHeading(\FPDF $pdf, string $layout, FinancialReportPeriod $period, int $count): void
+    private function renderHeading(
+        \FPDF $pdf,
+        string $layout,
+        FinancialReportPeriod $period,
+        int $count,
+        ?array $totals = null,
+    ): void
     {
         $title = $layout === 'revenues'
             ? 'Riepilogo entrate veicoli'
@@ -104,6 +121,12 @@ class VehiclePerformancePdfDownloadController extends Controller
         $pdf->SetFont('Arial', '', 9);
         $pdf->Cell(0, 6, $this->encode('Periodo: ' . $this->formatPeriodLabel($period)), 0, 1);
         $pdf->Cell(0, 6, $this->encode('Veicoli inclusi: ' . number_format($count, 0, ',', '.')), 0, 1);
+
+        if ($layout === 'revenues' && is_array($totals)) {
+            $pdf->Cell(0, 6, $this->encode('Totale entrate nette: ' . $this->formatMoney($totals['revenues_ex_vat_total'] ?? 0)), 0, 1);
+            $pdf->Cell(0, 6, $this->encode('Totale entrate con IVA: ' . $this->formatMoney($totals['revenues_inc_vat_total'] ?? 0)), 0, 1);
+        }
+
         $pdf->Ln(2);
     }
 

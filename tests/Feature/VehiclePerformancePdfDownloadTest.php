@@ -167,6 +167,8 @@ class VehiclePerformancePdfDownloadTest extends TestCase
 
         $this->assertStringStartsWith('%PDF', $pdfContents);
         $this->assertStringContainsString('Riepilogo entrate veicoli', $pdfContents);
+        $this->assertStringContainsString('Totale entrate nette: EUR 2.000,00', $pdfContents);
+        $this->assertStringContainsString('Totale entrate con IVA: EUR 2.440,00', $pdfContents);
         $this->assertStringContainsString('BB222BB - Bilico B', $pdfContents);
         $this->assertStringNotContainsString('AA111AA - Bilico A', $pdfContents);
     }
