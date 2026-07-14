@@ -8,14 +8,14 @@ use App\Models\Vehicle;
 use App\Models\VehicleRevenue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use setasign\Fpdi\Fpdi;
 use Tests\TestCase;
-use ZipArchive;
 
 class VehicleRevenueAttachmentsDownloadTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_download_vehicle_revenue_attachments_for_a_specific_month(): void
+    public function test_admin_can_download_vehicle_revenue_attachments_as_a_single_pdf_for_a_specific_month(): void
     {
         Storage::fake('public');
 
@@ -31,8 +31,15 @@ class VehicleRevenueAttachmentsDownloadTest extends TestCase
             'maintenance_km' => 0,
         ]);
 
-        Storage::disk('public')->put('vehicle-revenues/' . $vehicle->id . '/maggio.pdf', 'file maggio');
-        Storage::disk('public')->put('vehicle-revenues/' . $vehicle->id . '/giugno.pdf', 'file giugno');
+        Storage::disk('public')->put(
+            'vehicle-revenues/' . $vehicle->id . '/maggio.pdf',
+            $this->makePdfFixture('DP528XS maggio')
+        );
+
+        Storage::disk('public')->put(
+            'vehicle-revenues/' . $vehicle->id . '/giugno.pdf',
+            $this->makePdfFixture('DP528XS giugno')
+        );
 
         VehicleRevenue::query()->create([
             'vehicle_id' => $vehicle->id,
@@ -58,15 +65,16 @@ class VehicleRevenueAttachmentsDownloadTest extends TestCase
 
         $response->assertOk();
         $response->assertDownload();
+        $response->assertHeader('content-type', 'application/pdf');
 
-        $entries = $this->readZipEntries($response->baseResponse->getFile()->getPathname());
+        $pdfContents = file_get_contents($response->baseResponse->getFile()->getPathname());
 
-        $this->assertSame([
-            'entrate-veicoli-maggio-2026/DP528XS/2026-05-10_entrata-maggio_1.pdf',
-        ], $entries);
+        $this->assertStringStartsWith('%PDF', $pdfContents);
+        $this->assertStringContainsString('DP528XS maggio', $pdfContents);
+        $this->assertStringNotContainsString('DP528XS giugno', $pdfContents);
     }
 
-    public function test_admin_can_download_all_vehicle_revenue_attachments_grouped_by_vehicle_and_month(): void
+    public function test_admin_download_orders_attachments_by_vehicle_plate_in_a_single_pdf(): void
     {
         Storage::fake('public');
 
@@ -74,67 +82,77 @@ class VehicleRevenueAttachmentsDownloadTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $vehicle = Vehicle::query()->create([
-            'name' => 'Scania R500',
-            'plate' => 'DP528XS',
+        $vehicleZ = Vehicle::query()->create([
+            'name' => 'Bilico Z',
+            'plate' => 'ZZ999ZZ',
             'color' => 'Blu',
             'current_km' => 0,
             'maintenance_km' => 0,
         ]);
 
-        Storage::disk('public')->put('vehicle-revenues/' . $vehicle->id . '/maggio.pdf', 'file maggio');
-        Storage::disk('public')->put('vehicle-revenues/' . $vehicle->id . '/giugno.pdf', 'file giugno');
+        $vehicleA = Vehicle::query()->create([
+            'name' => 'Bilico A',
+            'plate' => 'AA111AA',
+            'color' => 'Bianco',
+            'current_km' => 0,
+            'maintenance_km' => 0,
+        ]);
+
+        Storage::disk('public')->put(
+            'vehicle-revenues/' . $vehicleZ->id . '/z.pdf',
+            $this->makePdfFixture('ZZ999ZZ documento')
+        );
+
+        Storage::disk('public')->put(
+            'vehicle-revenues/' . $vehicleA->id . '/a.pdf',
+            $this->makePdfFixture('AA111AA documento')
+        );
 
         VehicleRevenue::query()->create([
-            'vehicle_id' => $vehicle->id,
+            'vehicle_id' => $vehicleZ->id,
             'date' => '2026-05-10',
-            'name' => 'Entrata maggio',
+            'name' => 'Entrata Z',
             'amount_ex_vat' => 1000,
-            'attachment_path' => 'vehicle-revenues/' . $vehicle->id . '/maggio.pdf',
+            'attachment_path' => 'vehicle-revenues/' . $vehicleZ->id . '/z.pdf',
         ]);
 
         VehicleRevenue::query()->create([
-            'vehicle_id' => $vehicle->id,
-            'date' => '2026-06-10',
-            'name' => 'Entrata giugno',
+            'vehicle_id' => $vehicleA->id,
+            'date' => '2026-05-11',
+            'name' => 'Entrata A',
             'amount_ex_vat' => 1000,
-            'attachment_path' => 'vehicle-revenues/' . $vehicle->id . '/giugno.pdf',
+            'attachment_path' => 'vehicle-revenues/' . $vehicleA->id . '/a.pdf',
         ]);
 
         $response = $this
             ->actingAs($user)
             ->get(route('vehicles.revenues.download', [
-                'token' => VehicleResource::buildRevenueDownloadToken([$vehicle->id]),
+                'token' => VehicleResource::buildRevenueDownloadToken([$vehicleZ->id, $vehicleA->id]),
             ]));
 
         $response->assertOk();
         $response->assertDownload();
+        $response->assertHeader('content-type', 'application/pdf');
 
-        $entries = $this->readZipEntries($response->baseResponse->getFile()->getPathname());
+        $pdfContents = file_get_contents($response->baseResponse->getFile()->getPathname());
 
-        $this->assertSame([
-            'entrate-veicoli/DP528XS/giugno-2026/2026-06-10_entrata-giugno_2.pdf',
-            'entrate-veicoli/DP528XS/maggio-2026/2026-05-10_entrata-maggio_1.pdf',
-        ], $entries);
+        $this->assertStringStartsWith('%PDF', $pdfContents);
+        $this->assertStringContainsString('AA111AA documento', $pdfContents);
+        $this->assertStringContainsString('ZZ999ZZ documento', $pdfContents);
+        $this->assertLessThan(
+            strpos($pdfContents, 'ZZ999ZZ documento'),
+            strpos($pdfContents, 'AA111AA documento')
+        );
     }
 
-    private function readZipEntries(string $path): array
+    private function makePdfFixture(string $text): string
     {
-        $zip = new ZipArchive();
+        $pdf = new Fpdi();
+        $pdf->SetCompression(false);
+        $pdf->AddPage();
+        $pdf->SetFont('Helvetica', '', 12);
+        $pdf->Cell(0, 10, $text);
 
-        $opened = $zip->open($path);
-
-        $this->assertTrue($opened === true, 'Impossibile aprire il file ZIP di test.');
-
-        $entries = [];
-
-        for ($index = 0; $index < $zip->numFiles; $index++) {
-            $entries[] = $zip->getNameIndex($index);
-        }
-
-        sort($entries);
-        $zip->close();
-
-        return $entries;
+        return $pdf->Output('S');
     }
 }

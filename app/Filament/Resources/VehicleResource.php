@@ -230,7 +230,7 @@ class VehicleResource extends Resource
                 ->placeholder('Tutti i mesi')
                 ->options(self::getRevenueDownloadMonthOptions())
                 ->searchable()
-                ->helperText('Se selezioni un mese, lo ZIP conterra una cartella del mese con dentro le cartelle dei veicoli. Se lasci vuoto, ogni veicolo avra le sue cartelle mensili.'),
+                ->helperText('Genera un PDF unico con tutti gli allegati concatenati. Se selezioni un mese, il PDF includera solo quel periodo; se lasci vuoto, includera tutti i mesi.'),
         ];
     }
 

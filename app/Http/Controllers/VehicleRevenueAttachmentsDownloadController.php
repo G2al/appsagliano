@@ -9,8 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use setasign\Fpdi\Fpdi;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use ZipArchive;
 
 class VehicleRevenueAttachmentsDownloadController extends Controller
 {
@@ -63,9 +63,7 @@ class VehicleRevenueAttachmentsDownloadController extends Controller
         $revenuesQuery = VehicleRevenue::query()
             ->whereIn('vehicle_id', $vehicleIds)
             ->whereNotNull('attachment_path')
-            ->orderBy('vehicle_id')
-            ->orderBy('date')
-            ->orderBy('id');
+            ->with('vehicle');
 
         if ($month !== null) {
             $monthDate = Carbon::createFromFormat('Y-m', $month);
@@ -75,79 +73,86 @@ class VehicleRevenueAttachmentsDownloadController extends Controller
                 ->whereMonth('date', $monthDate->month);
         }
 
-        $revenues = $revenuesQuery->get();
+        $revenues = $revenuesQuery
+            ->get()
+            ->sortBy(fn (VehicleRevenue $revenue): string => sprintf(
+                '%s|%s|%010d',
+                Str::upper((string) ($revenue->vehicle?->plate ?? '')),
+                $revenue->date?->format('Y-m-d') ?? '',
+                (int) $revenue->getKey()
+            ))
+            ->values();
 
         if ($revenues->isEmpty()) {
             abort(404, 'Nessun allegato trovato per i criteri selezionati');
         }
 
-        $rootFolder = $month !== null
-            ? 'entrate-veicoli-' . $this->formatMonthFolder($month)
-            : 'entrate-veicoli';
+        $pdfFileName = $month !== null
+            ? 'entrate-veicoli-' . $this->formatMonthSlug($month) . '_' . now()->format('Y-m-d_H-i-s') . '.pdf'
+            : 'entrate-veicoli_' . now()->format('Y-m-d_H-i-s') . '.pdf';
 
-        $zipFileName = $rootFolder . '_' . now()->format('Y-m-d_H-i-s') . '.zip';
         $tempDir = storage_path('app/temp');
-        $tempPath = $tempDir . DIRECTORY_SEPARATOR . $zipFileName;
+        $tempPath = $tempDir . DIRECTORY_SEPARATOR . $pdfFileName;
 
         if (! is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
-        $zip = new ZipArchive();
+        $pdf = new Fpdi();
+        $pdf->SetAutoPageBreak(false);
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetCompression(false);
 
-        if ($zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            abort(500, 'Impossibile creare il file ZIP');
-        }
+        $temporaryFiles = [];
+        $addedPages = 0;
 
-        $addedFiles = 0;
+        try {
+            foreach ($revenues as $revenue) {
+                $path = (string) $revenue->attachment_path;
 
-        foreach ($revenues as $revenue) {
-            $path = (string) $revenue->attachment_path;
+                if (! Storage::disk('public')->exists($path)) {
+                    continue;
+                }
 
-            if (! Storage::disk('public')->exists($path)) {
-                continue;
+                $absolutePath = Storage::disk('public')->path($path);
+                $mimeType = Storage::disk('public')->mimeType($path) ?: '';
+                $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+
+                if ($mimeType === 'application/pdf' || $extension === 'pdf') {
+                    $addedPages += $this->appendPdf($pdf, $absolutePath);
+
+                    continue;
+                }
+
+                if (str_starts_with($mimeType, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                    $imagePath = $this->prepareImageForPdf($absolutePath, $extension, $temporaryFiles);
+
+                    if ($imagePath !== null) {
+                        $this->appendImage($pdf, $imagePath);
+                        $addedPages++;
+                    }
+                }
             }
 
-            $vehicle = $vehicles->get($revenue->vehicle_id);
-            $vehicleFolder = $this->vehicleFolderName($vehicle?->plate, $vehicle?->id);
-            $monthFolder = $this->formatMonthFolder($revenue->date?->format('Y-m'));
-            $relativePath = $month !== null
-                ? $rootFolder . '/' . $vehicleFolder . '/' . $this->buildFileName($revenue)
-                : $rootFolder . '/' . $vehicleFolder . '/' . $monthFolder . '/' . $this->buildFileName($revenue);
+            if ($addedPages === 0) {
+                @unlink($tempPath);
+                abort(422, 'Nessun allegato compatibile trovato. Sono supportati PDF, JPG, PNG, GIF e WEBP.');
+            }
 
-            $zip->addFile(Storage::disk('public')->path($path), $relativePath);
-            $addedFiles++;
+            $pdf->Output('F', $tempPath);
+        } finally {
+            foreach ($temporaryFiles as $temporaryFile) {
+                @unlink($temporaryFile);
+            }
         }
 
-        $zip->close();
-
-        if ($addedFiles === 0) {
-            @unlink($tempPath);
-            abort(404, 'Nessun allegato disponibile nei file selezionati');
-        }
-
-        return response()->download($tempPath, $zipFileName, [
-            'Content-Type' => 'application/zip',
+        return response()->download($tempPath, $pdfFileName, [
+            'Content-Type' => 'application/pdf',
         ])->deleteFileAfterSend(true);
     }
 
-    private function vehicleFolderName(?string $plate, ?int $vehicleId): string
+    private function formatMonthSlug(string $yearMonth): string
     {
-        $base = filled($plate) ? $plate : 'veicolo-' . (int) $vehicleId;
-
-        return Str::of($base)
-            ->ascii()
-            ->replaceMatches('/[^A-Za-z0-9_-]+/', '-')
-            ->trim('-')
-            ->value();
-    }
-
-    private function formatMonthFolder(?string $yearMonth): string
-    {
-        if (! $yearMonth) {
-            return 'senza-mese';
-        }
-
         return Str::of(
             Carbon::createFromFormat('Y-m', $yearMonth)
                 ->locale('it')
@@ -159,19 +164,66 @@ class VehicleRevenueAttachmentsDownloadController extends Controller
             ->value();
     }
 
-    private function buildFileName(VehicleRevenue $revenue): string
+    private function appendPdf(Fpdi $pdf, string $path): int
     {
-        $extension = pathinfo((string) $revenue->attachment_path, PATHINFO_EXTENSION);
-        $date = $revenue->date?->format('Y-m-d') ?? 'senza-data';
-        $name = Str::of((string) ($revenue->name ?: 'entrata'))
-            ->ascii()
-            ->replaceMatches('/[^A-Za-z0-9_-]+/', '-')
-            ->trim('-')
-            ->lower()
-            ->value();
+        $pageCount = $pdf->setSourceFile($path);
 
-        $suffix = $extension !== '' ? '.' . strtolower($extension) : '';
+        for ($pageNumber = 1; $pageNumber <= $pageCount; $pageNumber++) {
+            $templateId = $pdf->importPage($pageNumber);
+            $size = $pdf->getTemplateSize($templateId);
+            $orientation = $size['width'] > $size['height'] ? 'L' : 'P';
 
-        return $date . '_' . $name . '_' . $revenue->getKey() . $suffix;
+            $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+            $pdf->useTemplate($templateId);
+        }
+
+        return $pageCount;
+    }
+
+    private function appendImage(Fpdi $pdf, string $path): void
+    {
+        [$widthPx, $heightPx] = getimagesize($path);
+
+        $orientation = $widthPx > $heightPx ? 'L' : 'P';
+        $pdf->AddPage($orientation);
+
+        $pageWidth = $pdf->GetPageWidth();
+        $pageHeight = $pdf->GetPageHeight();
+        $margin = 10.0;
+        $availableWidth = $pageWidth - ($margin * 2);
+        $availableHeight = $pageHeight - ($margin * 2);
+        $scale = min($availableWidth / $widthPx, $availableHeight / $heightPx);
+        $renderWidth = $widthPx * $scale;
+        $renderHeight = $heightPx * $scale;
+        $x = ($pageWidth - $renderWidth) / 2;
+        $y = ($pageHeight - $renderHeight) / 2;
+
+        $pdf->Image($path, $x, $y, $renderWidth, $renderHeight);
+    }
+
+    private function prepareImageForPdf(string $path, string $extension, array &$temporaryFiles): ?string
+    {
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            return $path;
+        }
+
+        if (! function_exists('imagecreatefromstring')) {
+            return null;
+        }
+
+        $image = @imagecreatefromstring((string) file_get_contents($path));
+
+        if ($image === false) {
+            return null;
+        }
+
+        $tempPath = storage_path('app/temp/' . Str::uuid() . '.png');
+
+        imagepng($image, $tempPath);
+        imagedestroy($image);
+
+        $temporaryFiles[] = $tempPath;
+
+        return $tempPath;
     }
 }

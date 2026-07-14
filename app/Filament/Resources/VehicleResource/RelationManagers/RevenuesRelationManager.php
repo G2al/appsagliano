@@ -75,7 +75,15 @@ class RevenuesRelationManager extends RelationManager
                     ->label('Allegato')
                     ->disk('public')
                     ->directory(fn (): string => 'vehicle-revenues/' . $this->ownerRecord->getKey())
+                    ->acceptedFileTypes([
+                        'application/pdf',
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                    ])
                     ->visibility('public')
+                    ->helperText('Formati supportati per lo scarico PDF unico: PDF, JPG, PNG, GIF, WEBP.')
                     ->nullable(),
             ]);
     }
