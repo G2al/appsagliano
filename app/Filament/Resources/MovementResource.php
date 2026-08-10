@@ -81,12 +81,16 @@ class MovementResource extends Resource
                             ->required(),
                         Forms\Components\TextInput::make('km_start')
                             ->label('Km iniziali')
-                            ->numeric()
-                            ->required(),
+                            ->inputMode('numeric')
+                            ->type('text')
+                            ->required()
+                            ->rule('numeric'),
                         Forms\Components\TextInput::make('km_end')
                             ->label('Km finali')
-                            ->numeric()
-                            ->required(),
+                            ->inputMode('numeric')
+                            ->type('text')
+                            ->required()
+                            ->rule('numeric'),
                         Forms\Components\TextInput::make('liters')
                             ->label('Litri')
                             ->numeric()

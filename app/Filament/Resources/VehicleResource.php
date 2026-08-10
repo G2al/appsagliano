@@ -46,15 +46,19 @@ class VehicleResource extends Resource
                     ->nullable(),
                 Forms\Components\TextInput::make('current_km')
                     ->label('Km attuali')
-                    ->numeric()
-                    ->default(0)
+                    ->type('text')
+                    ->inputMode('numeric')
+                    ->rule('numeric')
                     ->minValue(0)
+                    ->default(0)
                     ->nullable(),
                 Forms\Components\TextInput::make('maintenance_km')
                     ->label('Km manutenzione')
-                    ->numeric()
-                    ->default(0)
+                    ->type('text')
+                    ->inputMode('numeric')
+                    ->rule('numeric')
                     ->minValue(0)
+                    ->default(0)
                     ->nullable(),
             ]);
     }
