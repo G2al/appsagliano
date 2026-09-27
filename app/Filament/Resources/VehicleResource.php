@@ -9,6 +9,8 @@ use App\Filament\Resources\VehicleResource\RelationManagers\RevenuesRelationMana
 use App\Models\Movement;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleRevenue;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -198,5 +200,46 @@ class VehicleResource extends Resource
     public static function canDeleteAny(): bool
     {
         return static::canViewAny();
+    }
+
+    public static function getRevenueDownloadFormSchema(): array
+    {
+        return [
+            Forms\Components\Select::make('month')
+                ->label('Mese')
+                ->placeholder('Tutti i mesi')
+                ->options(self::getRevenueDownloadMonthOptions())
+                ->searchable()
+                ->helperText('Genera un PDF unico con tutti gli allegati concatenati. Se selezioni un mese, il PDF includera solo quel periodo; se lasci vuoto, includera tutti i mesi.'),
+        ];
+    }
+
+    public static function getRevenueDownloadMonthOptions(): array
+    {
+        return VehicleRevenue::query()
+            ->selectRaw("DATE_FORMAT(`date`, '%Y-%m') as revenue_month")
+            ->whereNotNull('date')
+            ->groupByRaw("DATE_FORMAT(`date`, '%Y-%m')")
+            ->orderByRaw("DATE_FORMAT(`date`, '%Y-%m') DESC")
+            ->pluck('revenue_month')
+            ->filter()
+            ->mapWithKeys(function (string $revenueMonth): array {
+                $date = Carbon::createFromFormat('Y-m', $revenueMonth)->locale('it');
+
+                return [
+                    $revenueMonth => ucfirst($date->translatedFormat('F Y')),
+                ];
+            })
+            ->all();
+    }
+
+    public static function buildRevenueDownloadToken(array $vehicleIds, ?string $month = null): string
+    {
+        $payload = [
+            'vehicle_ids' => array_values(array_unique(array_map('intval', $vehicleIds))),
+            'month' => filled($month) ? (string) $month : null,
+        ];
+
+        return base64_encode(json_encode($payload));
     }
 }

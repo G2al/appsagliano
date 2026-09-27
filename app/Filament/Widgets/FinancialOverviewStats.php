@@ -59,7 +59,7 @@ class FinancialOverviewStats extends StatsOverviewWidget
                 ->description(number_format($summary['extra_cost_records_count'], 0, ',', '.') . ' registrazioni')
                 ->icon('heroicon-o-receipt-percent'),
             $this->makeClickableStat('vehicle_margin', 'Margine veicoli', $this->formatMoney($summary['vehicle_margin_total']))
-                ->description('Entrate nette - rifornimenti - manutenzioni')
+                ->description('Entrate con IVA - rifornimenti - manutenzioni')
                 ->icon('heroicon-o-chart-bar'),
             $this->makeClickableStat('net_margin', 'Utile finale', $this->formatMoney($summary['net_margin_total']))
                 ->description('Margine veicoli - stipendi - autostrade - costi extra')
@@ -277,7 +277,7 @@ class FinancialOverviewStats extends StatsOverviewWidget
                 'heading' => 'Dettaglio margine veicoli',
                 'columns' => [
                     ['key' => 'vehicle', 'label' => 'Veicolo'],
-                    ['key' => 'revenues', 'label' => 'Entrate nette'],
+                    ['key' => 'revenues', 'label' => 'Entrate con IVA'],
                     ['key' => 'refuels', 'label' => 'Rifornimenti'],
                     ['key' => 'maintenances', 'label' => 'Manutenzioni'],
                     ['key' => 'margin', 'label' => 'Margine'],
@@ -287,7 +287,7 @@ class FinancialOverviewStats extends StatsOverviewWidget
                     ->get()
                     ->map(fn ($vehicle): array => [
                         'vehicle' => $this->formatVehicleLabel($vehicle),
-                        'revenues' => $this->formatMoney($vehicle->revenues_ex_vat_total),
+                        'revenues' => $this->formatMoney($vehicle->revenues_inc_vat_total),
                         'refuels' => $this->formatMoney($vehicle->refuels_total),
                         'maintenances' => $this->formatMoney($vehicle->maintenances_total),
                         'margin' => $this->formatMoney($vehicle->operating_margin),
@@ -302,7 +302,7 @@ class FinancialOverviewStats extends StatsOverviewWidget
                     ['key' => 'amount', 'label' => 'Importo'],
                 ],
                 'rows' => [
-                    ['label' => 'Entrate veicoli nette', 'amount' => $this->formatMoney($summary['revenues_ex_vat_total'])],
+                    ['label' => 'Entrate veicoli con IVA', 'amount' => $this->formatMoney($summary['revenues_inc_vat_total'])],
                     ['label' => 'Costi rifornimenti', 'amount' => $this->formatMoney($summary['refuels_total'])],
                     ['label' => 'Costi manutenzioni', 'amount' => $this->formatMoney($summary['maintenances_total'])],
                     ['label' => 'Costi stipendi', 'amount' => $this->formatMoney($summary['salaries_total'])],
