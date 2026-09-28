@@ -68,6 +68,18 @@ class MaintenancesBySupplierTable extends BaseWidget
         ];
     }
 
+    protected function getTableFilters(): array
+    {
+        return [
+            $this->getReportTableCheckedFilter(),
+        ];
+    }
+
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('supplier:', suppliers.id)";
+    }
+
     protected function getReportTableRowKey(Model $record): string
     {
         return 'supplier:' . (int) $record->supplier_id;

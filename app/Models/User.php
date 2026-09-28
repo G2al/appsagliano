@@ -22,6 +22,7 @@ class User extends Authenticatable implements FilamentUser
     public const PANEL_MODULE_MAINTENANCE = 'maintenance';
     public const PANEL_MODULE_REFUELS = 'refuels';
     public const PANEL_MODULE_DOCUMENTS = 'documents';
+    public const PANEL_MODULE_TRIPS = 'trips';
 
     /**
      * The attributes that are mass assignable.
@@ -112,6 +113,7 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
+            self::PANEL_MODULE_TRIPS,
         ];
     }
 
@@ -124,6 +126,7 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_MAINTENANCE => 'Manutenzione',
             self::PANEL_MODULE_REFUELS => 'Rifornimenti',
             self::PANEL_MODULE_DOCUMENTS => 'Documenti',
+            self::PANEL_MODULE_TRIPS => 'Viaggi',
         ];
     }
 
@@ -186,12 +189,18 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasPanelModule(self::PANEL_MODULE_DOCUMENTS);
     }
 
+    public function canAccessTripsArea(): bool
+    {
+        return $this->hasPanelModule(self::PANEL_MODULE_TRIPS);
+    }
+
     public function canAccessUsersArea(): bool
     {
         return $this->hasAnyPanelModules([
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
+            self::PANEL_MODULE_TRIPS,
         ]);
     }
 
@@ -200,6 +209,7 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasAnyPanelModules([
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
+            self::PANEL_MODULE_TRIPS,
         ]);
     }
 
@@ -224,6 +234,11 @@ class User extends Authenticatable implements FilamentUser
     {
         $fullName = trim(($this->name ?? '') . ' ' . ($this->surname ?? ''));
         return $fullName !== '' ? $fullName : ($this->name ?? '');
+    }
+
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class);
     }
 
     public function movements(): HasMany

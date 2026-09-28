@@ -4,8 +4,10 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserDocumentController;
 use App\Http\Controllers\Api\MovementController;
 use App\Http\Controllers\Api\MaintenanceController;
+use App\Http\Controllers\Api\PlatformController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\TripController;
 use App\Http\Controllers\Api\VehicleController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/suppliers', [SupplierController::class, 'index']);
     Route::get('/maintenances', [MaintenanceController::class, 'index']);
     Route::post('/maintenances', [MaintenanceController::class, 'store']);
+
+    Route::get('/platforms', [PlatformController::class, 'index']);
+    Route::get('/trips', [TripController::class, 'index']);
+    Route::post('/trips', [TripController::class, 'store']);
 
     Route::get('/documents', [UserDocumentController::class, 'index']);
     Route::post('/documents/files/{file}/open', [UserDocumentController::class, 'open']);

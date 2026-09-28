@@ -35,6 +35,11 @@ class Vehicle extends Model
         return $this->hasMany(Maintenance::class);
     }
 
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class);
+    }
+
     public function revenues(): HasMany
     {
         return $this->hasMany(VehicleRevenue::class)->latest('date')->latest('id');

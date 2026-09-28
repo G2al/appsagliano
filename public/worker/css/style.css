@@ -3236,7 +3236,7 @@ body.dark .offcanvas.sidebar-offcanvas .offcanvas-header .sidebar-logo .logo-dar
     align-items: center;
     width: 100%;
     background-color: rgba(var(--box-bg), 1);
-    z-index: 3;
+    z-index: 3;    min-height: 120px;
 }
 
 body.dark .auth-header .logo-dark {
@@ -3298,7 +3298,7 @@ body.dark .auth-header .logo {
 
 @media (max-width: 600px) {
     .auth-brand-logo {
-        margin-top: -28px;
+        margin-top: 0;
         max-width: 250px;
     }
 }
@@ -3458,12 +3458,13 @@ body.dark .main-header .header-panel .logo-dark {
     height: auto;
 }
 
-.header-brand-logo {
+.header-brand-logo,
+.main-header .header-panel .logo.header-brand-logo {
     display: block;
     width: min(170px, 62vw) !important;
     height: 56px !important;
     object-fit: contain;
-    object-position: center;
+    object-position: left center;
 }
 
 @media (max-width: 600px) {
@@ -3831,6 +3832,12 @@ body.dark .main-header .header-panel .logo-dark {
     font-size: 14px;
     font-weight: 500;
     color: rgba(var(--content-color), 1);
+}
+
+@media (max-width: 380px) {
+    .navbar-menu ul li a span {
+        font-size: 12px;
+    }
 }
 
 .navbar-menu ul li.active::after {

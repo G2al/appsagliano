@@ -5,12 +5,12 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta name="description" content="Mega Trasporti - Manutenzioni">
-    <meta name="keywords" content="Mega Trasporti, manutenzione, veicoli">
+    <meta name="description" content="Mega Trasporti - Viaggi">
+    <meta name="keywords" content="Mega Trasporti, viaggi, consegne">
     <meta name="author" content="Mega">
     <link rel="manifest" href="manifest.json?v=7">
     <link rel="icon" href="images/logo/pwa-frontend-512.png" type="image/png">
-    <title>Mega Trasporti - Manutenzioni</title>
+    <title>Mega Trasporti - Viaggi</title>
 
     <link rel="apple-touch-icon" href="images/logo/pwa-frontend-512.png">
     <meta name="title-color" content="#1F1F1F">
@@ -59,33 +59,33 @@
                 <h6 class="title-color mb-0" id="user-greeting">Ciao</h6>
             </div>
             <div class="form-input">
-                <input type="search" class="form-control with-icon" id="search-maintenances" placeholder="Cerca manutenzione">
+                <input type="search" class="form-control with-icon" id="search-trips" placeholder="Cerca viaggio">
                 <i class="iconsax search-icon" data-icon="search-normal-2"> </i>
             </div>
-            <button class="btn theme-btn w-100 auth-btn mt-3 btn-lg" data-bs-toggle="modal" data-bs-target="#maintenanceModal" style="
+            <button class="btn theme-btn w-100 auth-btn mt-3 btn-lg" data-bs-toggle="modal" data-bs-target="#tripModal" style="
     background-color: white!important;
     color: #1A2A9C!important;
 ">
-                Nuova manutenzione
+                Nuovo viaggio
             </button>
         </div>
     </section>
 
-    <!-- lista manutenzioni -->
+    <!-- lista viaggi -->
     <section>
         <div class="custom-container">
             <div class="title">
-                <h3>Manutenzioni</h3>
-                <p class="content-color mb-0">Lista e ricevute degli interventi.</p>
+                <h3>Viaggi</h3>
+                <p class="content-color mb-0">Le schede viaggio inviate.</p>
             </div>
 
             <div class="nav nav-pills gap-2 flex-nowrap overflow-auto mb-3" id="vehicle-tabs" role="tablist" style="white-space: nowrap;">
                 <button class="btn btn-light btn-sm active" data-vehicle-id="" type="button">Tutti</button>
             </div>
 
-            <div class="row gy-3" id="maintenances-list">
+            <div class="row gy-3" id="trips-list">
                 <div class="col-12">
-                    <p class="content-color mb-0">Nessuna manutenzione ancora.</p>
+                    <p class="content-color mb-0">Nessun viaggio ancora.</p>
                 </div>
             </div>
         </div>
@@ -107,13 +107,13 @@
                     <span style="color: #1F1F1F;">Rifornimento</span>
                 </a>
             </li>
-            <li class="active">
+            <li>
                 <a href="maintenance.html" class="nav-link-loading">
                     <div class="icon">
                         <img class="unactive" src="images/svg/setting-fill.svg" alt="manutenzione">
                         <img class="active" src="images/svg/setting.svg" alt="manutenzione">
                     </div>
-                    <span class="active">Manutenzione</span>
+                    <span style="color: #1F1F1F;">Manutenzione</span>
                 </a>
             </li>
             <li>
@@ -125,85 +125,81 @@
                     <span style="color: #1F1F1F;">Documenti</span>
                 </a>
             </li>
-            <li>
+            <li class="active">
                 <a href="trips.html" class="nav-link-loading">
                     <div class="icon">
                         <img class="unactive" src="images/svg/truck-fill.svg" alt="viaggi">
                         <img class="active" src="images/svg/truck.svg" alt="viaggi">
                     </div>
-                    <span style="color: #1F1F1F;">Viaggi</span>
+                    <span class="active">Viaggi</span>
                 </a>
             </li>
         </ul>
     </div>
     <!-- bottom navbar end -->
 
-    <!-- modal manutenzione -->
-    <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-labelledby="maintenanceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <!-- modal viaggio -->
+    <div class="modal fade" id="tripModal" tabindex="-1" aria-labelledby="tripModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="maintenanceModalLabel">Nuova manutenzione</h5>
+                    <h5 class="modal-title" id="tripModalLabel">Nuovo viaggio</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-danger d-none" role="alert" id="maintenance-alert"></div>
-                    <form id="maintenance-form">
+                    <div class="alert alert-danger d-none" role="alert" id="trip-alert"></div>
+                    <form id="trip-form" novalidate>
                         <div class="row g-3">
-                            <div class="col-12 maintenance-step" data-maintenance-step="1">
-                                <label class="form-label mb-1">Data</label>
+                            <div class="col-12">
+                                <label class="form-label mb-1">Data e ora</label>
                                 <input type="datetime-local" class="form-control" name="date" required>
                             </div>
-                            <div class="col-12 maintenance-step" data-maintenance-step="1">
-                                <label class="form-label mb-1">Fornitore</label>
-                                <select class="form-select" name="supplier_id" id="supplier-select" required>
+                            <div class="col-12">
+                                <label class="form-label mb-1">Piattaforma</label>
+                                <select class="form-select" name="platform_id" id="platform-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
                             </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="2">
-                                <label class="form-label mb-1">Veicolo</label>
-                                <input type="search" class="form-control mb-2" id="maintenance-vehicle-search" placeholder="Cerca targa o nome veicolo" autocomplete="off">
+                            <div class="col-12">
+                                <label class="form-label mb-1">Targa</label>
+                                <input type="search" class="form-control mb-2" id="trip-vehicle-search" placeholder="Cerca targa o nome veicolo" autocomplete="off">
                                 <select class="form-select" name="vehicle_id" id="vehicle-select" required>
                                     <option value="">Seleziona</option>
                                 </select>
-                                <small class="text-muted d-block mt-1" id="maintenance-last-vehicle-hint">Cerca per targa o nome del veicolo.</small>
+                                <small class="text-muted d-block mt-1" id="trip-last-vehicle-hint">Cerca per targa o nome del veicolo.</small>
                             </div>
-                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
-                                <label class="form-label mb-1">Km manutenzione</label>
-                                <input type="number" class="form-control" name="km" min="0" step="1" required>
+                            <div class="col-12">
+                                <label class="form-label mb-1">Destinazioni</label>
+                                <div id="destinations-list" class="d-flex flex-column gap-2"></div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="add-destination">+ Aggiungi destinazione</button>
                             </div>
-                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
-                                <label class="form-label mb-1">Prossima manutenzione (km)</label>
-                                <input type="number" class="form-control" name="km_after" min="0" step="1" placeholder="Lascia vuoto se non vuoi impostarla">
-                                <small class="text-muted" id="last-maintenance-km">Ultimi km manutenzione: N/D. Se valorizzato, deve essere maggiore di Km manutenzione.</small>
+                            <div class="col-12">
+                                <label class="form-label mb-1 d-block">Dicitura</label>
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="goods_type" id="goods-secco" value="secco">
+                                        <label class="form-check-label" for="goods-secco">Secco</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="goods_type" id="goods-freschi" value="freschi">
+                                        <label class="form-check-label" for="goods-freschi">Freschi</label>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-12 col-md-4 maintenance-step d-none" data-maintenance-step="3">
-                                <label class="form-label mb-1">Prossima manutenzione (data)</label>
-                                <input type="date" class="form-control" name="next_maintenance_date">
-                                <small class="text-muted">Vuoto = nessun avviso a data</small>
+                            <div class="col-12">
+                                <label class="form-label mb-1">Bolla</label>
+                                <input type="text" class="form-control" name="delivery_note_number" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required>
                             </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="4">
-                                <label class="form-label mb-1">Numero bolla</label>
-                                <input type="text" class="form-control" name="invoice_number" required>
-                            </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="5">
-                                <label class="form-label mb-1">Prezzo (€)</label>
-                                <input type="number" class="form-control" name="price" min="0" step="0.01" required>
-                            </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="6">
-                                <label class="form-label mb-1">Dettagli intervento</label>
-                                <textarea class="form-control" name="notes" rows="2" placeholder="Cosa ? stato fatto" required></textarea>
-                            </div>
-                            <div class="col-12 maintenance-step d-none" data-maintenance-step="6">
+                            <div class="col-12">
                                 <label class="form-label mb-1">Allegato</label>
-                                <input type="file" class="form-control" name="attachment" accept="*/*" required>
+                                <input type="file" class="form-control" name="attachment" accept="image/*,application/pdf" required>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
-                    <button type="button" class="btn theme-btn" id="maintenance-submit">Salva</button>
+                    <button type="button" class="btn theme-btn" id="trip-submit">Salva</button>
                 </div>
             </div>
         </div>
@@ -224,7 +220,7 @@
     <!-- script js -->
     <script src="js/script.js?v=7"></script>
     <script src="js/auth.js?v=7"></script>
-    <script src="js/maintenances.js?v=7"></script>
+    <script src="js/trips.js?v=7"></script>
     <script>
         (function () {
             const loader = document.getElementById('page-loader');

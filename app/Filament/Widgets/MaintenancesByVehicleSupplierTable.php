@@ -71,6 +71,18 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
         ];
     }
 
+    protected function getTableFilters(): array
+    {
+        return [
+            $this->getReportTableCheckedFilter(),
+        ];
+    }
+
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('vehicle:', vehicles.id, '|supplier:', suppliers.id)";
+    }
+
     protected function getReportTableRowKey(Model $record): string
     {
         return 'vehicle:' . (int) $record->vehicle_id . '|supplier:' . (int) $record->supplier_id;

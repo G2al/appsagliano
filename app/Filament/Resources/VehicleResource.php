@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\VehicleResource\Pages;
 use App\Filament\Resources\VehicleResource\RelationManagers\DocumentsRelationManager;
-use App\Filament\Resources\VehicleResource\RelationManagers\RevenuesRelationManager;
 use App\Models\Movement;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -161,7 +160,6 @@ class VehicleResource extends Resource
     {
         return [
             DocumentsRelationManager::class,
-            RevenuesRelationManager::class,
         ];
     }
 
@@ -179,6 +177,7 @@ class VehicleResource extends Resource
         return static::currentUserCanAccessModules([
             User::PANEL_MODULE_MAINTENANCE,
             User::PANEL_MODULE_REFUELS,
+            User::PANEL_MODULE_TRIPS,
         ]);
     }
 
