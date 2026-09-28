@@ -21,7 +21,7 @@
     </style>
 </head>
 <body onload="window.print(); window.onafterprint = () => window.close();">
-    <div class="center bold">Vialo</div>
+    <div class="center bold">Mega Trasporti</div>
     <div class="center">Manutenzione #{{ $maintenance->id }}</div>
     <div class="line"></div>
 

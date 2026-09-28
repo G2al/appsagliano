@@ -1,5 +1,5 @@
 const APP_VERSION = '7';
-const CACHE_PREFIX = 'vialo-worker-';
+const CACHE_PREFIX = 'mega-worker-';
 const CACHE_NAME = `${CACHE_PREFIX}v${APP_VERSION}`;
 const withVersion = (path) => `${path}?v=${APP_VERSION}`;
 const ASSETS = [
@@ -23,9 +23,9 @@ const ASSETS = [
   withVersion('/worker/js/bootstrap.bundle.min.js'),
   withVersion('/worker/js/iconsax.js'),
   '/worker/fonts/GTWalsheimPro-Regular.woff2',
-  '/worker/images/logo/logo-vialo.png',
-  '/worker/images/logo/logo-vialo-white.png',
-  '/worker/images/logo/logo-vialo-pwa-worker.png',
+  '/worker/images/logo/logo-megatrasporti.png',
+  '/worker/images/logo/logo-megatrasporti-white.png',
+  '/worker/images/logo/pwa-frontend-512.png',
 ];
 
 self.addEventListener('install', (event) => {

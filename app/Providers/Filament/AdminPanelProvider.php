@@ -26,16 +26,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('Mega Trasporti')
             ->colors([
-                'primary' => Color::Emerald,
+                'primary' => Color::hex('#1A2A9C'),
             ])
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
                     <link rel="manifest" href="/admin-manifest.json?v=7">
-                    <link rel="icon" href="/worker/images/logo/logo-vialo-pwa-worker.png" type="image/png">
-                    <link rel="apple-touch-icon" href="/worker/images/logo/logo-vialo-pwa-admin.png">
-                    <meta name="theme-color" content="#007a69">
+                    <link rel="icon" href="/worker/images/logo/pwa-frontend-512.png" type="image/png">
+                    <link rel="apple-touch-icon" href="/worker/images/logo/pwa-backend-512.png">
+                    <meta name="theme-color" content="#1A2A9C">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                 HTML
             )

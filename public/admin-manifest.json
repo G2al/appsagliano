@@ -1,16 +1,16 @@
 {
-  "name": "Vialo - Admin",
-  "short_name": "Vialo Admin",
+  "name": "Mega Trasporti - Admin",
+  "short_name": "Admin Mega",
   "lang": "it-IT",
   "start_url": "/admin",
   "scope": "/admin/",
   "display": "standalone",
   "background_color": "#14151d",
-  "theme_color": "#007a69",
-  "description": "Pannello amministrazione Vialo",
+  "theme_color": "#1A2A9C",
+  "description": "Pannello amministrazione Mega Trasporti",
   "icons": [
     {
-      "src": "/worker/images/logo/logo-vialo-pwa-admin.png",
+      "src": "/worker/images/logo/pwa-backend-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

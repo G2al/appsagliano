@@ -2,7 +2,7 @@
     Manifest / Service Worker
  ==========================*/
 const WORKER_APP_VERSION = "7";
-const WORKER_CACHE_PREFIX = "vialo-worker-";
+const WORKER_CACHE_PREFIX = "mega-worker-";
 const WORKER_SW_URL = `sw.js?v=${WORKER_APP_VERSION}`;
 let workerRefreshTriggered = false;
 

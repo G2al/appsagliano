@@ -78,7 +78,7 @@
 <body>
     <div class="receipt">
         <div class="center">
-            <strong>VIALO</strong><br>
+            <strong>MEGA TRASPORTI</strong><br>
             <span class="muted">Ricevuta movimento carburante</span><br>
             <span class="muted">ID: {{ $movement->id }}</span>
         </div>

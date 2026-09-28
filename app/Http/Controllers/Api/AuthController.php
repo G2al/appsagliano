@@ -35,7 +35,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $email = Str::slug($validated['name'] . ' ' . $validated['surname'], '.') . '@vialo.demo';
+        $email = Str::slug($validated['name'] . ' ' . $validated['surname'], '.') . '@appmegatrasporti.it';
 
         $user = User::create([
             'name' => $validated['name'],

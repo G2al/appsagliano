@@ -8,41 +8,41 @@ use Illuminate\Database\Seeder;
 class VehicleSeeder extends Seeder
 {
     /**
-     * Seed base demo vehicles.
+     * Seed Mega Trasporti base vehicles.
      */
     public function run(): void
     {
         $vehicles = [
             [
-                'plate' => 'TT001AA',
+                'plate' => 'MG001AA',
                 'name' => 'Volvo FH 500',
                 'color' => 'Bianco',
                 'current_km' => 186450,
                 'maintenance_km' => 195000,
             ],
             [
-                'plate' => 'TT002BB',
+                'plate' => 'MG002BB',
                 'name' => 'Scania R 450',
                 'color' => 'Blu',
                 'current_km' => 142380,
                 'maintenance_km' => 150000,
             ],
             [
-                'plate' => 'TT003CC',
+                'plate' => 'MG003CC',
                 'name' => 'Mercedes Actros 1845',
                 'color' => 'Grigio',
                 'current_km' => 214900,
                 'maintenance_km' => 225000,
             ],
             [
-                'plate' => 'TT004DD',
+                'plate' => 'MG004DD',
                 'name' => 'DAF XF 480',
                 'color' => 'Nero',
                 'current_km' => 97820,
                 'maintenance_km' => 105000,
             ],
             [
-                'plate' => 'TT005EE',
+                'plate' => 'MG005EE',
                 'name' => 'Iveco S-Way 460',
                 'color' => 'Bianco',
                 'current_km' => 121560,
