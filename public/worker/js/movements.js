@@ -260,17 +260,19 @@
                                         <p class="content-color mb-0 role-label">${roleLabel}</p>
                                     </div>
                                 </div>
-                                <div class="price-badge">${price}</div>
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    <div class="price-badge">${price}</div>
+                                    ${ticketKmPerLiterBadge}
+                                </div>
                             </div>
                             <p class="mb-1">${dateStr ? `Data: ${dateStr}` : 'Data non indicata'}${timeStr ? ` · Ora: ${timeStr}` : ''}</p>
                             <p class="mb-1 content-color">${metaRow}</p>
 
                             <ul class="content-list">
-                                <li><i class="iconsax icon" data-icon="map"></i>${stationName}</li>
-                                <li><i class="iconsax icon" data-icon="car"></i>${vehicleName} (${vehiclePlate})</li>
-                                <li>Pagamento: ${paymentLabel}</li>
-                                <li><i class="iconsax icon" data-icon="speedometer"></i>Media ticket: ${ticketKmPerLiterBadge}</li>
-                                ${adblue ? `<li><i class="iconsax icon" data-icon="drop"></i>${adblue}</li>` : ''}
+                                <li title="${stationName}"><i class="iconsax icon" data-icon="map"></i><span>${stationName}</span></li>
+                                <li title="${vehicleName} (${vehiclePlate})"><i class="iconsax icon" data-icon="car"></i><span>${vehiclePlate}</span></li>
+                                <li><i class="iconsax icon" data-icon="wallet"></i><span>${paymentLabel}</span></li>
+                                ${adblue ? `<li title="${adblue}"><i class="iconsax icon" data-icon="drop"></i><span>${adblue}</span></li>` : ''}
                             </ul>
                             <div class="flex-align-center pt-2">
                                 <h6 class="content-color fw-normal">Litri: ${liters} · Prezzo: ${price}</h6>

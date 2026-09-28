@@ -5270,9 +5270,9 @@ body.dark .auth-bg-image-box .auth-bg-image {
 }
 
 .coupon-box .coupon-details .content-list {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
     padding-bottom: 15px;
     border-bottom: 1px dashed rgba(var(--line-color), 1);
 }
@@ -5281,7 +5281,14 @@ body.dark .auth-bg-image-box .auth-bg-image {
     display: flex;
     align-items: center;
     gap: 5px;
+    min-width: 0;
     color: rgba(var(--content-color), 1);
+}
+
+.coupon-box .coupon-details .content-list li span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .coupon-box .coupon-details .content-list li .icon {
