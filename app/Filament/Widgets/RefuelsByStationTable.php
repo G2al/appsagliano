@@ -60,6 +60,18 @@ class RefuelsByStationTable extends BaseWidget
         ];
     }
 
+    protected function getTableFilters(): array
+    {
+        return [
+            $this->getReportTableCheckedFilter(),
+        ];
+    }
+
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('station:', stations.id)";
+    }
+
     protected function getReportTableRowKey(Model $record): string
     {
         return 'station:' . (int) $record->station_id;

@@ -80,6 +80,11 @@ class RefuelsListTable extends BaseWidget
         ];
     }
 
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('movement:', movements.id)";
+    }
+
     protected function getReportTableRowKey(Model $record): string
     {
         return 'movement:' . $record->getKey();
@@ -99,6 +104,7 @@ class RefuelsListTable extends BaseWidget
     protected function getTableFilters(): array
     {
         return [
+            $this->getReportTableCheckedFilter(),
             Tables\Filters\SelectFilter::make('vehicle_id')
                 ->label('Veicolo')
                 ->options(fn () => Vehicle::query()

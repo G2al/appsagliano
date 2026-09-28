@@ -5,7 +5,9 @@ namespace App\Filament\Widgets\Concerns;
 use App\Models\ReportTableCheck;
 use Carbon\Carbon;
 use Filament\Tables;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 trait InteractsWithReportTableChecks
 {
@@ -26,6 +28,32 @@ trait InteractsWithReportTableChecks
             ->falseColor('gray')
             ->action('toggleReportTableRowCheck')
             ->tooltip(fn (Model $record): string => $this->isReportTableRowChecked($record) ? 'Rimuovi spunta' : 'Segna come visto');
+    }
+
+    abstract protected function getReportTableRowKeySql(): string;
+
+    protected function getReportTableCheckedFilter(): Tables\Filters\SelectFilter
+    {
+        return Tables\Filters\SelectFilter::make('report_table_checked')
+            ->label('Visto')
+            ->options([
+                'checked' => 'Solo spuntati',
+                'unchecked' => 'Solo non spuntati',
+            ])
+            ->query(function (Builder $query, array $data): Builder {
+                $value = $data['value'] ?? null;
+
+                if (! in_array($value, ['checked', 'unchecked'], true)) {
+                    return $query;
+                }
+
+                $keys = array_keys($this->getCurrentReportTableChecks());
+                $expression = DB::raw($this->getReportTableRowKeySql());
+
+                return $value === 'checked'
+                    ? $query->whereIn($expression, $keys)
+                    : $query->whereNotIn($expression, $keys);
+            });
     }
 
     public function toggleReportTableRowCheck(Model $record): void

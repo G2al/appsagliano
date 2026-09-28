@@ -62,6 +62,18 @@ class RefuelsByVehicleTable extends BaseWidget
         ];
     }
 
+    protected function getTableFilters(): array
+    {
+        return [
+            $this->getReportTableCheckedFilter(),
+        ];
+    }
+
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('vehicle:', vehicles.id)";
+    }
+
     protected function getReportTableRowKey(Model $record): string
     {
         return 'vehicle:' . (int) $record->vehicle_id;

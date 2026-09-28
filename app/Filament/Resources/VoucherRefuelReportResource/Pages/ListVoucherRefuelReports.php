@@ -23,10 +23,12 @@ class ListVoucherRefuelReports extends ListRecords
     {
         $table = parent::table($table);
 
-        return $table->columns([
-            $this->getReportTableCheckColumn(),
-            ...$table->getColumnsLayout(),
-        ]);
+        return $table
+            ->columns([
+                $this->getReportTableCheckColumn(),
+                ...$table->getColumnsLayout(),
+            ])
+            ->pushFilters([$this->getReportTableCheckedFilter()]);
     }
 
     protected function getHeaderActions(): array
@@ -39,6 +41,11 @@ class ListVoucherRefuelReports extends ListRecords
         return [
             VoucherRefuelStatsWidget::class,
         ];
+    }
+
+    protected function getReportTableRowKeySql(): string
+    {
+        return "CONCAT('movement:', movements.id)";
     }
 
     protected function getReportTableRowKey(Model $record): string
