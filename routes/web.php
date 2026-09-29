@@ -11,7 +11,7 @@ use App\Http\Controllers\TripAttachmentPrintController;
 use App\Http\Controllers\UserDocumentDownloadController;
 
 Route::get('/', function () {
-    return redirect('/worker/login.html');
+    return redirect('/admin');
 });
 
 

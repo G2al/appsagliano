@@ -10,7 +10,7 @@
   "description": "Pannello amministrazione Mega Trasporti",
   "icons": [
     {
-      "src": "/worker/images/logo/pwa-backend-512.png",
+      "src": "/admin-assets/icon-admin.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
