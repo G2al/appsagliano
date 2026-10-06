@@ -12,10 +12,12 @@ use App\Models\VehicleRevenue;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class VehicleResource extends Resource
@@ -148,12 +150,46 @@ class VehicleResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                static::deleteAction(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function (Tables\Actions\DeleteBulkAction $action, Collection $records): void {
+                            $blocked = $records->filter(fn (Vehicle $vehicle) => $vehicle->trips()->withTrashed()->exists());
+
+                            if ($blocked->isEmpty()) {
+                                return;
+                            }
+
+                            Notification::make()
+                                ->danger()
+                                ->title('Impossibile eliminare')
+                                ->body('I veicoli con targa ' . $blocked->pluck('plate')->implode(', ') . ' sono usati in uno o piu viaggi.')
+                                ->send();
+
+                            $action->cancel();
+                        }),
                 ]),
             ]);
+    }
+
+    public static function deleteAction(): Tables\Actions\DeleteAction
+    {
+        return Tables\Actions\DeleteAction::make()
+            ->before(function (Tables\Actions\DeleteAction $action, Vehicle $record): void {
+                if (! $record->trips()->withTrashed()->exists()) {
+                    return;
+                }
+
+                Notification::make()
+                    ->danger()
+                    ->title('Impossibile eliminare')
+                    ->body('Questo veicolo e usato in uno o piu viaggi.')
+                    ->send();
+
+                $action->cancel();
+            });
     }
 
     public static function getRelations(): array
