@@ -4,10 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\StationResource\Pages;
+use App\Filament\Resources\StationResource\RelationManagers\CardsRelationManager;
 use App\Models\Station;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -47,7 +50,24 @@ class StationResource extends Resource
                 Forms\Components\Toggle::make('uses_vouchers')
                     ->label('Utilizza buoni')
                     ->default(false)
-                    ->inline(false),
+                    ->inline(false)
+                    ->live()
+                    ->afterStateUpdated(function (bool $state, Set $set): void {
+                        if ($state) {
+                            $set('uses_credit_cards', false);
+                        }
+                    }),
+                Forms\Components\Toggle::make('uses_credit_cards')
+                    ->label('Utilizza carte di credito')
+                    ->helperText('Alternativa ai buoni: una stazione usa o buoni o carte di credito, mai entrambi.')
+                    ->default(false)
+                    ->inline(false)
+                    ->live()
+                    ->afterStateUpdated(function (bool $state, Set $set): void {
+                        if ($state) {
+                            $set('uses_vouchers', false);
+                        }
+                    }),
             ]);
     }
 
@@ -71,6 +91,10 @@ class StationResource extends Resource
                     ->label('Buoni')
                     ->boolean()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('uses_credit_cards')
+                    ->label('Carte')
+                    ->boolean()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creata il')
                     ->dateTime('d/m/Y H:i')
@@ -92,7 +116,7 @@ class StationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            CardsRelationManager::class,
         ];
     }
 

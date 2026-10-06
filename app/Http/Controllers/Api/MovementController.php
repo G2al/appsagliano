@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Movement;
 use App\Models\Station;
+use App\Models\StationCard;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,6 +96,7 @@ class MovementController extends Controller
             'liters' => ['required', 'numeric', 'min:0'],
             'price' => ['required', 'numeric', 'min:0', 'gt:liters'],
             'is_voucher' => ['nullable', 'boolean'],
+            'station_card_id' => ['nullable', Rule::exists('station_cards', 'id')],
             'adblue' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'photo' => ['required', 'file', 'max:16384'],
@@ -126,9 +128,11 @@ class MovementController extends Controller
             $photoPath = $request->file('photo')->store('receipts', 'public');
         }
 
-        $station = Station::select('id', 'credit_balance', 'uses_vouchers')->find($validated['station_id']);
+        $station = Station::select('id', 'credit_balance', 'uses_vouchers', 'uses_credit_cards')->find($validated['station_id']);
         $stationUsesVouchers = (bool) ($station?->uses_vouchers ?? false);
+        $stationUsesCreditCards = (bool) ($station?->uses_credit_cards ?? false);
         $requestedVoucher = $request->boolean('is_voucher');
+        $stationCardId = $validated['station_card_id'] ?? null;
 
         if ($requestedVoucher && ! $stationUsesVouchers) {
             throw ValidationException::withMessages([
@@ -136,9 +140,33 @@ class MovementController extends Controller
             ]);
         }
 
+        if ($stationCardId !== null && ! $stationUsesCreditCards) {
+            throw ValidationException::withMessages([
+                'station_card_id' => ['La stazione selezionata non consente rifornimenti con carta di credito.'],
+            ]);
+        }
+
+        if ($stationUsesCreditCards && $stationCardId === null) {
+            throw ValidationException::withMessages([
+                'station_card_id' => ['Seleziona la carta di credito usata per questo rifornimento.'],
+            ]);
+        }
+
+        if ($stationCardId !== null) {
+            $cardBelongsToStation = StationCard::where('id', $stationCardId)
+                ->where('station_id', $validated['station_id'])
+                ->exists();
+
+            if (! $cardBelongsToStation) {
+                throw ValidationException::withMessages([
+                    'station_card_id' => ['La carta selezionata non appartiene alla stazione scelta.'],
+                ]);
+            }
+        }
+
         $isVoucher = $stationUsesVouchers && $requestedVoucher;
 
-        $stationCharge = ($station && $station->credit_balance !== null)
+        $stationCharge = ($station && $station->credit_balance !== null && ! $stationUsesCreditCards)
             ? ($isVoucher ? 0.0 : (float) $validated['price'])
             : 0.0;
 
@@ -173,7 +201,7 @@ class MovementController extends Controller
             return $movement;
         });
 
-        $movement->refresh()->load(['station', 'vehicle', 'user', 'updatedBy']);
+        $movement->refresh()->load(['station', 'stationCard', 'vehicle', 'user', 'updatedBy']);
 
         return response()->json($movement, 201);
     }

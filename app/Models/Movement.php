@@ -24,6 +24,7 @@ class Movement extends Model
         'user_id',
         'updated_by',
         'station_id',
+        'station_card_id',
         'vehicle_id',
         'date',
         'km_start',
@@ -122,6 +123,11 @@ class Movement extends Model
     public function station(): BelongsTo
     {
         return $this->belongsTo(Station::class);
+    }
+
+    public function stationCard(): BelongsTo
+    {
+        return $this->belongsTo(StationCard::class);
     }
 
     public function updatedBy(): BelongsTo
@@ -279,7 +285,12 @@ class Movement extends Model
             $lines[] = '💶 <b>Prezzo:</b> ' . number_format((float) $this->price, 2, ',', '.') . ' €';
         }
 
-        $lines[] = '<b>Pagamento:</b> ' . ($this->is_voucher ? 'Buono' : 'Credito stazione');
+        $paymentLabel = match (true) {
+            $this->is_voucher => 'Buono',
+            $this->station_card_id !== null => 'Carta di credito n. ' . ($this->stationCard?->number ?? 'N/D'),
+            default => 'Credito stazione',
+        };
+        $lines[] = '<b>Pagamento:</b> ' . $paymentLabel;
 
         if ($this->adblue !== null) {
             $lines[] = '💧 <b>AdBlue:</b> ' . number_format((float) $this->adblue, 2, ',', '.') . ' L';

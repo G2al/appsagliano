@@ -6,6 +6,7 @@ use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\MovementResource\Pages;
 use App\Models\Movement;
 use App\Models\Station;
+use App\Models\StationCard;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -63,6 +64,9 @@ class MovementResource extends Resource
                             ->afterStateUpdated(function ($state, Set $set): void {
                                 if (! static::stationUsesVouchers($state)) {
                                     $set('is_voucher', false);
+                                }
+                                if (! static::stationUsesCreditCards($state)) {
+                                    $set('station_card_id', null);
                                 }
                             })
                             ->required(),
@@ -133,6 +137,17 @@ class MovementResource extends Resource
                             ->helperText('Disponibile solo per stazioni abilitate ai buoni. Se attivo, non scala il credito stazione.')
                             ->visible(fn (Get $get): bool => static::stationUsesVouchers($get('station_id')))
                             ->default(false),
+                        Forms\Components\Select::make('station_card_id')
+                            ->label('Carta di credito')
+                            ->options(fn (Get $get) => StationCard::query()
+                                ->where('station_id', $get('station_id'))
+                                ->orderBy('number')
+                                ->get()
+                                ->mapWithKeys(fn (StationCard $card) => [$card->id => $card->number . ($card->label ? ' - ' . $card->label : '')])
+                                ->toArray())
+                            ->searchable()
+                            ->visible(fn (Get $get): bool => static::stationUsesCreditCards($get('station_id')))
+                            ->required(fn (Get $get): bool => static::stationUsesCreditCards($get('station_id'))),
                         Forms\Components\TextInput::make('adblue')
                             ->label('AdBlue')
                             ->numeric()
@@ -196,8 +211,16 @@ class MovementResource extends Resource
                 Tables\Columns\TextColumn::make('is_voucher')
                     ->label('Pagamento')
                     ->badge()
-                    ->formatStateUsing(fn ($state): string => (bool) $state ? 'Buono' : 'Credito')
-                    ->color(fn ($state): string => (bool) $state ? 'warning' : 'success')
+                    ->formatStateUsing(fn ($state, Movement $record): string => match (true) {
+                        (bool) $state => 'Buono',
+                        $record->station_card_id !== null => 'Carta ' . ($record->stationCard?->number ?? 'N/D'),
+                        default => 'Credito',
+                    })
+                    ->color(fn ($state, Movement $record): string => match (true) {
+                        (bool) $state => 'warning',
+                        $record->station_card_id !== null => 'info',
+                        default => 'success',
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creato il')
@@ -243,6 +266,17 @@ class MovementResource extends Resource
         return (bool) Station::query()
             ->whereKey($stationId)
             ->value('uses_vouchers');
+    }
+
+    protected static function stationUsesCreditCards(mixed $stationId): bool
+    {
+        if (! $stationId) {
+            return false;
+        }
+
+        return (bool) Station::query()
+            ->whereKey($stationId)
+            ->value('uses_credit_cards');
     }
 
     public static function getEloquentQuery(): Builder

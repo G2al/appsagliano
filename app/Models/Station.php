@@ -16,16 +16,23 @@ class Station extends Model
         'address',
         'credit_balance',
         'uses_vouchers',
+        'uses_credit_cards',
     ];
 
     protected $casts = [
         'credit_balance' => 'decimal:2',
         'uses_vouchers' => 'boolean',
+        'uses_credit_cards' => 'boolean',
     ];
 
     public function movements(): HasMany
     {
         return $this->hasMany(Movement::class);
+    }
+
+    public function cards(): HasMany
+    {
+        return $this->hasMany(StationCard::class);
     }
 
     public static function adjustCreditBalance(int $stationId, float $delta): void
@@ -46,6 +53,12 @@ class Station extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (self $station): void {
+            if ($station->uses_vouchers && $station->uses_credit_cards) {
+                throw new \InvalidArgumentException('Una stazione non puo usare contemporaneamente buoni e carte di credito.');
+            }
+        });
+
         static::updated(function (self $station): void {
             $threshold = (float) env('STATION_CREDIT_THRESHOLD', 5000);
             $oldRaw = $station->getOriginal('credit_balance');
