@@ -38,6 +38,7 @@ class User extends Authenticatable implements FilamentUser
         'role',
         'panel_modules',
         'is_approved',
+        'must_change_password',
     ];
 
     /**
@@ -83,6 +84,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'panel_modules' => 'array',
             'is_approved' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 

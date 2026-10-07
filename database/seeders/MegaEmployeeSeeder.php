@@ -53,6 +53,7 @@ class MegaEmployeeSeeder extends Seeder
                     'password' => Hash::make($password),
                     'role' => 'worker',
                     'is_approved' => true,
+                    'must_change_password' => true,
                 ]
             );
 

@@ -10,6 +10,7 @@ use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -53,7 +54,7 @@ class MovementController extends Controller
     {
         $user = $request->user();
 
-        $query = Movement::with(['station', 'vehicle', 'user', 'updatedBy'])
+        $query = Movement::with(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest();
 
@@ -87,8 +88,95 @@ class MovementController extends Controller
             ]);
         }
 
+        $validated = $this->validatePayload($request, photoRequired: true);
+
+        if ($request->hasFile('photo')) {
+            $validated['photo_path'] = $request->file('photo')->store('receipts', 'public');
+        }
+
+        $this->applyPaymentMethod($request, $validated);
+
+        $kmStart = Movement::resolveKmStartForVehicleAtDate(
+            (int) $validated['vehicle_id'],
+            $validated['date']
+        ) ?? (int) $validated['km_start'];
+
+        $this->assertKmOrder($kmStart, (int) $validated['km_end']);
+
+        $movement = DB::transaction(function () use ($validated, $user, $kmStart) {
+            $movement = Movement::create([
+                ...$validated,
+                'km_start' => $kmStart,
+                'user_id' => $user->id,
+            ]);
+
+            if ($movement->station_charge > 0 && $movement->station_id) {
+                Station::adjustCreditBalance((int) $movement->station_id, -(float) $movement->station_charge);
+            }
+
+            return $movement;
+        });
+
+        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy']);
+
+        return response()->json($movement, 201);
+    }
+
+    public function update(Request $request, Movement $movement): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'admin' && (int) $movement->user_id !== (int) $user->id) {
+            abort(403, 'Non puoi modificare un rifornimento di un altro utente.');
+        }
+
+        $validated = $this->validatePayload($request, photoRequired: false);
+
+        $oldPhotoPath = $movement->photo_path;
+
+        if ($request->hasFile('photo')) {
+            $validated['photo_path'] = $request->file('photo')->store('receipts', 'public');
+        } else {
+            $validated['photo_path'] = $oldPhotoPath;
+        }
+
+        $this->applyPaymentMethod($request, $validated);
+
+        $kmStart = (int) $validated['km_start'];
+        $this->assertKmOrder($kmStart, (int) $validated['km_end']);
+
+        $previousStationId = $movement->station_id;
+        $previousCharge = (float) ($movement->station_charge ?? 0);
+
+        DB::transaction(function () use ($movement, $validated, $previousStationId, $previousCharge) {
+            if ($previousCharge > 0 && $previousStationId) {
+                Station::adjustCreditBalance((int) $previousStationId, $previousCharge);
+            }
+
+            $movement->update($validated);
+
+            if ($movement->station_charge > 0 && $movement->station_id) {
+                Station::adjustCreditBalance((int) $movement->station_id, -(float) $movement->station_charge);
+            }
+        });
+
+        if ($request->hasFile('photo') && $oldPhotoPath && $oldPhotoPath !== $movement->photo_path) {
+            Storage::disk('public')->delete($oldPhotoPath);
+        }
+
+        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy']);
+
+        return response()->json($movement);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatePayload(Request $request, bool $photoRequired): array
+    {
         $validated = $request->validate([
             'station_id' => ['required', Rule::exists('stations', 'id')],
+            'platform_id' => ['required', Rule::exists('platforms', 'id')],
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
             'date' => ['required', 'date'],
             'km_start' => ['required', 'integer', 'min:0'],
@@ -99,7 +187,7 @@ class MovementController extends Controller
             'station_card_id' => ['nullable', Rule::exists('station_cards', 'id')],
             'adblue' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-            'photo' => ['required', 'file', 'max:16384'],
+            'photo' => [$photoRequired ? 'required' : 'nullable', 'file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
@@ -113,6 +201,7 @@ class MovementController extends Controller
             'photo.uploaded' => 'Caricamento ricevuta non riuscito. Riprova o usa un file piu piccolo.',
         ], [
             'station_id' => 'stazione',
+            'platform_id' => 'piattaforma',
             'vehicle_id' => 'veicolo',
             'date' => 'data',
             'km_start' => 'km iniziali',
@@ -122,12 +211,19 @@ class MovementController extends Controller
             'photo' => 'ricevuta',
         ]);
 
-        $photoPath = null;
+        unset($validated['photo']);
 
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('receipts', 'public');
-        }
+        return $validated;
+    }
 
+    /**
+     * Valida buono/carta rispetto alla stazione e calcola l'addebito, scrivendo
+     * is_voucher e station_charge dentro $validated (passato per riferimento).
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function applyPaymentMethod(Request $request, array &$validated): void
+    {
         $station = Station::select('id', 'credit_balance', 'uses_vouchers', 'uses_credit_cards')->find($validated['station_id']);
         $stationUsesVouchers = (bool) ($station?->uses_vouchers ?? false);
         $stationUsesCreditCards = (bool) ($station?->uses_credit_cards ?? false);
@@ -166,43 +262,18 @@ class MovementController extends Controller
 
         $isVoucher = $stationUsesVouchers && $requestedVoucher;
 
-        $stationCharge = ($station && $station->credit_balance !== null && ! $stationUsesCreditCards)
+        $validated['is_voucher'] = $isVoucher;
+        $validated['station_charge'] = ($station && $station->credit_balance !== null && ! $stationUsesCreditCards)
             ? ($isVoucher ? 0.0 : (float) $validated['price'])
             : 0.0;
+    }
 
-        $resolvedKmStart = Movement::resolveKmStartForVehicleAtDate(
-            (int) $validated['vehicle_id'],
-            $validated['date']
-        );
-
-        $kmStart = $resolvedKmStart ?? (int) $validated['km_start'];
-        $kmEnd = (int) $validated['km_end'];
-
+    private function assertKmOrder(int $kmStart, int $kmEnd): void
+    {
         if ($kmEnd < $kmStart) {
             throw ValidationException::withMessages([
                 'km_end' => ['I km finali devono essere maggiori o uguali ai km iniziali.'],
             ]);
         }
-
-        $movement = DB::transaction(function () use ($validated, $photoPath, $stationCharge, $isVoucher, $user, $kmStart) {
-            $movement = Movement::create([
-                ...$validated,
-                'km_start' => $kmStart,
-                'photo_path' => $photoPath,
-                'user_id' => $user->id,
-                'station_charge' => $stationCharge,
-                'is_voucher' => $isVoucher,
-            ]);
-
-            if ($stationCharge > 0 && ! empty($validated['station_id'])) {
-                Station::adjustCreditBalance((int) $validated['station_id'], -$stationCharge);
-            }
-
-            return $movement;
-        });
-
-        $movement->refresh()->load(['station', 'stationCard', 'vehicle', 'user', 'updatedBy']);
-
-        return response()->json($movement, 201);
     }
 }

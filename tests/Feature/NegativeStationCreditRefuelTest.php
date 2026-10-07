@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Platform;
 use App\Models\Station;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -38,10 +39,13 @@ class NegativeStationCreditRefuelTest extends TestCase
             'maintenance_km' => 0,
         ]);
 
+        $platform = Platform::query()->create(['name' => 'Piattaforma Demo']);
+
         Sanctum::actingAs($user);
 
         $response = $this->post('/api/movements', [
             'station_id' => $station->id,
+            'platform_id' => $platform->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-06-09 09:00:00',
             'km_start' => 1000,

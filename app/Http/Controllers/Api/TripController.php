@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -41,6 +42,56 @@ class TripController extends Controller
             ]);
         }
 
+        $validated = $this->validatePayload($request, attachmentRequired: true);
+
+        $trip = Trip::create([
+            'user_id' => $user->id,
+            ...$validated,
+            'attachment_path' => $request->file('attachment')->store('trips', 'public'),
+        ]);
+
+        $trip->load(['platform', 'vehicle', 'user']);
+
+        return response()->json($trip, 201);
+    }
+
+    public function update(Request $request, Trip $trip): JsonResponse
+    {
+        $user = $request->user();
+        $isAdmin = $user->role === 'admin';
+
+        if (! $isAdmin && (int) $trip->user_id !== (int) $user->id) {
+            abort(403, 'Non puoi modificare un viaggio di un altro utente.');
+        }
+
+        if (! $isAdmin && $trip->is_certified) {
+            abort(403, 'Il viaggio e gia stato pagato e non puo piu essere modificato.');
+        }
+
+        $validated = $this->validatePayload($request, attachmentRequired: false);
+
+        $oldAttachmentPath = $trip->attachment_path;
+
+        if ($request->hasFile('attachment')) {
+            $validated['attachment_path'] = $request->file('attachment')->store('trips', 'public');
+        }
+
+        $trip->update($validated);
+
+        if ($request->hasFile('attachment') && $oldAttachmentPath && isset($validated['attachment_path']) && $oldAttachmentPath !== $validated['attachment_path']) {
+            Storage::disk('public')->delete($oldAttachmentPath);
+        }
+
+        $trip->refresh()->load(['platform', 'vehicle', 'user']);
+
+        return response()->json($trip);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatePayload(Request $request, bool $attachmentRequired): array
+    {
         $request->merge([
             'destinations' => collect($request->input('destinations', []))
                 ->map(fn ($value) => is_string($value) ? trim($value) : $value)
@@ -57,7 +108,7 @@ class TripController extends Controller
             'destinations.*' => ['required', 'string', 'max:255'],
             'goods_type' => ['required', Rule::in(array_keys(Trip::goodsTypeOptions()))],
             'delivery_note_number' => ['required', 'regex:/^\d{1,30}$/'],
-            'attachment' => ['required', 'file', 'max:16384'],
+            'attachment' => [$attachmentRequired ? 'required' : 'nullable', 'file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
@@ -79,19 +130,8 @@ class TripController extends Controller
             'attachment' => 'allegato',
         ]);
 
-        $trip = Trip::create([
-            'user_id' => $user->id,
-            'platform_id' => $validated['platform_id'],
-            'vehicle_id' => $validated['vehicle_id'],
-            'date' => $validated['date'],
-            'destinations' => $validated['destinations'],
-            'goods_type' => $validated['goods_type'],
-            'delivery_note_number' => $validated['delivery_note_number'],
-            'attachment_path' => $request->file('attachment')->store('trips', 'public'),
-        ]);
+        unset($validated['attachment']);
 
-        $trip->load(['platform', 'vehicle', 'user']);
-
-        return response()->json($trip, 201);
+        return $validated;
     }
 }

@@ -47,6 +47,64 @@ class MaintenanceController extends Controller
             ]);
         }
 
+        $validated = $this->validatePayload($request, attachmentRequired: true);
+
+        $attachmentPath = $request->hasFile('attachment')
+            ? $request->file('attachment')->store('maintenances', 'public')
+            : null;
+
+        $maintenance = Maintenance::create([
+            ...$validated,
+            'attachment_path' => $attachmentPath,
+            'user_id' => $user->id,
+        ]);
+
+        // aggiorna i km del veicolo
+        Vehicle::where('id', $validated['vehicle_id'])->update([
+            'maintenance_km' => $validated['km_current'],
+        ]);
+
+        $maintenance->load(['vehicle', 'supplier', 'user']);
+
+        return response()->json($maintenance, 201);
+    }
+
+    public function update(Request $request, Maintenance $maintenance): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'admin' && (int) $maintenance->user_id !== (int) $user->id) {
+            abort(403, 'Non puoi modificare una manutenzione di un altro utente.');
+        }
+
+        $validated = $this->validatePayload($request, attachmentRequired: false);
+
+        $oldAttachmentPath = $maintenance->attachment_path;
+
+        $validated['attachment_path'] = $request->hasFile('attachment')
+            ? $request->file('attachment')->store('maintenances', 'public')
+            : $oldAttachmentPath;
+
+        $maintenance->update($validated);
+
+        Vehicle::where('id', $validated['vehicle_id'])->update([
+            'maintenance_km' => $validated['km_current'],
+        ]);
+
+        if ($request->hasFile('attachment') && $oldAttachmentPath && $oldAttachmentPath !== $maintenance->attachment_path) {
+            Storage::disk('public')->delete($oldAttachmentPath);
+        }
+
+        $maintenance->refresh()->load(['vehicle', 'supplier', 'user']);
+
+        return response()->json($maintenance);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatePayload(Request $request, bool $attachmentRequired): array
+    {
         $validated = $request->validate([
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
             'supplier_id' => ['required', Rule::exists('suppliers', 'id')],
@@ -57,7 +115,7 @@ class MaintenanceController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'invoice_number' => ['required', 'string', 'max:255'],
             'notes' => ['required', 'string'],
-            'attachment' => ['required', 'file', 'max:16384'],
+            'attachment' => [$attachmentRequired ? 'required' : 'nullable', 'file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
@@ -83,29 +141,17 @@ class MaintenanceController extends Controller
             'attachment' => 'allegato',
         ]);
 
-        $kmValue = (int) $validated['km'];
-        $kmAfterValue = array_key_exists('km_after', $validated) && $validated['km_after'] !== null
+        unset($validated['attachment']);
+
+        $validated['km_current'] = (int) $validated['km'];
+        unset($validated['km']);
+
+        $validated['km_after'] = array_key_exists('km_after', $validated) && $validated['km_after'] !== null
             ? (int) $validated['km_after']
             : null;
-        $nextMaintenanceDateValue = $validated['next_maintenance_date'] ?? null;
-        $attachmentPath = $request->file('attachment')->store('maintenances', 'public');
 
-        $maintenance = Maintenance::create([
-            ...$validated,
-            'km_current' => $kmValue,
-            'km_after' => $kmAfterValue,
-            'next_maintenance_date' => $nextMaintenanceDateValue,
-            'attachment_path' => $attachmentPath,
-            'user_id' => $user->id,
-        ]);
+        $validated['next_maintenance_date'] = $validated['next_maintenance_date'] ?? null;
 
-        // aggiorna i km del veicolo
-        Vehicle::where('id', $validated['vehicle_id'])->update([
-            'maintenance_km' => $kmValue,
-        ]);
-
-        $maintenance->load(['vehicle', 'supplier', 'user']);
-
-        return response()->json($maintenance, 201);
+        return $validated;
     }
 }

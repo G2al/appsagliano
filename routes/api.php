@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\UserDocumentController;
 use App\Http\Controllers\Api\MovementController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\PlatformController;
+use App\Http\Controllers\Api\StationCardController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TripController;
@@ -19,21 +20,27 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
     Route::get('/movements', [MovementController::class, 'index']);
     Route::get('/movements/km-start', [MovementController::class, 'kmStart']);
     Route::post('/movements', [MovementController::class, 'store']);
+    Route::put('/movements/{movement}', [MovementController::class, 'update']);
 
     Route::get('/stations', [StationController::class, 'index']);
+    Route::post('/stations/{station}/cards', [StationCardController::class, 'store']);
     Route::get('/vehicles', [VehicleController::class, 'index']);
+    Route::post('/vehicles', [VehicleController::class, 'store']);
 
     Route::get('/suppliers', [SupplierController::class, 'index']);
     Route::get('/maintenances', [MaintenanceController::class, 'index']);
     Route::post('/maintenances', [MaintenanceController::class, 'store']);
+    Route::put('/maintenances/{maintenance}', [MaintenanceController::class, 'update']);
 
     Route::get('/platforms', [PlatformController::class, 'index']);
     Route::get('/trips', [TripController::class, 'index']);
     Route::post('/trips', [TripController::class, 'store']);
+    Route::put('/trips/{trip}', [TripController::class, 'update']);
 
     Route::get('/documents', [UserDocumentController::class, 'index']);
     Route::post('/documents/files/{file}/open', [UserDocumentController::class, 'open']);

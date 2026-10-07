@@ -25,6 +25,7 @@ class Movement extends Model
         'updated_by',
         'station_id',
         'station_card_id',
+        'platform_id',
         'vehicle_id',
         'date',
         'km_start',
@@ -128,6 +129,11 @@ class Movement extends Model
     public function stationCard(): BelongsTo
     {
         return $this->belongsTo(StationCard::class);
+    }
+
+    public function platform(): BelongsTo
+    {
+        return $this->belongsTo(Platform::class);
     }
 
     public function updatedBy(): BelongsTo

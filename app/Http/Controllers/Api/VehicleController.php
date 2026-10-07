@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Movement;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VehicleController extends Controller
 {
@@ -64,5 +66,37 @@ class VehicleController extends Controller
                 ];
             })->values()
         );
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'plate' => ['required', 'string', 'max:255', Rule::unique('vehicles', 'plate')],
+            'color' => ['nullable', 'string', 'max:255'],
+        ], [
+            'required' => 'Il campo :attribute e obbligatorio.',
+            'plate.unique' => 'Esiste gia un veicolo con questa targa.',
+        ], [
+            'name' => 'nome/categoria',
+            'plate' => 'targa',
+            'color' => 'colore',
+        ]);
+
+        $vehicle = Vehicle::create([
+            ...$validated,
+            'current_km' => 0,
+            'maintenance_km' => 0,
+        ]);
+
+        return response()->json([
+            'id' => $vehicle->id,
+            'name' => $vehicle->name,
+            'plate' => $vehicle->plate,
+            'color' => $vehicle->color,
+            'current_km' => $vehicle->current_km,
+            'maintenance_km' => $vehicle->maintenance_km,
+            'refuel_km_per_liter_avg' => null,
+        ], 201);
     }
 }

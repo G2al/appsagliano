@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Platform;
 use App\Models\Station;
 use App\Models\StationCard;
 use App\Models\User;
@@ -32,10 +33,16 @@ class StationCreditCardTest extends TestCase
         ]);
     }
 
+    private function makePlatform(): Platform
+    {
+        return Platform::query()->create(['name' => 'Piattaforma Nord']);
+    }
+
     private function basePayload(Station $station, Vehicle $vehicle, array $overrides = []): array
     {
         return array_merge([
             'station_id' => $station->id,
+            'platform_id' => $this->makePlatform()->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-10-06 09:00:00',
             'km_start' => 1000,
