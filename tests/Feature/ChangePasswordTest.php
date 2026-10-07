@@ -36,7 +36,6 @@ class ChangePasswordTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/auth/change-password', [
-            'current_password' => 'oldpassword',
             'new_password' => 'newpassword',
             'new_password_confirmation' => 'newpassword',
         ])->assertOk();
@@ -46,7 +45,7 @@ class ChangePasswordTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword', $user->password));
     }
 
-    public function test_change_password_requires_correct_current_password(): void
+    public function test_change_password_requires_confirmation_to_match(): void
     {
         $user = User::factory()->create([
             'role' => 'worker',
@@ -57,11 +56,10 @@ class ChangePasswordTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/auth/change-password', [
-            'current_password' => 'wrongpassword',
             'new_password' => 'newpassword',
-            'new_password_confirmation' => 'newpassword',
+            'new_password_confirmation' => 'somethingelse',
         ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('current_password');
+            ->assertJsonValidationErrors('new_password');
     }
 }

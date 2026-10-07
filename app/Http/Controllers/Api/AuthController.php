@@ -107,17 +107,10 @@ class AuthController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'current_password' => ['required', 'string'],
             'new_password' => ['required', 'string', 'min:5', 'confirmed'],
         ], [
             'new_password.min' => 'La nuova password deve contenere almeno 5 caratteri.',
         ]);
-
-        if (! Hash::check($validated['current_password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['La password attuale non e corretta.'],
-            ]);
-        }
 
         $user->update([
             'password' => $validated['new_password'],
