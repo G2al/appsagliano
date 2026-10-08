@@ -41,9 +41,9 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Giorno</th>
+                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Giorno</th>
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
-                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" colspan="3">{{ $i }}° viaggio</th>
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700" colspan="3">{{ $i }}° viaggio</th>
                     @endfor
                     <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
                 </tr>
@@ -51,7 +51,7 @@
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @foreach ($days as $row)
                     <tr class="{{ $row['trips']->isEmpty() ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-white' }}">
-                        <td class="px-3 py-2 font-semibold whitespace-nowrap align-top">
+                        <td class="px-3 py-2 font-semibold whitespace-nowrap align-top border-r border-gray-200 dark:border-gray-700">
                             {{ $row['day'] }}
                             <span class="block text-xs font-normal text-gray-400 dark:text-gray-500">{{ $row['date']->translatedFormat('D') }}</span>
                         </td>
@@ -72,7 +72,7 @@
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Bolla</span>
                                     <div class="font-medium">{{ $trip->delivery_note_number }}</div>
                                 </td>
-                                <td class="px-3 py-2 align-top whitespace-nowrap">
+                                <td class="px-3 py-2 align-top whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
                                     <span class="text-xs text-gray-500 dark:text-gray-400 block">Importo &euro;</span>
                                     <input
                                         type="text"
@@ -86,7 +86,7 @@
                             @else
                                 <td class="px-3 py-2"></td>
                                 <td class="px-3 py-2"></td>
-                                <td class="px-3 py-2"></td>
+                                <td class="px-3 py-2 border-r border-gray-200 dark:border-gray-700"></td>
                             @endif
                         @endfor
 
