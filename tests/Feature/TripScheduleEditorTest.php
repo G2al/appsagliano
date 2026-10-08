@@ -41,7 +41,7 @@ class TripScheduleEditorTest extends TestCase
             'platform_id' => $platform->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day->copy()->addHours(3),
-            'destinations' => ['Napoli'],
+            'destinations' => ['Napoli', 'Caserta'],
             'goods_type' => 'freschi',
             'delivery_note_number' => '102',
             'attachment_path' => 'trips/b.jpg',
@@ -103,5 +103,40 @@ class TripScheduleEditorTest extends TestCase
         $trip->refresh();
         $this->assertNull($trip->price);
         $this->assertFalse($trip->is_certified);
+    }
+
+    public function test_calendar_shows_every_day_of_the_month_even_without_trips(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        $emptyDay = now()->startOfMonth()->addDays(20)->day;
+
+        Livewire::test(TripScheduleEditor::class, ['userId' => $driver->id])
+            ->assertSuccessful()
+            ->assertSee('Gaeta')
+            ->assertSee('Napoli → Caserta')
+            ->assertSee((string) $emptyDay);
+    }
+
+    public function test_month_navigation_changes_the_displayed_trips(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        $component = Livewire::test(TripScheduleEditor::class, ['userId' => $driver->id])
+            ->assertSee('Gaeta');
+
+        $component->call('nextMonth')
+            ->assertDontSee('Gaeta');
+
+        $component->call('previousMonth')
+            ->assertSee('Gaeta');
     }
 }
