@@ -1,19 +1,11 @@
-<div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
-        <x-filament::icon-button
-            icon="heroicon-m-chevron-left"
-            wire:click="previousMonth"
-            label="Mese precedente"
-        />
-
-        <span class="text-sm font-medium text-gray-900 dark:text-white">
-            {{ $this->monthLabel }}
-        </span>
-
-        <x-filament::icon-button
-            icon="heroicon-m-chevron-right"
-            wire:click="nextMonth"
-            label="Mese successivo"
+<div class="w-full min-w-0 space-y-4">
+    <div class="flex items-center gap-2">
+        <label for="trip-schedule-month-{{ $userId }}" class="text-sm font-medium text-gray-700 dark:text-gray-200">Mese</label>
+        <input
+            type="month"
+            id="trip-schedule-month-{{ $userId }}"
+            wire:model.live="month"
+            class="fi-input block rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         />
     </div>
 
@@ -24,7 +16,28 @@
         </span>
     </div>
 
-    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+    <div
+        class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
+        style="contain: inline-size; user-select: none;"
+        x-data="{
+            isDragging: false,
+            startX: 0,
+            startScrollLeft: 0,
+        }"
+        x-on:mousedown="
+            if ($event.target.tagName === 'INPUT') return;
+            isDragging = true;
+            startX = $event.pageX;
+            startScrollLeft = $el.scrollLeft;
+            $event.preventDefault();
+        "
+        x-on:mousemove.window="
+            if (! isDragging) return;
+            $event.preventDefault();
+            $el.scrollLeft = startScrollLeft - ($event.pageX - startX);
+        "
+        x-on:mouseup.window="isDragging = false"
+    >
         <table class="min-w-full text-left text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>

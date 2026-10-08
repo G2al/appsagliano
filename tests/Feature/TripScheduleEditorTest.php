@@ -122,7 +122,7 @@ class TripScheduleEditorTest extends TestCase
             ->assertSee((string) $emptyDay);
     }
 
-    public function test_month_navigation_changes_the_displayed_trips(): void
+    public function test_changing_the_month_input_changes_the_displayed_trips(): void
     {
         $driver = $this->makeDriverWithTrips();
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
@@ -130,13 +130,16 @@ class TripScheduleEditorTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($admin);
 
+        $currentMonth = now()->format('Y-m');
+        $nextMonth = now()->addMonthNoOverflow()->format('Y-m');
+
         $component = Livewire::test(TripScheduleEditor::class, ['userId' => $driver->id])
             ->assertSee('Gaeta');
 
-        $component->call('nextMonth')
+        $component->set('month', $nextMonth)
             ->assertDontSee('Gaeta');
 
-        $component->call('previousMonth')
+        $component->set('month', $currentMonth)
             ->assertSee('Gaeta');
     }
 }

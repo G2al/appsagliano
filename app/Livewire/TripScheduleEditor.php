@@ -6,7 +6,6 @@ use App\Filament\Concerns\ChecksPanelModules;
 use App\Models\Trip;
 use App\Models\User;
 use App\Support\BuildsMonthlyTripSchedule;
-use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Livewire\Component;
 
@@ -26,21 +25,6 @@ class TripScheduleEditor extends Component
     {
         $this->userId = $userId;
         $this->month = now()->format('Y-m');
-    }
-
-    public function previousMonth(): void
-    {
-        $this->month = Carbon::createFromFormat('Y-m', $this->month)->subMonthNoOverflow()->format('Y-m');
-    }
-
-    public function nextMonth(): void
-    {
-        $this->month = Carbon::createFromFormat('Y-m', $this->month)->addMonthNoOverflow()->format('Y-m');
-    }
-
-    public function getMonthLabelProperty(): string
-    {
-        return ucfirst(Carbon::createFromFormat('Y-m', $this->month)->translatedFormat('F Y'));
     }
 
     public function updatePrice(int $tripId): void
