@@ -1,13 +1,26 @@
 <x-filament::page>
     <div class="space-y-4">
-        <div class="max-w-sm">
-            <x-filament::input.wrapper>
-                <x-filament::input
-                    type="search"
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Cerca autista..."
-                />
-            </x-filament::input.wrapper>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="max-w-sm flex-1">
+                <x-filament::input.wrapper>
+                    <x-filament::input
+                        type="search"
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Cerca autista..."
+                    />
+                </x-filament::input.wrapper>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label for="trip-schedules-per-page" class="text-sm text-gray-500 dark:text-gray-400">Per pagina</label>
+                <x-filament::input.wrapper>
+                    <x-filament::input.select id="trip-schedules-per-page" wire:model.live="perPage">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </x-filament::input.select>
+                </x-filament::input.wrapper>
+            </div>
         </div>
 
         <div class="space-y-3">
@@ -37,5 +50,7 @@
                 </x-filament::section>
             @endforelse
         </div>
+
+        {{ $this->users->links() }}
     </div>
 </x-filament::page>
