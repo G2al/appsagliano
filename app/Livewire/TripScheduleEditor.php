@@ -50,6 +50,8 @@ class TripScheduleEditor extends Component
             ->title('Importo aggiornato')
             ->success()
             ->send();
+
+        $this->dispatch('price-saved', tripId: $tripId);
     }
 
     public function render()

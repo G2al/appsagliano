@@ -38,6 +38,16 @@ class AdminPanelProvider extends PanelProvider
                     <link rel="apple-touch-icon" href="/admin-assets/icon-admin.png">
                     <meta name="theme-color" content="#1A2A9C">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+                    <style>
+                        /* Impedisce lo zoom automatico di iOS/Android quando si tocca un campo
+                           di testo: i browser mobili ingrandiscono la pagina se il font di un
+                           input e inferiore a 16px, indipendentemente dal meta viewport sopra. */
+                        @media (max-width: 1024px) {
+                            input, select, textarea {
+                                font-size: 16px !important;
+                            }
+                        }
+                    </style>
                 HTML
             )
             ->renderHook(

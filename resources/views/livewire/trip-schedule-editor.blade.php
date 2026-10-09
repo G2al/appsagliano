@@ -5,6 +5,7 @@
             type="month"
             id="trip-schedule-month-{{ $userId }}"
             wire:model.live="month"
+            style="font-size: 16px;"
             class="fi-input block rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         />
     </div>
@@ -41,9 +42,9 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">Giorno</th>
+                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">Giorno</th>
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
-                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700" colspan="3">{{ $i }}° viaggio</th>
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="3">{{ $i }}° viaggio</th>
                     @endfor
                     <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
                 </tr>
@@ -51,7 +52,7 @@
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @foreach ($days as $row)
                     <tr class="{{ $row['trips']->isEmpty() ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-white' }}">
-                        <td class="px-3 py-2 font-semibold whitespace-nowrap align-top border-r border-gray-200 dark:border-gray-700">
+                        <td class="px-3 py-2 font-semibold whitespace-nowrap align-top" style="border-right: 2px solid rgba(100,116,139,0.5);">
                             {{ $row['day'] }}
                             <span class="block text-xs font-normal text-gray-400 dark:text-gray-500">{{ $row['date']->translatedFormat('D') }}</span>
                         </td>
@@ -59,34 +60,27 @@
                         @for ($i = 0; $i < $maxTripsPerDay; $i++)
                             @php($trip = $row['trips']->get($i))
                             @if ($trip)
-                                <td class="px-3 py-2 align-top">
-                                    <div class="font-medium">{{ $trip->destinations_label ?: 'N/D' }}</div>
-                                    <div class="text-xs text-gray-400 dark:text-gray-500">
+                                <td class="px-3 py-2 align-top whitespace-nowrap">
+                                    <div class="font-medium whitespace-nowrap">{{ $trip->destinations_label ?: 'N/D' }}</div>
+                                    <div class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                                         {{ $trip->vehicle?->plate ?? 'N/D' }}
                                         @if ($trip->platform)
                                             &middot; {{ $trip->platform->name }}
                                         @endif
+                                        &middot; {{ $trip->goods_type_label }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 align-top whitespace-nowrap">
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Bolla</span>
                                     <div class="font-medium">{{ $trip->delivery_note_number }}</div>
                                 </td>
-                                <td class="px-3 py-2 align-top whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 block">Importo &euro;</span>
-                                    <input
-                                        type="text"
-                                        inputmode="decimal"
-                                        wire:model="prices.{{ $trip->id }}"
-                                        wire:change="updatePrice({{ $trip->id }})"
-                                        placeholder="0,00"
-                                        class="fi-input w-24 rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                    />
+                                <td class="px-2 py-2 align-top whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">
+                                    @include('livewire.partials.trip-price-input', ['trip' => $trip])
                                 </td>
                             @else
                                 <td class="px-3 py-2"></td>
                                 <td class="px-3 py-2"></td>
-                                <td class="px-3 py-2 border-r border-gray-200 dark:border-gray-700"></td>
+                                <td class="px-3 py-2" style="border-right: 2px solid rgba(100,116,139,0.5);"></td>
                             @endif
                         @endfor
 
