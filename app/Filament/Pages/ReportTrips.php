@@ -9,6 +9,7 @@ use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
 use App\Filament\Widgets\TripsStats;
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Dashboard\Actions\FilterAction;
 use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
@@ -40,6 +41,17 @@ class ReportTrips extends Page
                         ->required(),
                 ]),
         ];
+    }
+
+    public function getSubheading(): string
+    {
+        $startRaw = $this->filters['start_date'] ?? null;
+        $endRaw = $this->filters['end_date'] ?? null;
+
+        $start = Carbon::parse($startRaw ?: now()->startOfMonth());
+        $end = Carbon::parse($endRaw ?: now());
+
+        return 'Periodo filtrato: dal ' . $start->translatedFormat('d F Y') . ' al ' . $end->translatedFormat('d F Y');
     }
 
     public function getWidgetData(): array
