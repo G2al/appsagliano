@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Platform;
 use App\Models\Trip;
+use App\Services\TripDistanceCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +14,45 @@ use Illuminate\Validation\ValidationException;
 
 class TripController extends Controller
 {
+    public function calculateDistance(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! in_array($user->role, ['worker', 'admin'], true)) {
+            throw ValidationException::withMessages([
+                'role' => ['Ruolo non autorizzato a calcolare viaggi.'],
+            ]);
+        }
+
+        $request->merge([
+            'destinations' => collect($request->input('destinations', []))
+                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+                ->filter(fn ($value) => $value !== '' && $value !== null)
+                ->values()
+                ->all(),
+        ]);
+
+        $validated = $request->validate([
+            'platform_id' => ['required', Rule::exists('platforms', 'id')],
+            'destinations' => ['required', 'array', 'min:1'],
+            'destinations.*' => ['required', 'string', 'max:255'],
+        ], [
+            'required' => 'Il campo :attribute e obbligatorio.',
+            'exists' => 'Il campo :attribute non esiste.',
+            'destinations.min' => 'Inserisci almeno una destinazione.',
+        ], [
+            'platform_id' => 'piattaforma',
+            'destinations' => 'destinazioni',
+            'destinations.*' => 'destinazione',
+        ]);
+
+        $platform = Platform::query()->find($validated['platform_id']);
+
+        $result = app(TripDistanceCalculator::class)->preview($platform, $validated['destinations']);
+
+        return response()->json($result);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -55,6 +96,8 @@ class TripController extends Controller
             ]);
         }
 
+        app(TripDistanceCalculator::class)->calculate($trip);
+
         $trip->load(['platform', 'vehicle', 'user', 'attachments']);
 
         return response()->json($trip, 201);
@@ -76,6 +119,10 @@ class TripController extends Controller
         $validated = $this->validatePayload($request, attachmentRequired: false);
 
         $trip->update($validated);
+
+        if ($trip->wasChanged(['platform_id', 'destinations'])) {
+            app(TripDistanceCalculator::class)->calculate($trip);
+        }
 
         $removeIds = collect($request->input('remove_attachment_ids', []))
             ->filter(fn ($id) => is_numeric($id))

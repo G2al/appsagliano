@@ -94,6 +94,11 @@ class TripResource extends Resource
                             ->minValue(0)
                             ->nullable()
                             ->helperText('Inserendo il prezzo il viaggio risulta certificato.'),
+                        Forms\Components\Placeholder::make('distance_label')
+                            ->label('Distanza stradale')
+                            ->content(fn (?Trip $record): string => $record?->distance_label ?? 'Calcolata al salvataggio')
+                            ->helperText(fn (?Trip $record): ?string => $record?->distance_note)
+                            ->visibleOn('edit'),
                         Forms\Components\FileUpload::make('attachments')
                             ->label('Allegati')
                             ->multiple()
@@ -148,6 +153,16 @@ class TripResource extends Resource
                     ->money('EUR', true)
                     ->placeholder('—')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('distance_label')
+                    ->label('Km')
+                    ->state(fn (Trip $record) => $record->distance_label)
+                    ->tooltip(fn (Trip $record) => $record->distance_note)
+                    ->color(fn (Trip $record) => match ($record->distance_status) {
+                        'estimated' => 'warning',
+                        'unavailable', null => 'gray',
+                        default => 'success',
+                    })
+                    ->sortable(query: fn (Builder $query, string $direction) => $query->orderBy('distance_km', $direction)),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Stato')
                     ->state(fn (Trip $record) => $record->is_certified ? 'Certificato' : 'Da certificare')

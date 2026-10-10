@@ -20,10 +20,12 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class TripFilamentTest extends TestCase
 {
+    use FakesOpenRouteService;
     use RefreshDatabase;
 
     private User $admin;
@@ -33,6 +35,8 @@ class TripFilamentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fakeOpenRouteServiceSuccess();
 
         $this->admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true]);

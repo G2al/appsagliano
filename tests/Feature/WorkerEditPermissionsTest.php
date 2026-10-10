@@ -14,11 +14,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class WorkerEditPermissionsTest extends TestCase
 {
+    use FakesOpenRouteService;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeOpenRouteServiceSuccess();
+    }
 
     private function makeVehicle(string $plate = 'MG001AA'): Vehicle
     {

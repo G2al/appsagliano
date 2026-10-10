@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'openrouteservice' => [
+        'key' => env('ORS_API_KEY'),
+        'geocode_url' => env('ORS_GEOCODE_URL', 'https://api.heigit.org/pelias/v1/search'),
+        'directions_url' => env('ORS_DIRECTIONS_URL', 'https://api.heigit.org/openrouteservice/v2/directions/driving-hgv/json'),
+    ],
+
 ];

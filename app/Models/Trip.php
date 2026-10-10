@@ -31,6 +31,8 @@ class Trip extends Model
         'date' => 'datetime',
         'destinations' => 'array',
         'price' => 'decimal:2',
+        'distance_km' => 'decimal:2',
+        'distance_calculated_at' => 'datetime',
     ];
 
     protected $appends = [
@@ -83,4 +85,14 @@ class Trip extends Model
         return collect($this->destinations ?? [])->filter()->implode(' → ');
     }
 
+    public function getDistanceLabelAttribute(): string
+    {
+        if ($this->distance_status === 'unavailable' || $this->distance_km === null) {
+            return 'N/D';
+        }
+
+        $label = number_format((float) $this->distance_km, 0, ',', '.') . ' km';
+
+        return $this->distance_status === 'estimated' ? $label . ' (stima)' : $label;
+    }
 }

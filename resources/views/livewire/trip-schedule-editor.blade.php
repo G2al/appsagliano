@@ -79,6 +79,7 @@
                                             &middot; {{ $trip->platform->name }}
                                         @endif
                                         &middot; {{ $trip->goods_type_label }}
+                                        &middot; {{ $trip->distance_label }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 align-top whitespace-nowrap">

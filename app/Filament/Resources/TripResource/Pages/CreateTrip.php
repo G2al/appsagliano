@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TripResource\Pages;
 
 use App\Filament\Resources\TripResource;
+use App\Services\TripDistanceCalculator;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateTrip extends CreateRecord
@@ -25,5 +26,7 @@ class CreateTrip extends CreateRecord
         foreach ($this->pendingAttachmentPaths as $path) {
             $this->record->attachments()->create(['path' => $path]);
         }
+
+        app(TripDistanceCalculator::class)->calculate($this->record);
     }
 }

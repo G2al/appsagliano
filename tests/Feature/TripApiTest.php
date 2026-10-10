@@ -10,11 +10,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class TripApiTest extends TestCase
 {
+    use FakesOpenRouteService;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeOpenRouteServiceSuccess();
+    }
 
     private function makeWorker(): User
     {
@@ -265,5 +274,54 @@ class TripApiTest extends TestCase
         $trip->update(['price' => 350.5]);
 
         $this->assertTrue($trip->fresh()->is_certified);
+    }
+
+    public function test_worker_can_preview_distance_without_creating_a_trip(): void
+    {
+        $worker = $this->makeWorker();
+        $platform = Platform::query()->create(['name' => 'Piattaforma Nord', 'address' => 'Via Roma 1, Bari']);
+
+        Sanctum::actingAs($worker);
+
+        $response = $this->postJson('/api/trips/calculate-distance', [
+            'platform_id' => $platform->id,
+            'destinations' => ['Milano', 'Pavia'],
+        ])->assertOk();
+
+        $response->assertJson([
+            'distance_km' => 123.46,
+            'distance_status' => 'calculated',
+            'distance_note' => null,
+        ]);
+
+        $this->assertSame(0, Trip::query()->count());
+    }
+
+    public function test_preview_distance_requires_platform_and_destinations(): void
+    {
+        $worker = $this->makeWorker();
+
+        Sanctum::actingAs($worker);
+
+        $this->postJson('/api/trips/calculate-distance', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['platform_id', 'destinations']);
+    }
+
+    public function test_preview_distance_marks_unavailable_when_platform_has_no_address(): void
+    {
+        $worker = $this->makeWorker();
+        $platform = Platform::query()->create(['name' => 'Senza indirizzo']);
+
+        Sanctum::actingAs($worker);
+
+        $this->postJson('/api/trips/calculate-distance', [
+            'platform_id' => $platform->id,
+            'destinations' => ['Milano'],
+        ])->assertOk()
+            ->assertJson([
+                'distance_km' => null,
+                'distance_status' => 'unavailable',
+            ]);
     }
 }
