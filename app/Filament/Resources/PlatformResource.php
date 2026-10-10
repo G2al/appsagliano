@@ -35,6 +35,9 @@ class PlatformResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('address')
+                    ->label('Indirizzo')
+                    ->maxLength(255),
             ]);
     }
 
@@ -47,6 +50,10 @@ class PlatformResource extends Resource
                     ->label('Nome piattaforma')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('address')
+                    ->label('Indirizzo')
+                    ->placeholder('—')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('trips_count')
                     ->label('Viaggi')
                     ->counts('trips')

@@ -12,6 +12,7 @@ class Platform extends Model
 
     protected $fillable = [
         'name',
+        'address',
     ];
 
     public function trips(): HasMany
