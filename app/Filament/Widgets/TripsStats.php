@@ -12,6 +12,8 @@ class TripsStats extends StatsOverviewWidget
 {
     use InteractsWithPageFilters;
 
+    protected static bool $isLazy = false;
+
     protected function getStats(): array
     {
         $filters = $this->filters ?? [];

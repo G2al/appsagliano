@@ -18,6 +18,8 @@ class TripsListTable extends BaseWidget
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
 
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Elenco viaggi';
 

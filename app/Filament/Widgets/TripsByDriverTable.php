@@ -18,6 +18,8 @@ class TripsByDriverTable extends BaseWidget
     use InteractsWithReportTableChecks;
     use RendersTripDetails;
 
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Viaggi per autista';
 
