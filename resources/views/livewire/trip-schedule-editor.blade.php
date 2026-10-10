@@ -17,6 +17,17 @@
         </span>
     </div>
 
+    @if ($platformTotals->isNotEmpty())
+        <div class="flex flex-wrap gap-2">
+            @foreach ($platformTotals as $row)
+                <span class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800">
+                    <span class="text-gray-500 dark:text-gray-400">{{ $row['platform'] }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">€ {{ number_format($row['total'], 2, ',', '.') }}</span>
+                </span>
+            @endforeach
+        </div>
+    @endif
+
     <div
         class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
         style="contain: inline-size; user-select: none;"

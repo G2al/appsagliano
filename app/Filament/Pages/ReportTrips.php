@@ -3,19 +3,20 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\TripsByDriverTable;
+use App\Filament\Widgets\TripsByPlatformDriverTable;
 use App\Filament\Widgets\TripsByVehicleDriverTable;
 use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
 use App\Filament\Widgets\TripsStats;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Form;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Pages\Dashboard\Actions\FilterAction;
+use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
 use Filament\Pages\Page;
 
 class ReportTrips extends Page
 {
-    use HasFiltersForm;
+    use HasFiltersAction;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationLabel = 'Report viaggi';
@@ -24,21 +25,21 @@ class ReportTrips extends Page
     protected static string $view = 'filament.pages.report-trips';
     protected static bool $shouldRegisterNavigation = true;
 
-    public function filtersForm(Form $form): Form
+    protected function getHeaderActions(): array
     {
-        return $form
-            ->schema([
-                DatePicker::make('start_date')
-                    ->label('Dal')
-                    ->default(now()->startOfMonth())
-                    ->required()
-                    ->live(),
-                DatePicker::make('end_date')
-                    ->label('Al')
-                    ->default(now())
-                    ->required()
-                    ->live(),
-            ]);
+        return [
+            FilterAction::make()
+                ->form([
+                    DatePicker::make('start_date')
+                        ->label('Dal')
+                        ->default(now()->startOfMonth())
+                        ->required(),
+                    DatePicker::make('end_date')
+                        ->label('Al')
+                        ->default(now())
+                        ->required(),
+                ]),
+        ];
     }
 
     public function getWidgetData(): array
@@ -54,6 +55,7 @@ class ReportTrips extends Page
             TripsStats::class,
             TripsByVehicleTable::class,
             TripsByDriverTable::class,
+            TripsByPlatformDriverTable::class,
             TripsByVehicleDriverTable::class,
         ];
     }

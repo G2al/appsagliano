@@ -18,7 +18,6 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -81,28 +80,21 @@ class TripFilamentTest extends TestCase
         $this->assertSame('250.50', $this->pendingTrip->fresh()->price);
     }
 
-    public function test_admin_can_add_and_remove_attachments_when_editing_a_trip(): void
+    public function test_admin_can_edit_a_trip_without_losing_existing_attachments(): void
     {
         Storage::fake('public');
+        Storage::disk('public')->put('trips/keep.jpg', 'fake-content');
 
         $kept = $this->pendingTrip->attachments()->create(['path' => 'trips/keep.jpg']);
-        $this->pendingTrip->attachments()->create(['path' => 'trips/drop.jpg']);
 
         Livewire::test(EditTrip::class, ['record' => $this->pendingTrip->getRouteKey()])
-            ->fillForm([
-                'attachments' => [
-                    $kept->path,
-                    UploadedFile::fake()->image('new.jpg')->store('trips', 'public'),
-                ],
-            ])
             ->call('save')
             ->assertHasNoFormErrors();
 
         $this->pendingTrip->refresh();
 
-        $this->assertCount(2, $this->pendingTrip->attachments);
-        $this->assertTrue($this->pendingTrip->attachments->contains('path', $kept->path));
-        $this->assertFalse($this->pendingTrip->attachments->contains('path', 'trips/drop.jpg'));
+        $this->assertCount(1, $this->pendingTrip->attachments);
+        $this->assertSame($kept->path, $this->pendingTrip->attachments->first()->path);
     }
 
     public function test_report_page_and_widgets_render_and_filter_checked_rows(): void

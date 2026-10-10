@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 trait BuildsMonthlyTripSchedule
 {
     /**
-     * @return array{days: array<int, array{day: int, date: Carbon, trips: Collection<int, Trip>}>, maxTripsPerDay: int, totalTrips: int}
+     * @return array{days: array<int, array{day: int, date: Carbon, trips: Collection<int, Trip>}>, maxTripsPerDay: int, totalTrips: int, platformTotals: Collection<int, array{platform: string, total: float}>}
      */
     protected function buildMonthlyScheduleFor(User $owner, ?string $month): array
     {
@@ -43,10 +43,20 @@ trait BuildsMonthlyTripSchedule
             ];
         }
 
+        $platformTotals = $trips
+            ->groupBy(fn (Trip $trip) => $trip->platform?->name ?? 'N/D')
+            ->map(fn (Collection $platformTrips, string $platformName) => [
+                'platform' => $platformName,
+                'total' => $platformTrips->sum(fn (Trip $trip) => (float) ($trip->price ?? 0)),
+            ])
+            ->sortBy('platform')
+            ->values();
+
         return [
             'days' => $days,
             'maxTripsPerDay' => $maxTripsPerDay,
             'totalTrips' => $trips->count(),
+            'platformTotals' => $platformTotals,
         ];
     }
 }
