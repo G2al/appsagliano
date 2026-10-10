@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Trip;
+use App\Models\TripAttachment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -10,7 +11,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TripAttachmentDownloadController extends Controller
 {
-    public function __invoke(Request $request, Trip $trip): StreamedResponse
+    public function __invoke(Request $request, Trip $trip, TripAttachment $attachment): StreamedResponse
     {
         $user = $request->user();
 
@@ -18,15 +19,19 @@ class TripAttachmentDownloadController extends Controller
             abort(403);
         }
 
-        $disk = Storage::disk('public');
-
-        if (! $trip->attachment_path || ! $disk->exists($trip->attachment_path)) {
+        if ($attachment->trip_id !== $trip->id) {
             abort(404);
         }
 
-        $extension = pathinfo($trip->attachment_path, PATHINFO_EXTENSION);
-        $filename = 'viaggio-' . $trip->id . '-bolla-' . $trip->delivery_note_number . ($extension ? '.' . $extension : '');
+        $disk = Storage::disk('public');
 
-        return $disk->download($trip->attachment_path, $filename);
+        if (! $disk->exists($attachment->path)) {
+            abort(404);
+        }
+
+        $extension = pathinfo($attachment->path, PATHINFO_EXTENSION);
+        $filename = 'viaggio-' . $trip->id . '-bolla-' . $trip->delivery_note_number . '-' . $attachment->id . ($extension ? '.' . $extension : '');
+
+        return $disk->download($attachment->path, $filename);
     }
 }

@@ -17,11 +17,11 @@ class TripAttachmentPrintController extends Controller
             abort(403);
         }
 
-        if (! $trip->attachment_url) {
+        $trip->load(['user', 'vehicle', 'platform', 'attachments']);
+
+        if ($trip->attachments->isEmpty()) {
             abort(404);
         }
-
-        $trip->load(['user', 'vehicle', 'platform']);
 
         return view('receipts.trip-attachment', [
             'trip' => $trip,

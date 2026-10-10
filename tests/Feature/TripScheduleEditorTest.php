@@ -33,7 +33,6 @@ class TripScheduleEditorTest extends TestCase
             'destinations' => ['Gaeta'],
             'goods_type' => 'secco',
             'delivery_note_number' => '101',
-            'attachment_path' => 'trips/a.jpg',
         ]);
 
         Trip::query()->create([
@@ -44,7 +43,6 @@ class TripScheduleEditorTest extends TestCase
             'destinations' => ['Napoli', 'Caserta'],
             'goods_type' => 'freschi',
             'delivery_note_number' => '102',
-            'attachment_path' => 'trips/b.jpg',
         ]);
 
         return $driver;

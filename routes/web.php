@@ -43,6 +43,6 @@ Route::get('/admin/trips/{trip}/attachment', TripAttachmentPrintController::clas
     ->middleware('auth')
     ->name('trips.attachment');
 
-Route::get('/admin/trips/{trip}/attachment/download', TripAttachmentDownloadController::class)
+Route::get('/admin/trips/{trip}/attachments/{attachment}/download', TripAttachmentDownloadController::class)
     ->middleware('auth')
     ->name('trips.attachment.download');

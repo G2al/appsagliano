@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\ReportTrips;
 use App\Filament\Resources\PlatformResource\Pages\ListPlatforms;
+use App\Filament\Resources\TripResource\Pages\EditTrip;
 use App\Filament\Resources\TripResource\Pages\ListTrips;
 use App\Filament\Widgets\TripsByDriverTable;
 use App\Filament\Widgets\TripsByVehicleDriverTable;
@@ -17,6 +18,8 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -50,7 +53,6 @@ class TripFilamentTest extends TestCase
             'date' => now(),
             'destinations' => ['Roma', 'Napoli'],
             'goods_type' => 'secco',
-            'attachment_path' => 'trips/x.jpg',
         ];
 
         $this->certifiedTrip = Trip::query()->create($base + ['delivery_note_number' => '1', 'price' => 400]);
@@ -77,6 +79,30 @@ class TripFilamentTest extends TestCase
 
         $this->assertTrue($this->pendingTrip->fresh()->is_certified);
         $this->assertSame('250.50', $this->pendingTrip->fresh()->price);
+    }
+
+    public function test_admin_can_add_and_remove_attachments_when_editing_a_trip(): void
+    {
+        Storage::fake('public');
+
+        $kept = $this->pendingTrip->attachments()->create(['path' => 'trips/keep.jpg']);
+        $this->pendingTrip->attachments()->create(['path' => 'trips/drop.jpg']);
+
+        Livewire::test(EditTrip::class, ['record' => $this->pendingTrip->getRouteKey()])
+            ->fillForm([
+                'attachments' => [
+                    $kept->path,
+                    UploadedFile::fake()->image('new.jpg')->store('trips', 'public'),
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->pendingTrip->refresh();
+
+        $this->assertCount(2, $this->pendingTrip->attachments);
+        $this->assertTrue($this->pendingTrip->attachments->contains('path', $kept->path));
+        $this->assertFalse($this->pendingTrip->attachments->contains('path', 'trips/drop.jpg'));
     }
 
     public function test_report_page_and_widgets_render_and_filter_checked_rows(): void

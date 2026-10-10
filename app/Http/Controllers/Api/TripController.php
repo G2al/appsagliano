@@ -16,7 +16,7 @@ class TripController extends Controller
     {
         $user = $request->user();
 
-        $query = Trip::with(['platform', 'vehicle', 'user'])
+        $query = Trip::with(['platform', 'vehicle', 'user', 'attachments'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest('date')
             ->latest('id');
@@ -47,10 +47,15 @@ class TripController extends Controller
         $trip = Trip::create([
             'user_id' => $user->id,
             ...$validated,
-            'attachment_path' => $request->file('attachment')->store('trips', 'public'),
         ]);
 
-        $trip->load(['platform', 'vehicle', 'user']);
+        foreach ($this->collectAttachmentFiles($request) as $file) {
+            $trip->attachments()->create([
+                'path' => $file->store('trips', 'public'),
+            ]);
+        }
+
+        $trip->load(['platform', 'vehicle', 'user', 'attachments']);
 
         return response()->json($trip, 201);
     }
@@ -70,21 +75,46 @@ class TripController extends Controller
 
         $validated = $this->validatePayload($request, attachmentRequired: false);
 
-        $oldAttachmentPath = $trip->attachment_path;
-
-        if ($request->hasFile('attachment')) {
-            $validated['attachment_path'] = $request->file('attachment')->store('trips', 'public');
-        }
-
         $trip->update($validated);
 
-        if ($request->hasFile('attachment') && $oldAttachmentPath && isset($validated['attachment_path']) && $oldAttachmentPath !== $validated['attachment_path']) {
-            Storage::disk('public')->delete($oldAttachmentPath);
+        $removeIds = collect($request->input('remove_attachment_ids', []))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id);
+
+        if ($removeIds->isNotEmpty()) {
+            $trip->attachments()
+                ->whereIn('id', $removeIds)
+                ->get()
+                ->each(function ($attachment) {
+                    Storage::disk('public')->delete($attachment->path);
+                    $attachment->delete();
+                });
         }
 
-        $trip->refresh()->load(['platform', 'vehicle', 'user']);
+        foreach ($this->collectAttachmentFiles($request) as $file) {
+            $trip->attachments()->create([
+                'path' => $file->store('trips', 'public'),
+            ]);
+        }
+
+        $trip->refresh()->load(['platform', 'vehicle', 'user', 'attachments']);
 
         return response()->json($trip);
+    }
+
+    /**
+     * @return array<int, \Illuminate\Http\UploadedFile>
+     */
+    private function collectAttachmentFiles(Request $request): array
+    {
+        $files = $request->file('attachments', []);
+        $files = is_array($files) ? $files : [$files];
+
+        if ($request->hasFile('attachment')) {
+            $files[] = $request->file('attachment');
+        }
+
+        return array_values(array_filter($files));
     }
 
     /**
@@ -107,18 +137,24 @@ class TripController extends Controller
             'destinations' => ['required', 'array', 'min:1'],
             'destinations.*' => ['required', 'string', 'max:255'],
             'goods_type' => ['required', Rule::in(array_keys(Trip::goodsTypeOptions()))],
-            'delivery_note_number' => ['required', 'regex:/^\d{1,30}$/'],
-            'attachment' => [$attachmentRequired ? 'required' : 'nullable', 'file', 'max:16384'],
+            'delivery_note_number' => ['required', 'regex:/^[0-9-]{1,30}$/'],
+            'attachment' => [$attachmentRequired ? 'required_without:attachments' : 'nullable', 'file', 'max:16384'],
+            'attachments' => [$attachmentRequired ? 'required_without:attachment' : 'nullable', 'array', 'min:1'],
+            'attachments.*' => ['file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
             'exists' => 'Il campo :attribute non esiste.',
             'in' => 'Il campo :attribute non e valido.',
             'destinations.min' => 'Inserisci almeno una destinazione.',
-            'delivery_note_number.regex' => 'Il campo bolla deve contenere solo numeri.',
+            'delivery_note_number.regex' => 'Il campo bolla puo contenere solo numeri e trattini.',
+            'attachment.required_without' => "L'allegato e obbligatorio.",
             'attachment.file' => "L'allegato deve essere un file valido.",
             'attachment.max' => "L'allegato non puo superare 16MB.",
-            'attachment.uploaded' => 'Caricamento allegato non riuscito. Riprova o usa un file piu piccolo.',
+            'attachments.required_without' => 'Carica almeno un allegato.',
+            'attachments.min' => 'Carica almeno un allegato.',
+            'attachments.*.file' => 'Ogni allegato deve essere un file valido.',
+            'attachments.*.max' => 'Ogni allegato non puo superare 16MB.',
         ], [
             'date' => 'data',
             'platform_id' => 'piattaforma',
@@ -128,9 +164,10 @@ class TripController extends Controller
             'goods_type' => 'dicitura',
             'delivery_note_number' => 'bolla',
             'attachment' => 'allegato',
+            'attachments' => 'allegati',
         ]);
 
-        unset($validated['attachment']);
+        unset($validated['attachment'], $validated['attachments']);
 
         return $validated;
     }

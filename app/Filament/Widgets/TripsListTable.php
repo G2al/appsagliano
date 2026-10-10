@@ -26,7 +26,7 @@ class TripsListTable extends BaseWidget
         [$start, $end] = $this->getReportTableCheckDateRange();
 
         return Trip::query()
-            ->with(['user', 'vehicle', 'platform'])
+            ->with(['user', 'vehicle', 'platform', 'attachments'])
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -64,10 +64,10 @@ class TripsListTable extends BaseWidget
                 ->money('EUR', true)
                 ->placeholder('Da certificare')
                 ->sortable(),
-            Tables\Columns\TextColumn::make('attachment_url')
-                ->label('Allegato')
-                ->state(fn (Trip $record) => $record->attachment_url ? 'Apri' : 'N/D')
-                ->url(fn (Trip $record) => $record->attachment_url ? route('trips.attachment', $record) : null, true)
+            Tables\Columns\TextColumn::make('attachments_count')
+                ->label('Allegati')
+                ->state(fn (Trip $record) => $record->attachments->isNotEmpty() ? 'Apri (' . $record->attachments->count() . ')' : 'N/D')
+                ->url(fn (Trip $record) => $record->attachments->isNotEmpty() ? route('trips.attachment', $record) : null, true)
                 ->openUrlInNewTab(),
         ];
     }

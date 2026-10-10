@@ -83,8 +83,8 @@ class TripResource extends Resource
                             ->required(),
                         Forms\Components\TextInput::make('delivery_note_number')
                             ->label('Bolla')
-                            ->inputMode('numeric')
-                            ->regex('/^\d+$/')
+                            ->regex('/^[0-9-]+$/')
+                            ->validationMessages(['regex' => 'La bolla puo contenere solo numeri e trattini.'])
                             ->maxLength(30)
                             ->required(),
                         Forms\Components\TextInput::make('price')
@@ -94,12 +94,16 @@ class TripResource extends Resource
                             ->minValue(0)
                             ->nullable()
                             ->helperText('Inserendo il prezzo il viaggio risulta certificato.'),
-                        Forms\Components\FileUpload::make('attachment_path')
-                            ->label('Allegato')
+                        Forms\Components\FileUpload::make('attachments')
+                            ->label('Allegati')
+                            ->multiple()
+                            ->reorderable()
+                            ->appendFiles()
                             ->acceptedFileTypes(['image/*', 'application/pdf'])
                             ->directory('trips')
                             ->disk('public')
                             ->visibility('public')
+                            ->minFiles(1)
                             ->required()
                             ->columnSpanFull(),
                     ]),
@@ -109,7 +113,7 @@ class TripResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'platform', 'vehicle']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'platform', 'vehicle', 'attachments']))
             ->defaultSort('date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('date')
@@ -200,16 +204,11 @@ class TripResource extends Resource
                     ->fillForm(fn (Trip $record): array => ['price' => $record->price])
                     ->action(fn (Trip $record, array $data) => $record->update(['price' => $data['price']])),
                 Tables\Actions\Action::make('attachment')
-                    ->label('Allegato')
+                    ->label('Allegati')
                     ->icon('heroicon-o-photo')
-                    ->visible(fn (Trip $record): bool => ! $record->trashed() && filled($record->attachment_path))
+                    ->visible(fn (Trip $record): bool => ! $record->trashed() && $record->attachments->isNotEmpty())
                     ->url(fn (Trip $record) => route('trips.attachment', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\Action::make('download_attachment')
-                    ->label('Scarica')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->visible(fn (Trip $record): bool => ! $record->trashed() && filled($record->attachment_path))
-                    ->url(fn (Trip $record) => route('trips.attachment.download', $record)),
                 Tables\Actions\EditAction::make()
                     ->visible(fn (Trip $record): bool => ! $record->trashed()),
                 Tables\Actions\RestoreAction::make(),

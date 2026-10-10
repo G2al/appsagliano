@@ -5,9 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Filesystem\FilesystemAdapter;
-use Illuminate\Support\Facades\Storage;
 
 class Trip extends Model
 {
@@ -26,7 +25,6 @@ class Trip extends Model
         'goods_type',
         'delivery_note_number',
         'price',
-        'attachment_path',
     ];
 
     protected $casts = [
@@ -36,7 +34,6 @@ class Trip extends Model
     ];
 
     protected $appends = [
-        'attachment_url',
         'is_certified',
     ];
 
@@ -66,6 +63,11 @@ class Trip extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TripAttachment::class)->orderBy('id');
+    }
+
     public function getIsCertifiedAttribute(): bool
     {
         return $this->price !== null;
@@ -81,15 +83,4 @@ class Trip extends Model
         return collect($this->destinations ?? [])->filter()->implode(' → ');
     }
 
-    public function getAttachmentUrlAttribute(): ?string
-    {
-        if (! $this->attachment_path) {
-            return null;
-        }
-
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
-
-        return $disk->url($this->attachment_path);
-    }
 }

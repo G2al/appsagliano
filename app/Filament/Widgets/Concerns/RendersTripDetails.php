@@ -10,7 +10,7 @@ trait RendersTripDetails
     protected function renderTripDetails(Builder $query, string $title): string
     {
         $rows = $query
-            ->with(['user', 'vehicle', 'platform'])
+            ->with(['user', 'vehicle', 'platform', 'attachments'])
             ->orderByDesc('date')
             ->limit(100)
             ->get()
@@ -24,8 +24,8 @@ trait RendersTripDetails
                 $price = $trip->price !== null
                     ? '€ ' . number_format((float) $trip->price, 2, ',', '.')
                     : 'Da certificare';
-                $attachment = $trip->attachment_url
-                    ? '<a href="' . e(route('trips.attachment', $trip)) . '" target="_blank" class="text-primary-500">Apri</a>'
+                $attachment = $trip->attachments->isNotEmpty()
+                    ? '<a href="' . e(route('trips.attachment', $trip)) . '" target="_blank" class="text-primary-500">Apri (' . $trip->attachments->count() . ')</a>'
                     : 'N/D';
 
                 return "<tr>

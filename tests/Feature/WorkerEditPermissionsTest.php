@@ -142,7 +142,6 @@ class WorkerEditPermissionsTest extends TestCase
             'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
-            'attachment_path' => 'trips/x.jpg',
         ]);
 
         Sanctum::actingAs($worker);

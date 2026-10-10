@@ -70,7 +70,8 @@ class TripApiTest extends TestCase
         $this->assertSame('12345', $trip->delivery_note_number);
         $this->assertNull($trip->price);
         $this->assertFalse($trip->is_certified);
-        Storage::disk('public')->assertExists($trip->attachment_path);
+        $this->assertCount(1, $trip->attachments);
+        Storage::disk('public')->assertExists($trip->attachments->first()->path);
     }
 
     public function test_worker_cannot_set_price_when_creating_trip(): void
@@ -117,6 +118,89 @@ class TripApiTest extends TestCase
         $this->assertDatabaseCount('trips', 0);
     }
 
+    public function test_delivery_note_number_accepts_digits_and_dashes(): void
+    {
+        Storage::fake('public');
+
+        $worker = $this->makeWorker();
+        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $vehicle = $this->makeVehicle();
+
+        Sanctum::actingAs($worker);
+
+        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['delivery_note_number' => '2332-2332']))
+            ->assertCreated();
+
+        $this->assertSame('2332-2332', Trip::query()->firstOrFail()->delivery_note_number);
+    }
+
+    public function test_worker_can_upload_multiple_attachments(): void
+    {
+        Storage::fake('public');
+
+        $worker = $this->makeWorker();
+        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $vehicle = $this->makeVehicle();
+
+        Sanctum::actingAs($worker);
+
+        $payload = $this->payload($platform, $vehicle);
+        unset($payload['attachment']);
+        $payload['attachments'] = [
+            UploadedFile::fake()->image('bolla1.jpg'),
+            UploadedFile::fake()->image('bolla2.jpg'),
+        ];
+
+        $this->post('/api/trips', $payload)->assertCreated();
+
+        $trip = Trip::query()->firstOrFail();
+
+        $this->assertCount(2, $trip->attachments);
+        foreach ($trip->attachments as $attachment) {
+            Storage::disk('public')->assertExists($attachment->path);
+        }
+    }
+
+    public function test_worker_can_add_and_remove_attachments_on_update(): void
+    {
+        Storage::fake('public');
+
+        $worker = $this->makeWorker();
+        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $vehicle = $this->makeVehicle();
+
+        Sanctum::actingAs($worker);
+
+        $trip = Trip::query()->create([
+            'user_id' => $worker->id,
+            'platform_id' => $platform->id,
+            'vehicle_id' => $vehicle->id,
+            'date' => '2026-09-29 09:00:00',
+            'destinations' => ['Roma'],
+            'goods_type' => 'secco',
+            'delivery_note_number' => '1',
+        ]);
+        $keptAttachment = $trip->attachments()->create(['path' => 'trips/keep.jpg']);
+        $removedAttachment = $trip->attachments()->create(['path' => 'trips/remove.jpg']);
+
+        $this->put("/api/trips/{$trip->id}", [
+            'date' => '2026-09-29 09:00:00',
+            'platform_id' => $platform->id,
+            'vehicle_id' => $vehicle->id,
+            'destinations' => ['Roma'],
+            'goods_type' => 'secco',
+            'delivery_note_number' => '1',
+            'remove_attachment_ids' => [$removedAttachment->id],
+            'attachments' => [UploadedFile::fake()->image('new.jpg')],
+        ])->assertOk();
+
+        $trip->refresh();
+
+        $this->assertCount(2, $trip->attachments);
+        $this->assertTrue($trip->attachments->contains('id', $keptAttachment->id));
+        $this->assertFalse($trip->attachments->contains('id', $removedAttachment->id));
+    }
+
     public function test_worker_lists_only_own_trips_while_admin_sees_all(): void
     {
         Storage::fake('public');
@@ -128,7 +212,7 @@ class TripApiTest extends TestCase
         $vehicle = $this->makeVehicle();
 
         foreach ([$worker, $otherWorker] as $user) {
-            Trip::query()->create([
+            $trip = Trip::query()->create([
                 'user_id' => $user->id,
                 'platform_id' => $platform->id,
                 'vehicle_id' => $vehicle->id,
@@ -136,8 +220,8 @@ class TripApiTest extends TestCase
                 'destinations' => ['Roma'],
                 'goods_type' => 'secco',
                 'delivery_note_number' => '1',
-                'attachment_path' => 'trips/x.jpg',
             ]);
+            $trip->attachments()->create(['path' => 'trips/x.jpg']);
         }
 
         Sanctum::actingAs($worker);
@@ -174,7 +258,6 @@ class TripApiTest extends TestCase
             'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
-            'attachment_path' => 'trips/x.jpg',
         ]);
 
         $this->assertFalse($trip->is_certified);
