@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/platforms', [PlatformController::class, 'index']);
     Route::get('/trips', [TripController::class, 'index']);
+    Route::get('/trips/schedule', [TripController::class, 'schedule']);
     Route::post('/trips', [TripController::class, 'store']);
     Route::post('/trips/calculate-distance', [TripController::class, 'calculateDistance']);
     Route::put('/trips/{trip}', [TripController::class, 'update']);

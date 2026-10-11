@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Platform;
 use App\Models\Trip;
+use App\Models\User;
 use App\Services\TripDistanceCalculator;
+use App\Support\BuildsMonthlyTripSchedule;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +17,67 @@ use Illuminate\Validation\ValidationException;
 
 class TripController extends Controller
 {
+    use BuildsMonthlyTripSchedule;
+
+    /**
+     * Scheda viaggi mensile dell'utente autenticato (o, solo per admin, di un
+     * altro utente via ?user_id=): giorni del mese con viaggi, totale giorno,
+     * totale mese e totali per piattaforma. Stessa logica usata lato Filament.
+     */
+    public function schedule(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'month' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            'user_id' => ['nullable', Rule::exists('users', 'id')],
+        ], [
+            'month.regex' => 'Il formato del mese deve essere YYYY-MM.',
+        ]);
+
+        $targetUserId = $request->query('user_id');
+
+        if ($targetUserId && (int) $targetUserId !== $user->id) {
+            if ($user->role !== 'admin') {
+                abort(403, 'Non puoi vedere la scheda viaggi di un altro utente.');
+            }
+
+            $owner = User::query()->findOrFail($targetUserId);
+        } else {
+            $owner = $user;
+        }
+
+        $month = $request->query('month') ?: now()->format('Y-m');
+
+        $schedule = $this->buildMonthlyScheduleFor($owner, $month);
+
+        $allTrips = EloquentCollection::make(
+            collect($schedule['days'])->pluck('trips')->collapse()->all()
+        );
+        $allTrips->loadMissing('attachments');
+
+        $isAdmin = $user->role === 'admin';
+
+        if (! $isAdmin) {
+            $allTrips->makeHidden('price');
+        }
+
+        $days = collect($schedule['days'])->map(fn (array $day) => [
+            'day' => $day['day'],
+            'date' => $day['date']->toDateString(),
+            'total' => $isAdmin ? round($day['total'], 2) : null,
+            'trips' => $day['trips']->values(),
+        ])->values();
+
+        return response()->json([
+            'month' => $month,
+            'total_trips' => $schedule['totalTrips'],
+            'month_total' => $isAdmin ? round($days->sum('total'), 2) : null,
+            'platform_totals' => $isAdmin ? $schedule['platformTotals'] : null,
+            'days' => $days,
+        ]);
+    }
+
     public function calculateDistance(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -65,12 +129,24 @@ class TripController extends Controller
         $perPage = $request->query('per_page');
 
         if ($perPage === 'all') {
-            return response()->json($query->get());
+            $trips = $query->get();
+
+            if ($user->role !== 'admin') {
+                $trips->makeHidden('price');
+            }
+
+            return response()->json($trips);
         }
 
         $perPageValue = (int) $perPage;
 
-        return response()->json($query->paginate($perPageValue > 0 ? $perPageValue : 20));
+        $paginated = $query->paginate($perPageValue > 0 ? $perPageValue : 20);
+
+        if ($user->role !== 'admin') {
+            $paginated->getCollection()->makeHidden('price');
+        }
+
+        return response()->json($paginated);
     }
 
     public function store(Request $request): JsonResponse
@@ -99,6 +175,10 @@ class TripController extends Controller
         app(TripDistanceCalculator::class)->calculate($trip);
 
         $trip->load(['platform', 'vehicle', 'user', 'attachments']);
+
+        if ($user->role !== 'admin') {
+            $trip->makeHidden('price');
+        }
 
         return response()->json($trip, 201);
     }
@@ -145,6 +225,10 @@ class TripController extends Controller
         }
 
         $trip->refresh()->load(['platform', 'vehicle', 'user', 'attachments']);
+
+        if (! $isAdmin) {
+            $trip->makeHidden('price');
+        }
 
         return response()->json($trip);
     }
