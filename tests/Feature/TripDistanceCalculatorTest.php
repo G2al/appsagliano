@@ -132,6 +132,8 @@ class TripDistanceCalculatorTest extends TestCase
         $this->assertSame('unavailable', $trip->distance_status);
         $this->assertNull($trip->distance_km);
         $this->assertNotNull($trip->distance_note);
+        $this->assertSame('service_unavailable', $trip->distance_error_code);
+        $this->assertNull($trip->distance_error_destination);
     }
 
     public function test_marks_distance_as_unavailable_when_geocoding_fails(): void
@@ -151,6 +153,7 @@ class TripDistanceCalculatorTest extends TestCase
 
         $this->assertSame('unavailable', $trip->distance_status);
         $this->assertNull($trip->distance_km);
+        $this->assertSame('platform_geocoding_failed', $trip->distance_error_code);
     }
 
     public function test_marks_distance_as_unavailable_when_platform_has_no_address(): void
@@ -178,6 +181,34 @@ class TripDistanceCalculatorTest extends TestCase
         $trip->refresh();
 
         $this->assertSame('unavailable', $trip->distance_status);
+        $this->assertSame('platform_missing_address', $trip->distance_error_code);
         Http::assertNothingSent();
+    }
+
+    public function test_marks_distance_unavailable_with_destination_error_code_when_destination_not_found(): void
+    {
+        Http::fake([
+            'api.heigit.org/pelias/*' => Http::sequence()
+                ->push([
+                    'features' => [[
+                        'geometry' => ['coordinates' => [16.86, 41.13]],
+                        'properties' => ['confidence' => 1],
+                    ]],
+                ], 200)
+                ->push(['features' => []], 200),
+            'api.heigit.org/openrouteservice/*' => Http::response([
+                'routes' => [['summary' => ['distance' => 80000.0]]],
+            ], 200),
+        ]);
+
+        $trip = $this->makeTrip(['destinations' => ['Romap']]);
+
+        app(TripDistanceCalculator::class)->calculate($trip);
+
+        $trip->refresh();
+
+        $this->assertSame('unavailable', $trip->distance_status);
+        $this->assertSame('destination_not_found', $trip->distance_error_code);
+        $this->assertSame('Romap', $trip->distance_error_destination);
     }
 }

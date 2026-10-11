@@ -322,6 +322,8 @@ class TripApiTest extends TestCase
             ->assertJson([
                 'distance_km' => null,
                 'distance_status' => 'unavailable',
+                'distance_error_code' => 'platform_missing_address',
+                'distance_error_destination' => null,
             ]);
     }
 }

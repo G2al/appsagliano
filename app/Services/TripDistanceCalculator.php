@@ -14,6 +14,16 @@ class TripDistanceCalculator
      */
     private const CONFIDENCE_THRESHOLD = 0.8;
 
+    public const ERROR_PLATFORM_MISSING_ADDRESS = 'platform_missing_address';
+
+    public const ERROR_PLATFORM_GEOCODING_FAILED = 'platform_geocoding_failed';
+
+    public const ERROR_DESTINATION_NOT_FOUND = 'destination_not_found';
+
+    public const ERROR_SERVICE_UNAVAILABLE = 'service_unavailable';
+
+    public const ERROR_UNKNOWN = 'unknown';
+
     public function __construct(private OpenRouteServiceClient $client)
     {
     }
@@ -32,6 +42,8 @@ class TripDistanceCalculator
             'distance_km' => $result['distance_km'],
             'distance_status' => $result['distance_status'],
             'distance_note' => $result['distance_note'],
+            'distance_error_code' => $result['distance_error_code'],
+            'distance_error_destination' => $result['distance_error_destination'],
             'distance_calculated_at' => now(),
         ])->saveQuietly();
     }
@@ -43,7 +55,7 @@ class TripDistanceCalculator
      * (cache legittima, non e' uno stato del viaggio).
      *
      * @param  array<int, string>  $destinations
-     * @return array{distance_km: float|null, distance_status: string, distance_note: string|null}
+     * @return array{distance_km: float|null, distance_status: string, distance_note: string|null, distance_error_code: string|null, distance_error_destination: string|null}
      */
     public function preview(?Platform $platform, array $destinations): array
     {
@@ -52,24 +64,24 @@ class TripDistanceCalculator
 
     /**
      * @param  array<int, string>  $destinations
-     * @return array{distance_km: float|null, distance_status: string, distance_note: string|null}
+     * @return array{distance_km: float|null, distance_status: string, distance_note: string|null, distance_error_code: string|null, distance_error_destination: string|null}
      */
     private function compute(?Platform $platform, array $destinations): array
     {
         if (! $platform || ! $platform->address) {
-            return $this->unavailable('Piattaforma senza indirizzo registrato.');
+            return $this->unavailable(self::ERROR_PLATFORM_MISSING_ADDRESS, 'Piattaforma senza indirizzo registrato.');
         }
 
         $platformCoords = $this->resolvePlatformCoordinates($platform);
 
         if (! $platformCoords) {
-            return $this->unavailable('Impossibile geolocalizzare la piattaforma.');
+            return $this->unavailable(self::ERROR_PLATFORM_GEOCODING_FAILED, 'Impossibile geolocalizzare la piattaforma.');
         }
 
         $cleanDestinations = collect($destinations)->filter(fn ($d) => trim((string) $d) !== '')->values();
 
         if ($cleanDestinations->isEmpty()) {
-            return $this->unavailable('Nessuna destinazione da calcolare.');
+            return $this->unavailable(self::ERROR_UNKNOWN, 'Nessuna destinazione da calcolare.');
         }
 
         $waypoints = [$platformCoords];
@@ -79,7 +91,11 @@ class TripDistanceCalculator
             $geo = $this->geocodeCached($destination);
 
             if (! $geo) {
-                return $this->unavailable("Impossibile geolocalizzare la destinazione \"{$destination}\".");
+                return $this->unavailable(
+                    self::ERROR_DESTINATION_NOT_FOUND,
+                    "Impossibile geolocalizzare la destinazione \"{$destination}\".",
+                    $destination
+                );
             }
 
             if ($geo['confidence'] < self::CONFIDENCE_THRESHOLD) {
@@ -94,7 +110,7 @@ class TripDistanceCalculator
         $distanceMeters = $this->client->routeDistanceMeters($waypoints);
 
         if ($distanceMeters === null) {
-            return $this->unavailable('Servizio di calcolo percorso non disponibile al momento.');
+            return $this->unavailable(self::ERROR_SERVICE_UNAVAILABLE, 'Servizio di calcolo percorso non disponibile al momento.');
         }
 
         return [
@@ -103,18 +119,22 @@ class TripDistanceCalculator
             'distance_note' => $isEstimate
                 ? 'Stima: una o piu destinazioni sono imprecise, meglio controllare a mano.'
                 : null,
+            'distance_error_code' => null,
+            'distance_error_destination' => null,
         ];
     }
 
     /**
-     * @return array{distance_km: null, distance_status: 'unavailable', distance_note: string}
+     * @return array{distance_km: null, distance_status: 'unavailable', distance_note: string, distance_error_code: string, distance_error_destination: string|null}
      */
-    private function unavailable(string $note): array
+    private function unavailable(string $errorCode, string $note, ?string $destination = null): array
     {
         return [
             'distance_km' => null,
             'distance_status' => 'unavailable',
             'distance_note' => $note,
+            'distance_error_code' => $errorCode,
+            'distance_error_destination' => $destination,
         ];
     }
 
