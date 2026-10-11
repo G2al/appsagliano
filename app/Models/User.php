@@ -11,6 +11,7 @@ use App\Models\Movement;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -33,6 +34,7 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'surname',
         'phone',
+        'address',
         'email',
         'password',
         'role',
@@ -261,6 +263,21 @@ class User extends Authenticatable implements FilamentUser
     public function documentFolders(): HasMany
     {
         return $this->hasMany(UserDocumentFolder::class)->latest('id');
+    }
+
+    public function verification(): HasOne
+    {
+        return $this->hasOne(UserVerification::class);
+    }
+
+    /**
+     * Vero finche' l'utente deve ancora completare la procedura di primo
+     * accesso (dati anagrafici, documenti, cambio password). Un utente in
+     * questo stato puo' autenticarsi ma non usare il resto dell'app.
+     */
+    public function needsOnboarding(): bool
+    {
+        return ! $this->is_approved || $this->must_change_password;
     }
 
     public function notifyTelegramSignup(): void

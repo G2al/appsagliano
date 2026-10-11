@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -65,7 +66,11 @@ class AuthController extends Controller
         if (preg_match('/^\+?\d+$/', $normalized)) {
             $user = User::where('phone', $this->normalizePhone($normalized))->first();
         } else {
-            $user = User::whereRaw('LOWER(CONCAT(name, " ", surname)) = ?', [mb_strtolower($normalized)])->first();
+            $concat = DB::connection()->getDriverName() === 'sqlite'
+                ? "LOWER(name || ' ' || surname)"
+                : 'LOWER(CONCAT(name, " ", surname))';
+
+            $user = User::whereRaw("{$concat} = ?", [mb_strtolower($normalized)])->first();
         }
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
@@ -74,7 +79,13 @@ class AuthController extends Controller
             ]);
         }
 
-        if (! $user->is_approved) {
+        // Chi si e' auto-registrato da /auth/register resta bloccato finche'
+        // un admin non lo approva a mano (must_change_password e' sempre
+        // false per questi account). Chi invece e' stato creato dall'admin
+        // con una password provvisoria (must_change_password = true) puo'
+        // accedere subito e completare da solo la verifica documenti: il
+        // token ottenuto permette solo quello (vedi middleware "onboarded").
+        if (! $user->is_approved && ! $user->must_change_password) {
             throw ValidationException::withMessages([
                 'full_name' => ['Account in attesa di approvazione da parte dell\'admin.'],
             ]);

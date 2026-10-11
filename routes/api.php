@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TripController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -17,11 +18,18 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
+// Consentite anche a chi deve ancora completare l'onboarding (non approvato
+// o con cambio password obbligatorio): servono proprio a completarlo.
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
+    Route::get('/verification/status', [VerificationController::class, 'status']);
+    Route::post('/verification', [VerificationController::class, 'submit']);
+});
+
+Route::middleware(['auth:sanctum', 'onboarded'])->group(function () {
     Route::get('/movements', [MovementController::class, 'index']);
     Route::get('/movements/km-start', [MovementController::class, 'kmStart']);
     Route::post('/movements', [MovementController::class, 'store']);

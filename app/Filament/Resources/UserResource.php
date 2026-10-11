@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 
 class UserResource extends Resource
 {
@@ -44,6 +45,9 @@ class UserResource extends Resource
                     ->required()
                     ->maxLength(30)
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('address')
+                    ->label('Indirizzo di residenza')
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('email')
                     ->label('Email')
                     ->email()
@@ -84,7 +88,43 @@ class UserResource extends Resource
                     }),
                 Forms\Components\Toggle::make('is_approved')
                     ->label('Approvato')
-                    ->default(false),
+                    ->default(false)
+                    ->helperText('Passa a true in automatico quando l\'utente completa la verifica. Puoi comunque forzarlo manualmente.'),
+                Forms\Components\Section::make('Verifica account')
+                    ->visible(fn (?User $record): bool => $record !== null && $record->verification !== null)
+                    ->collapsed()
+                    ->schema([
+                        Forms\Components\Placeholder::make('verification_summary')
+                            ->label('')
+                            ->content(function (?User $record): HtmlString {
+                                $v = $record?->verification;
+
+                                if (! $v) {
+                                    return new HtmlString('Nessun documento caricato.');
+                                }
+
+                                $row = function (string $label, ?string $url, ?string $expiry = null): string {
+                                    if (! $url) {
+                                        return "<div><span class=\"font-medium\">{$label}:</span> non caricato</div>";
+                                    }
+
+                                    $link = '<a href="' . e($url) . '" target="_blank" class="font-semibold text-primary-600 underline hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Apri</a>';
+                                    $expiryText = $expiry ? " &middot; scadenza {$expiry}" : '';
+
+                                    return "<div><span class=\"font-medium\">{$label}:</span> {$link}{$expiryText}</div>";
+                                };
+
+                                $rows = [
+                                    $row('Documento identita (fronte)', $v->identity_front_url, $v->identity_expiry_date?->format('d/m/Y')),
+                                    $row('Documento identita (retro)', $v->identity_back_url),
+                                    $row('Patente', $v->license_url, $v->license_expiry_date?->format('d/m/Y')),
+                                    $row('CQC', $v->cqc_url, $v->cqc_expiry_date?->format('d/m/Y')),
+                                    '<div class="mt-2 text-sm text-gray-500">Completata il: ' . ($v->completed_at?->format('d/m/Y H:i') ?? 'non completata') . '</div>',
+                                ];
+
+                                return new HtmlString('<div class="space-y-1">' . implode('', $rows) . '</div>');
+                            }),
+                    ]),
                 Forms\Components\TextInput::make('password')
                     ->label('Password')
                     ->password()
