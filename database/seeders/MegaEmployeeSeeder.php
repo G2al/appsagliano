@@ -10,6 +10,17 @@ use Illuminate\Support\Str;
 class MegaEmployeeSeeder extends Seeder
 {
     /**
+     * Numeri reali noti per alcune righe del file (chiave = riga esatta del
+     * file, "COGNOME NOME"). Chi non e' qui dentro riceve un numero
+     * placeholder casuale come sempre.
+     *
+     * @var array<string, string>
+     */
+    private const PHONE_OVERRIDES = [
+        'IOMMELLI LUIGI' => '+393296430362',
+    ];
+
+    /**
      * Importa i dipendenti reali di Mega Trasporti da
      * database/seeders/data/mega_employees.txt (un "COGNOME NOME" per riga).
      *
@@ -42,7 +53,7 @@ class MegaEmployeeSeeder extends Seeder
             $email = $slug . '@appmegatrasporti.it';
             $password = strtolower($this->slugFor($name)) . 'mega2026';
 
-            $phone = $this->uniqueRandomPhone($usedPhones);
+            $phone = self::PHONE_OVERRIDES[$line] ?? $this->uniqueRandomPhone($usedPhones);
             $usedPhones[] = $phone;
 
             User::updateOrCreate(

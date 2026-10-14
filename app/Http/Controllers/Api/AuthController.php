@@ -21,11 +21,9 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('users', 'name')->where('surname', $request->input('surname'))],
             'surname' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:5', 'confirmed'],
         ], [
             'name.unique' => 'Esiste già un utente con questo nome e cognome.',
             'phone.unique' => 'Il numero di telefono è già registrato.',
-            'password.min' => 'La password deve contenere almeno 5 caratteri.',
         ]);
 
         $normalizedPhone = $this->normalizePhone($validated['phone']);
@@ -38,18 +36,27 @@ class AuthController extends Controller
 
         $email = Str::slug($validated['name'] . ' ' . $validated['surname'], '.') . '@appmegatrasporti.it';
 
+        // La password non la sceglie l'utente: e' generata automaticamente
+        // con lo stesso schema usato per gli account creati in blocco
+        // dall'admin (nome + "mega2026"), cosi' da subito dopo l'approvazione
+        // il suo account si comporta esattamente come uno gia' seedato.
+        $password = $this->slugFor($validated['name']) . 'mega2026';
+
         $user = User::create([
             'name' => $validated['name'],
             'surname' => $validated['surname'],
             'phone' => $normalizedPhone,
             'email' => $email,
-            'password' => $validated['password'],
+            'password' => $password,
             'role' => 'worker',
             'is_approved' => false,
+            'self_registered' => true,
+            'must_change_password' => true,
         ]);
 
         return response()->json([
             'message' => 'Registrazione inviata. Sarai abilitato dopo approvazione dell\'admin.',
+            'password' => $password,
         ], 201);
     }
 
@@ -79,13 +86,13 @@ class AuthController extends Controller
             ]);
         }
 
-        // Chi si e' auto-registrato da /auth/register resta bloccato finche'
-        // un admin non lo approva a mano (must_change_password e' sempre
-        // false per questi account). Chi invece e' stato creato dall'admin
-        // con una password provvisoria (must_change_password = true) puo'
-        // accedere subito e completare da solo la verifica documenti: il
-        // token ottenuto permette solo quello (vedi middleware "onboarded").
-        if (! $user->is_approved && ! $user->must_change_password) {
+        // Solo chi si e' auto-registrato da /auth/register resta bloccato
+        // finche' un admin non lo approva a mano: per lui "non approvato"
+        // significa davvero "nessun accesso". Chiunque altro non approvato
+        // (creato dall'admin/seeder con password provvisoria) puo' comunque
+        // accedere per completare da solo cambio password e verifica
+        // documenti (vedi middleware "onboarded" sulle altre rotte).
+        if (! $user->is_approved && $user->self_registered) {
             throw ValidationException::withMessages([
                 'full_name' => ['Account in attesa di approvazione da parte dell\'admin.'],
             ]);
@@ -131,6 +138,11 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password aggiornata con successo.',
         ]);
+    }
+
+    private function slugFor(string $value): string
+    {
+        return preg_replace('/[^a-z0-9]/', '', Str::ascii(mb_strtolower($value)));
     }
 
     private function normalizePhone(string $phone): string

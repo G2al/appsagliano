@@ -130,10 +130,15 @@ class VerificationController extends Controller
             ]);
         }
 
-        if (! $user->is_approved) {
-            $verification->update(['completed_at' => now()]);
-            $user->update(['is_approved' => true]);
-        }
+        // Sempre, indipendentemente dallo stato di approvazione attuale: chi
+        // arriva qui (self-registrato gia' approvato dall'admin, oppure
+        // account con password provvisoria mai ancora approvato) ha appena
+        // completato la verifica documenti e va segnato come tale.
+        $verification->update(['completed_at' => now()]);
+        $user->update([
+            'is_approved' => true,
+            'documents_verified' => true,
+        ]);
 
         return response()->json($this->buildStatusPayload($user->fresh(), $verification->fresh()));
     }
@@ -184,6 +189,7 @@ class VerificationController extends Controller
         return [
             'is_approved' => $user->is_approved,
             'must_change_password' => $user->must_change_password,
+            'documents_verified' => $user->documents_verified,
             'address' => $user->address,
             'identity_front_url' => $verification->identity_front_url,
             'identity_back_url' => $verification->identity_back_url,

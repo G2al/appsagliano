@@ -40,6 +40,8 @@ class User extends Authenticatable implements FilamentUser
         'role',
         'panel_modules',
         'is_approved',
+        'self_registered',
+        'documents_verified',
         'must_change_password',
     ];
 
@@ -86,6 +88,8 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'panel_modules' => 'array',
             'is_approved' => 'boolean',
+            'self_registered' => 'boolean',
+            'documents_verified' => 'boolean',
             'must_change_password' => 'boolean',
         ];
     }
@@ -277,7 +281,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function needsOnboarding(): bool
     {
-        return ! $this->is_approved || $this->must_change_password;
+        return ! $this->is_approved || $this->must_change_password || ! $this->documents_verified;
     }
 
     public function notifyTelegramSignup(): void

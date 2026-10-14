@@ -35,13 +35,13 @@ class VerificationOnboardingTest extends TestCase
 
     public function test_self_registered_unapproved_worker_cannot_log_in(): void
     {
-        // Un account nato da /auth/register (must_change_password resta
-        // false) deve continuare a richiedere l'approvazione manuale di un
-        // admin: niente auto-verifica via documenti per questo percorso.
+        // Il marcatore self_registered (non piu' must_change_password) e'
+        // cio' che decide se il login resta bloccato in attesa di un admin.
         $user = User::factory()->create([
             'role' => 'worker',
             'is_approved' => false,
-            'must_change_password' => false,
+            'self_registered' => true,
+            'must_change_password' => true,
             'password' => bcrypt('password123'),
         ]);
 
@@ -49,6 +49,64 @@ class VerificationOnboardingTest extends TestCase
             'full_name' => $user->name . ' ' . $user->surname,
             'password' => 'password123',
         ])->assertStatus(422);
+    }
+
+    public function test_non_self_registered_unapproved_worker_can_log_in_even_without_pending_password_change(): void
+    {
+        // Caso che prima era un bug: un operaio gestito da Filament con
+        // is_approved tolto a mano, ma senza must_change_password mai
+        // impostato (es. non e' mai passato dal seeder). Non deve essere
+        // bloccato come un self-registrato, perche' non lo e'.
+        $user = User::factory()->create([
+            'role' => 'worker',
+            'is_approved' => false,
+            'self_registered' => false,
+            'must_change_password' => false,
+            'password' => bcrypt('password123'),
+        ]);
+
+        $this->postJson('/api/auth/login', [
+            'full_name' => $user->name . ' ' . $user->surname,
+            'password' => 'password123',
+        ])->assertOk();
+    }
+
+    public function test_register_creates_a_self_registered_user_with_automatic_password_and_pending_onboarding(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'name' => 'Paolo',
+            'surname' => 'Marino',
+            'phone' => '+393339998877',
+        ]);
+
+        $response->assertCreated();
+        $generatedPassword = $response->json('password');
+        $this->assertSame('paolomega2026', $generatedPassword);
+
+        $user = User::query()->where('name', 'Paolo')->where('surname', 'Marino')->firstOrFail();
+
+        $this->assertTrue($user->self_registered);
+        $this->assertTrue($user->must_change_password);
+        $this->assertFalse($user->documents_verified);
+        $this->assertFalse($user->is_approved);
+
+        // Bloccato finche' non approvato.
+        $this->postJson('/api/auth/login', [
+            'full_name' => 'Paolo Marino',
+            'password' => $generatedPassword,
+        ])->assertStatus(422);
+
+        // Una volta approvato dall'admin, si comporta come un seedato:
+        // login riuscito, ma comunque in attesa di onboarding (password + verifica).
+        $user->update(['is_approved' => true]);
+
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'full_name' => 'Paolo Marino',
+            'password' => $generatedPassword,
+        ]);
+
+        $loginResponse->assertOk();
+        $this->assertTrue($user->fresh()->needsOnboarding());
     }
 
     public function test_unapproved_worker_cannot_access_protected_routes(): void
@@ -91,12 +149,13 @@ class VerificationOnboardingTest extends TestCase
         $this->getJson('/api/me')->assertOk();
     }
 
-    public function test_already_approved_users_are_unaffected_even_without_documents(): void
+    public function test_fully_onboarded_users_have_full_access(): void
     {
         $user = User::factory()->create([
             'role' => 'worker',
             'is_approved' => true,
             'must_change_password' => false,
+            'documents_verified' => true,
         ]);
 
         $this->assertFalse($user->needsOnboarding());
@@ -104,6 +163,27 @@ class VerificationOnboardingTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->getJson('/api/trips')->assertOk();
+    }
+
+    public function test_approved_user_without_documents_verified_is_still_gated(): void
+    {
+        // Nessuna eccezione per nessuno: anche un utente gia' approvato (es.
+        // seedato da Excel) resta bloccato finche' non completa la verifica
+        // documenti, non solo il cambio password.
+        $user = User::factory()->create([
+            'role' => 'worker',
+            'is_approved' => true,
+            'must_change_password' => false,
+            'documents_verified' => false,
+        ]);
+
+        $this->assertTrue($user->needsOnboarding());
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/trips')
+            ->assertStatus(403)
+            ->assertJson(['onboarding_required' => true]);
     }
 
     /**
@@ -161,8 +241,10 @@ class VerificationOnboardingTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('is_approved', true);
+        $response->assertJsonPath('documents_verified', true);
 
         $this->assertTrue($user->fresh()->is_approved);
+        $this->assertTrue($user->fresh()->documents_verified);
         $this->assertNotNull($user->fresh()->verification->completed_at);
     }
 
