@@ -279,7 +279,8 @@ class TripApiTest extends TestCase
     public function test_worker_can_preview_distance_without_creating_a_trip(): void
     {
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord', 'address' => 'Via Roma 1, Bari']);
+        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $platform->addresses()->create(['address' => 'Via Roma 1, Bari']);
 
         Sanctum::actingAs($worker);
 

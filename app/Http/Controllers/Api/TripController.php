@@ -98,6 +98,7 @@ class TripController extends Controller
 
         $validated = $request->validate([
             'platform_id' => ['required', Rule::exists('platforms', 'id')],
+            'platform_address_id' => ['nullable', Rule::exists('platform_addresses', 'id')],
             'destinations' => ['required', 'array', 'min:1'],
             'destinations.*' => ['required', 'string', 'max:255'],
         ], [
@@ -106,13 +107,18 @@ class TripController extends Controller
             'destinations.min' => 'Inserisci almeno una destinazione.',
         ], [
             'platform_id' => 'piattaforma',
+            'platform_address_id' => 'indirizzo piattaforma',
             'destinations' => 'destinazioni',
             'destinations.*' => 'destinazione',
         ]);
 
-        $platform = Platform::query()->find($validated['platform_id']);
+        $platform = Platform::query()->with('addresses')->find($validated['platform_id']);
 
-        $result = app(TripDistanceCalculator::class)->preview($platform, $validated['destinations']);
+        $result = app(TripDistanceCalculator::class)->preview(
+            $platform,
+            $validated['destinations'],
+            isset($validated['platform_address_id']) ? (int) $validated['platform_address_id'] : null
+        );
 
         return response()->json($result);
     }
@@ -121,7 +127,7 @@ class TripController extends Controller
     {
         $user = $request->user();
 
-        $query = Trip::with(['platform', 'vehicle', 'user', 'attachments'])
+        $query = Trip::with(['platform', 'platformAddress', 'vehicle', 'user', 'attachments'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest('date')
             ->latest('id');
@@ -174,7 +180,7 @@ class TripController extends Controller
 
         app(TripDistanceCalculator::class)->calculate($trip);
 
-        $trip->load(['platform', 'vehicle', 'user', 'attachments']);
+        $trip->load(['platform', 'platformAddress', 'vehicle', 'user', 'attachments']);
 
         if ($user->role !== 'admin') {
             $trip->makeHidden('price');
@@ -200,7 +206,7 @@ class TripController extends Controller
 
         $trip->update($validated);
 
-        if ($trip->wasChanged(['platform_id', 'destinations'])) {
+        if ($trip->wasChanged(['platform_id', 'platform_address_id', 'destinations'])) {
             app(TripDistanceCalculator::class)->calculate($trip);
         }
 
@@ -224,7 +230,7 @@ class TripController extends Controller
             ]);
         }
 
-        $trip->refresh()->load(['platform', 'vehicle', 'user', 'attachments']);
+        $trip->refresh()->load(['platform', 'platformAddress', 'vehicle', 'user', 'attachments']);
 
         if (! $isAdmin) {
             $trip->makeHidden('price');
@@ -264,6 +270,7 @@ class TripController extends Controller
         $validated = $request->validate([
             'date' => ['required', 'date'],
             'platform_id' => ['required', Rule::exists('platforms', 'id')],
+            'platform_address_id' => ['nullable', Rule::exists('platform_addresses', 'id')],
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
             'destinations' => ['required', 'array', 'min:1'],
             'destinations.*' => ['required', 'string', 'max:255'],
@@ -289,6 +296,7 @@ class TripController extends Controller
         ], [
             'date' => 'data',
             'platform_id' => 'piattaforma',
+            'platform_address_id' => 'indirizzo piattaforma',
             'vehicle_id' => 'veicolo',
             'destinations' => 'destinazioni',
             'destinations.*' => 'destinazione',

@@ -10,6 +10,19 @@ class PlatformController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(Platform::query()->orderBy('name')->get(['id', 'name']));
+        $platforms = Platform::query()
+            ->with('addresses:id,platform_id,address')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Platform $platform) => [
+                'id' => $platform->id,
+                'name' => $platform->name,
+                'addresses' => $platform->addresses->map(fn ($a) => [
+                    'id' => $a->id,
+                    'address' => $a->address,
+                ])->values(),
+            ]);
+
+        return response()->json($platforms);
     }
 }

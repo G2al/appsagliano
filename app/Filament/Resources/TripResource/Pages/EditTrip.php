@@ -57,7 +57,7 @@ class EditTrip extends EditRecord
             }
         }
 
-        if ($this->record->wasChanged(['platform_id', 'destinations'])) {
+        if ($this->record->wasChanged(['platform_id', 'platform_address_id', 'destinations'])) {
             app(TripDistanceCalculator::class)->calculate($this->record);
         }
     }

@@ -20,7 +20,7 @@ trait BuildsMonthlyTripSchedule
 
         /** @var Collection<int, Trip> $trips */
         $trips = $owner->trips()
-            ->with(['platform', 'vehicle'])
+            ->with(['platform', 'platformAddress', 'vehicle'])
             ->whereBetween('date', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
             ->orderBy('date')
             ->orderBy('id')

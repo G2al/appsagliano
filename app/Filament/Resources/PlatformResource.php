@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class PlatformResource extends Resource
@@ -35,25 +36,40 @@ class PlatformResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
-                Forms\Components\TextInput::make('address')
-                    ->label('Indirizzo')
-                    ->maxLength(255),
+                Forms\Components\Repeater::make('addresses')
+                    ->label('Indirizzi')
+                    ->relationship()
+                    ->simple(
+                        Forms\Components\TextInput::make('address')
+                            ->label('Indirizzo')
+                            ->required()
+                            ->maxLength(255)
+                    )
+                    ->addActionLabel('Aggiungi indirizzo')
+                    ->reorderable(false)
+                    ->columnSpanFull(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('addresses'))
             ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome piattaforma')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('address')
-                    ->label('Indirizzo')
+                Tables\Columns\TextColumn::make('addresses')
+                    ->label('Indirizzi')
+                    ->state(fn (Platform $record) => $record->addresses->pluck('address')->implode(' • '))
                     ->placeholder('—')
-                    ->searchable(),
+                    ->wrap()
+                    ->searchable(query: fn (Builder $query, string $search) => $query->whereHas(
+                        'addresses',
+                        fn (Builder $q) => $q->where('address', 'like', "%{$search}%")
+                    )),
                 Tables\Columns\TextColumn::make('trips_count')
                     ->label('Viaggi')
                     ->counts('trips')

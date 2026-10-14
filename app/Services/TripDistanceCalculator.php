@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Platform;
+use App\Models\PlatformAddress;
 use App\Models\Trip;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,6 +16,8 @@ class TripDistanceCalculator
     private const CONFIDENCE_THRESHOLD = 0.8;
 
     public const ERROR_PLATFORM_MISSING_ADDRESS = 'platform_missing_address';
+
+    public const ERROR_PLATFORM_ADDRESS_REQUIRED = 'platform_address_required';
 
     public const ERROR_PLATFORM_GEOCODING_FAILED = 'platform_geocoding_failed';
 
@@ -29,14 +32,18 @@ class TripDistanceCalculator
     }
 
     /**
-     * Calcola e salva i km stradali del viaggio: Piattaforma -> destinazioni (in ordine) -> Piattaforma.
+     * Calcola e salva i km stradali del viaggio: indirizzo piattaforma ->
+     * destinazioni (in ordine) -> indirizzo piattaforma.
      * Non lancia mai eccezioni: in caso di problemi marca il viaggio come "non disponibile".
      */
     public function calculate(Trip $trip): void
     {
         $platform = $trip->platform ?? $trip->platform()->first();
+        $platformAddress = $this->resolvePlatformAddressForTrip($trip, $platform);
 
-        $result = $this->compute($platform, $trip->destinations ?? []);
+        $result = $platformAddress instanceof PlatformAddress
+            ? $this->compute($platformAddress, $trip->destinations ?? [])
+            : $platformAddress; // gia' un risultato "unavailable"
 
         $trip->forceFill([
             'distance_km' => $result['distance_km'],
@@ -51,28 +58,81 @@ class TripDistanceCalculator
     /**
      * Calcola i km stradali senza salvare nulla sul viaggio: usato per le
      * anteprime nel form, prima che il viaggio esista o venga modificato.
-     * Geocodifica e salva comunque le coordinate della piattaforma se mancanti
-     * (cache legittima, non e' uno stato del viaggio).
+     * Se la piattaforma ha piu' di un indirizzo, $platformAddressId e'
+     * obbligatorio per sapere quale usare.
      *
      * @param  array<int, string>  $destinations
      * @return array{distance_km: float|null, distance_status: string, distance_note: string|null, distance_error_code: string|null, distance_error_destination: string|null}
      */
-    public function preview(?Platform $platform, array $destinations): array
+    public function preview(?Platform $platform, array $destinations, ?int $platformAddressId = null): array
     {
-        return $this->compute($platform, $destinations);
+        $platformAddress = $this->resolvePlatformAddress($platform, $platformAddressId);
+
+        if (! $platformAddress instanceof PlatformAddress) {
+            return $platformAddress;
+        }
+
+        return $this->compute($platformAddress, $destinations);
+    }
+
+    /**
+     * @return PlatformAddress|array{distance_km: null, distance_status: 'unavailable', distance_note: string, distance_error_code: string, distance_error_destination: null}
+     */
+    private function resolvePlatformAddressForTrip(Trip $trip, ?Platform $platform): PlatformAddress|array
+    {
+        if ($trip->platform_address_id) {
+            $address = PlatformAddress::query()->find($trip->platform_address_id);
+
+            if ($address) {
+                return $address;
+            }
+        }
+
+        return $this->resolvePlatformAddress($platform, null);
+    }
+
+    /**
+     * @return PlatformAddress|array{distance_km: null, distance_status: 'unavailable', distance_note: string, distance_error_code: string, distance_error_destination: null}
+     */
+    private function resolvePlatformAddress(?Platform $platform, ?int $platformAddressId): PlatformAddress|array
+    {
+        if (! $platform) {
+            return $this->unavailable(self::ERROR_PLATFORM_MISSING_ADDRESS, 'Piattaforma senza indirizzo registrato.');
+        }
+
+        if ($platformAddressId) {
+            $address = $platform->addresses->firstWhere('id', $platformAddressId);
+
+            if (! $address) {
+                return $this->unavailable(self::ERROR_PLATFORM_MISSING_ADDRESS, 'Indirizzo piattaforma non valido.');
+            }
+
+            return $address;
+        }
+
+        $addresses = $platform->addresses;
+
+        if ($addresses->isEmpty()) {
+            return $this->unavailable(self::ERROR_PLATFORM_MISSING_ADDRESS, 'Piattaforma senza indirizzo registrato.');
+        }
+
+        if ($addresses->count() > 1) {
+            return $this->unavailable(
+                self::ERROR_PLATFORM_ADDRESS_REQUIRED,
+                'La piattaforma ha piu indirizzi: specifica quale usare per questo viaggio.'
+            );
+        }
+
+        return $addresses->first();
     }
 
     /**
      * @param  array<int, string>  $destinations
      * @return array{distance_km: float|null, distance_status: string, distance_note: string|null, distance_error_code: string|null, distance_error_destination: string|null}
      */
-    private function compute(?Platform $platform, array $destinations): array
+    private function compute(PlatformAddress $platformAddress, array $destinations): array
     {
-        if (! $platform || ! $platform->address) {
-            return $this->unavailable(self::ERROR_PLATFORM_MISSING_ADDRESS, 'Piattaforma senza indirizzo registrato.');
-        }
-
-        $platformCoords = $this->resolvePlatformCoordinates($platform);
+        $platformCoords = $this->resolvePlatformAddressCoordinates($platformAddress);
 
         if (! $platformCoords) {
             return $this->unavailable(self::ERROR_PLATFORM_GEOCODING_FAILED, 'Impossibile geolocalizzare la piattaforma.');
@@ -141,19 +201,19 @@ class TripDistanceCalculator
     /**
      * @return array{0: float, 1: float}|null coppia [lon, lat]
      */
-    private function resolvePlatformCoordinates(Platform $platform): ?array
+    private function resolvePlatformAddressCoordinates(PlatformAddress $platformAddress): ?array
     {
-        if ($platform->latitude !== null && $platform->longitude !== null) {
-            return [(float) $platform->longitude, (float) $platform->latitude];
+        if ($platformAddress->latitude !== null && $platformAddress->longitude !== null) {
+            return [(float) $platformAddress->longitude, (float) $platformAddress->latitude];
         }
 
-        $geo = $this->client->geocode($platform->address);
+        $geo = $this->client->geocode($platformAddress->address);
 
         if (! $geo) {
             return null;
         }
 
-        $platform->forceFill([
+        $platformAddress->forceFill([
             'latitude' => $geo['lat'],
             'longitude' => $geo['lon'],
         ])->saveQuietly();

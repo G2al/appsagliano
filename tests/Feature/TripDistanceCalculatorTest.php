@@ -18,7 +18,8 @@ class TripDistanceCalculatorTest extends TestCase
     private function makeTrip(array $overrides = []): Trip
     {
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Apulia', 'address' => 'Via Roma 1, Bari']);
+        $platform = Platform::query()->create(['name' => 'Apulia']);
+        $platform->addresses()->create(['address' => 'Via Roma 1, Bari']);
         $vehicle = Vehicle::query()->create([
             'name' => 'Camion', 'plate' => 'MG001AA', 'color' => 'Blu', 'current_km' => 1000, 'maintenance_km' => 0,
         ]);
@@ -78,10 +79,10 @@ class TripDistanceCalculatorTest extends TestCase
 
         app(TripDistanceCalculator::class)->calculate($trip);
 
-        $platform = $trip->platform()->first();
+        $address = $trip->platform()->first()->addresses()->first();
 
-        $this->assertNotNull($platform->latitude);
-        $this->assertNotNull($platform->longitude);
+        $this->assertNotNull($address->latitude);
+        $this->assertNotNull($address->longitude);
 
         Http::assertSentCount(4); // geocode piattaforma + 2 destinazioni + directions
     }
@@ -210,5 +211,77 @@ class TripDistanceCalculatorTest extends TestCase
         $this->assertSame('unavailable', $trip->distance_status);
         $this->assertSame('destination_not_found', $trip->distance_error_code);
         $this->assertSame('Romap', $trip->distance_error_destination);
+    }
+
+    public function test_marks_distance_unavailable_when_platform_has_multiple_addresses_and_none_is_specified(): void
+    {
+        Http::fake();
+
+        $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
+        $platform = Platform::query()->create(['name' => 'Apulia']);
+        $platform->addresses()->create(['address' => 'Via Roma 1, Bari']);
+        $platform->addresses()->create(['address' => 'Via Milano 2, Bari']);
+        $vehicle = Vehicle::query()->create([
+            'name' => 'Camion', 'plate' => 'MG003CC', 'color' => 'Blu', 'current_km' => 1000, 'maintenance_km' => 0,
+        ]);
+
+        $trip = Trip::query()->create([
+            'user_id' => $worker->id,
+            'platform_id' => $platform->id,
+            'vehicle_id' => $vehicle->id,
+            'date' => now(),
+            'destinations' => ['Milano'],
+            'goods_type' => 'secco',
+            'delivery_note_number' => '1',
+        ]);
+
+        app(TripDistanceCalculator::class)->calculate($trip);
+
+        $trip->refresh();
+
+        $this->assertSame('unavailable', $trip->distance_status);
+        $this->assertSame('platform_address_required', $trip->distance_error_code);
+        Http::assertNothingSent();
+    }
+
+    public function test_calculates_distance_using_the_specified_platform_address(): void
+    {
+        Http::fake([
+            'api.heigit.org/pelias/*' => Http::response([
+                'features' => [[
+                    'geometry' => ['coordinates' => [9.19, 45.46]],
+                    'properties' => ['confidence' => 1],
+                ]],
+            ], 200),
+            'api.heigit.org/openrouteservice/*' => Http::response([
+                'routes' => [['summary' => ['distance' => 60000.0]]],
+            ], 200),
+        ]);
+
+        $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
+        $platform = Platform::query()->create(['name' => 'Apulia']);
+        $platform->addresses()->create(['address' => 'Via Roma 1, Bari']);
+        $secondAddress = $platform->addresses()->create(['address' => 'Via Milano 2, Bari']);
+        $vehicle = Vehicle::query()->create([
+            'name' => 'Camion', 'plate' => 'MG004DD', 'color' => 'Blu', 'current_km' => 1000, 'maintenance_km' => 0,
+        ]);
+
+        $trip = Trip::query()->create([
+            'user_id' => $worker->id,
+            'platform_id' => $platform->id,
+            'platform_address_id' => $secondAddress->id,
+            'vehicle_id' => $vehicle->id,
+            'date' => now(),
+            'destinations' => ['Milano'],
+            'goods_type' => 'secco',
+            'delivery_note_number' => '1',
+        ]);
+
+        app(TripDistanceCalculator::class)->calculate($trip);
+
+        $trip->refresh();
+
+        $this->assertSame('calculated', $trip->distance_status);
+        $this->assertEquals(60.0, (float) $trip->distance_km);
     }
 }

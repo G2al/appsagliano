@@ -19,6 +19,7 @@ class Trip extends Model
     protected $fillable = [
         'user_id',
         'platform_id',
+        'platform_address_id',
         'vehicle_id',
         'date',
         'destinations',
@@ -58,6 +59,11 @@ class Trip extends Model
     public function platform(): BelongsTo
     {
         return $this->belongsTo(Platform::class);
+    }
+
+    public function platformAddress(): BelongsTo
+    {
+        return $this->belongsTo(PlatformAddress::class);
     }
 
     public function vehicle(): BelongsTo
