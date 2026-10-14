@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/verification/status', [VerificationController::class, 'status']);
     Route::post('/verification', [VerificationController::class, 'submit']);
+    Route::post('/verification/confirm', [VerificationController::class, 'confirm']);
 });
 
 Route::middleware(['auth:sanctum', 'onboarded'])->group(function () {

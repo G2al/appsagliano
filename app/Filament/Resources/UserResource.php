@@ -117,8 +117,12 @@ class UserResource extends Resource
                                 $rows = [
                                     $row('Documento identita (fronte)', $v->identity_front_url, $v->identity_expiry_date?->format('d/m/Y')),
                                     $row('Documento identita (retro)', $v->identity_back_url),
-                                    $row('Patente', $v->license_url, $v->license_expiry_date?->format('d/m/Y')),
-                                    $row('CQC', $v->cqc_url, $v->cqc_expiry_date?->format('d/m/Y')),
+                                    $row('Patente (fronte)', $v->license_url, $v->license_expiry_date?->format('d/m/Y')),
+                                    $row('Patente (retro)', $v->license_back_url),
+                                    $row('CQC (fronte)', $v->cqc_url, $v->cqc_expiry_date?->format('d/m/Y')),
+                                    $row('CQC (retro)', $v->cqc_back_url),
+                                    $row('Carta tachigrafica (fronte)', $v->tachograph_front_url, $v->tachograph_expiry_date?->format('d/m/Y')),
+                                    $row('Carta tachigrafica (retro)', $v->tachograph_back_url),
                                     '<div class="mt-2 text-sm text-gray-500">Completata il: ' . ($v->completed_at?->format('d/m/Y H:i') ?? 'non completata') . '</div>',
                                 ];
 

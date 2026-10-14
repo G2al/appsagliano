@@ -28,8 +28,9 @@ class VerificationController extends Controller
 
     /**
      * Invio progressivo dei dati di verifica: ogni chiamata puo' contenere
-     * anche un solo campo (es. solo l'indirizzo, o solo una foto). Quando
-     * tutto il necessario e' presente, l'account viene approvato in automatico.
+     * anche un solo campo (es. solo l'indirizzo, o solo una foto). Non
+     * approva piu' l'account da sola: serve la conferma esplicita
+     * dell'utente tramite /verification/confirm.
      */
     public function submit(Request $request): JsonResponse
     {
@@ -41,9 +42,14 @@ class VerificationController extends Controller
             'identity_back' => ['nullable', 'file', 'image', 'max:8192'],
             'identity_expiry_date' => ['nullable', 'date'],
             'license' => ['nullable', 'file', 'image', 'max:8192'],
+            'license_back' => ['nullable', 'file', 'image', 'max:8192'],
             'license_expiry_date' => ['nullable', 'date'],
             'cqc' => ['nullable', 'file', 'image', 'max:8192'],
+            'cqc_back' => ['nullable', 'file', 'image', 'max:8192'],
             'cqc_expiry_date' => ['nullable', 'date'],
+            'tachograph_front' => ['nullable', 'file', 'image', 'max:8192'],
+            'tachograph_back' => ['nullable', 'file', 'image', 'max:8192'],
+            'tachograph_expiry_date' => ['nullable', 'date'],
         ], [
             '*.image' => 'Il file :attribute deve essere un\'immagine.',
             '*.max' => 'Il file :attribute non puo\' superare 8MB.',
@@ -62,7 +68,11 @@ class VerificationController extends Controller
             'identity_front' => 'identity_front_path',
             'identity_back' => 'identity_back_path',
             'license' => 'license_path',
+            'license_back' => 'license_back_path',
             'cqc' => 'cqc_path',
+            'cqc_back' => 'cqc_back_path',
+            'tachograph_front' => 'tachograph_front_path',
+            'tachograph_back' => 'tachograph_back_path',
         ];
 
         foreach ($fileFields as $input => $column) {
@@ -83,7 +93,7 @@ class VerificationController extends Controller
 
         $this->guardExpiryDatesRequirePhotos($validated, $verification);
 
-        foreach (['identity_expiry_date', 'license_expiry_date', 'cqc_expiry_date'] as $field) {
+        foreach (['identity_expiry_date', 'license_expiry_date', 'cqc_expiry_date', 'tachograph_expiry_date'] as $field) {
             if (array_key_exists($field, $validated) && filled($validated[$field])) {
                 $verification->{$field} = $validated[$field];
             }
@@ -91,7 +101,39 @@ class VerificationController extends Controller
 
         $verification->save();
 
-        $this->completeIfReady($user, $verification);
+        return response()->json($this->buildStatusPayload($user->fresh(), $verification->fresh()));
+    }
+
+    /**
+     * Conferma esplicita di fine procedura: l'utente ha rivisto tutto e
+     * preme "Conferma invio documenti". Solo qui, se tutto il necessario e'
+     * presente, l'account viene approvato in automatico. Se manca qualcosa
+     * risponde 422 con l'elenco di cosa manca, senza approvare nulla.
+     */
+    public function confirm(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $verification = UserVerification::query()->where('user_id', $user->id)->first()
+            ?? new UserVerification(['user_id' => $user->id]);
+
+        $missing = [];
+
+        if (! filled($user->address)) {
+            $missing[] = 'indirizzo di residenza';
+        }
+
+        $missing = array_merge($missing, $verification->missingDocumentLabels());
+
+        if (! empty($missing)) {
+            throw ValidationException::withMessages([
+                'confirmation' => ['Mancano ancora: ' . implode(', ', $missing) . '.'],
+            ]);
+        }
+
+        if (! $user->is_approved) {
+            $verification->update(['completed_at' => now()]);
+            $user->update(['is_approved' => true]);
+        }
 
         return response()->json($this->buildStatusPayload($user->fresh(), $verification->fresh()));
     }
@@ -114,31 +156,24 @@ class VerificationController extends Controller
             $errors['identity_expiry_date'] = 'Carica prima entrambe le foto del documento di identita (fronte e retro) prima di inserirne la scadenza.';
         }
 
-        if (filled($validated['license_expiry_date'] ?? null) && ! filled($verification->license_path)) {
-            $errors['license_expiry_date'] = 'Carica prima la foto della patente prima di inserirne la scadenza.';
+        if (filled($validated['license_expiry_date'] ?? null)
+            && ! (filled($verification->license_path) && filled($verification->license_back_path))) {
+            $errors['license_expiry_date'] = 'Carica prima entrambe le foto della patente (fronte e retro) prima di inserirne la scadenza.';
         }
 
-        if (filled($validated['cqc_expiry_date'] ?? null) && ! filled($verification->cqc_path)) {
-            $errors['cqc_expiry_date'] = 'Carica prima la foto della CQC prima di inserirne la scadenza.';
+        if (filled($validated['cqc_expiry_date'] ?? null)
+            && ! (filled($verification->cqc_path) && filled($verification->cqc_back_path))) {
+            $errors['cqc_expiry_date'] = 'Carica prima entrambe le foto della CQC (fronte e retro) prima di inserirne la scadenza.';
+        }
+
+        if (filled($validated['tachograph_expiry_date'] ?? null)
+            && ! (filled($verification->tachograph_front_path) && filled($verification->tachograph_back_path))) {
+            $errors['tachograph_expiry_date'] = 'Carica prima entrambe le foto della carta tachigrafica (fronte e retro) prima di inserirne la scadenza.';
         }
 
         if (! empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
-    }
-
-    private function completeIfReady(User $user, UserVerification $verification): void
-    {
-        if ($user->is_approved) {
-            return;
-        }
-
-        if (! filled($user->address) || ! $verification->hasAllDocuments()) {
-            return;
-        }
-
-        $verification->update(['completed_at' => now()]);
-        $user->update(['is_approved' => true]);
     }
 
     /**
@@ -154,9 +189,14 @@ class VerificationController extends Controller
             'identity_back_url' => $verification->identity_back_url,
             'identity_expiry_date' => $verification->identity_expiry_date?->toDateString(),
             'license_url' => $verification->license_url,
+            'license_back_url' => $verification->license_back_url,
             'license_expiry_date' => $verification->license_expiry_date?->toDateString(),
             'cqc_url' => $verification->cqc_url,
+            'cqc_back_url' => $verification->cqc_back_url,
             'cqc_expiry_date' => $verification->cqc_expiry_date?->toDateString(),
+            'tachograph_front_url' => $verification->tachograph_front_url,
+            'tachograph_back_url' => $verification->tachograph_back_url,
+            'tachograph_expiry_date' => $verification->tachograph_expiry_date?->toDateString(),
             'completed_at' => $verification->completed_at?->toIso8601String(),
         ];
     }
