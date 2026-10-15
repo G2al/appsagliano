@@ -84,6 +84,14 @@ class AdminPanelProvider extends PanelProvider
                             .dark .mega-push-btn:hover { color: #e5e7eb; }
                             .mega-push-dot { background: #ef4444; }
                             .mega-push-dot.is-active { background: #22c55e; }
+                            .mega-push-toast {
+                                position: fixed; top: 1rem; right: 1rem; z-index: 60;
+                                background: #111827; color: #fff; padding: 0.6rem 1rem;
+                                border-radius: 0.5rem; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                                opacity: 0; transform: translateY(-0.5rem); transition: opacity .2s, transform .2s;
+                                pointer-events: none;
+                            }
+                            .mega-push-toast.is-visible { opacity: 1; transform: translateY(0); }
                         </style>
                         <button
                             id="mega-push-status-btn"
@@ -97,8 +105,20 @@ class AdminPanelProvider extends PanelProvider
                             </svg>
                             <span id="mega-push-dot" class="mega-push-dot" style="position:absolute;top:0.3rem;right:0.3rem;width:0.5rem;height:0.5rem;border-radius:9999px;"></span>
                         </button>
+                        <div id="mega-push-toast" class="mega-push-toast"></div>
                         <script>
                         (function () {
+                            let toastTimer = null;
+
+                            function showToast(message) {
+                                const toast = document.getElementById('mega-push-toast');
+                                if (!toast) return;
+                                toast.textContent = message;
+                                toast.classList.add('is-visible');
+                                clearTimeout(toastTimer);
+                                toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3000);
+                            }
+
                             function urlBase64ToUint8Array(base64String) {
                                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
                                 const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -127,6 +147,7 @@ class AdminPanelProvider extends PanelProvider
 
                                 const permission = await Notification.requestPermission();
                                 if (permission !== 'granted') {
+                                    showToast('Permesso notifiche negato dal browser.');
                                     return;
                                 }
 
@@ -160,6 +181,7 @@ class AdminPanelProvider extends PanelProvider
                                 });
 
                                 setStatus(true);
+                                showToast('Notifiche attivate con successo.');
                             }
 
                             async function unsubscribeFromPush() {
@@ -187,6 +209,7 @@ class AdminPanelProvider extends PanelProvider
                                 });
 
                                 setStatus(false);
+                                showToast('Notifiche disattivate.');
                             }
 
                             async function refreshStatus() {
@@ -212,6 +235,7 @@ class AdminPanelProvider extends PanelProvider
 
                                 btn.addEventListener('click', async function () {
                                     if (typeof Notification === 'undefined' || Notification.permission === 'denied') {
+                                        showToast('Notifiche bloccate dal browser. Abilitale dalle impostazioni del sito.');
                                         return;
                                     }
 
