@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 class StationSeeder extends Seeder
 {
     /**
-     * Seed Mega Trasporti base fuel stations.
+     * Seed Vialo demo fuel stations (dati fittizi).
      */
     public function run(): void
     {
@@ -35,6 +35,18 @@ class StationSeeder extends Seeder
                 'name' => 'IP Casello Sud',
                 'address' => 'Corso Europa 37, Padova (PD)',
                 'credit_balance' => 9100.00,
+                'uses_vouchers' => true,
+            ],
+            [
+                'name' => 'Esso Zona Industriale',
+                'address' => 'Via dell\'Artigianato 22, Bergamo (BG)',
+                'credit_balance' => 7300.00,
+                'uses_vouchers' => false,
+            ],
+            [
+                'name' => 'Agip Porta Sud',
+                'address' => 'Viale della Repubblica 9, Brescia (BS)',
+                'credit_balance' => 5400.00,
                 'uses_vouchers' => true,
             ],
         ];

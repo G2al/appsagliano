@@ -34,13 +34,13 @@ class AuthController extends Controller
             ]);
         }
 
-        $email = Str::slug($validated['name'] . ' ' . $validated['surname'], '.') . '@appmegatrasporti.it';
+        $email = Str::slug($validated['name'] . ' ' . $validated['surname'], '.') . '@appvialo.it';
 
         // La password non la sceglie l'utente: e' generata automaticamente
         // con lo stesso schema usato per gli account creati in blocco
-        // dall'admin (nome + "mega2026"), cosi' da subito dopo l'approvazione
+        // dall'admin (nome + "vialo2026"), cosi' da subito dopo l'approvazione
         // il suo account si comporta esattamente come uno gia' seedato.
-        $password = $this->slugFor($validated['name']) . 'mega2026';
+        $password = $this->slugFor($validated['name']) . 'vialo2026';
 
         $user = User::create([
             'name' => $validated['name'],

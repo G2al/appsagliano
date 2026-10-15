@@ -81,7 +81,7 @@ class VerificationOnboardingTest extends TestCase
 
         $response->assertCreated();
         $generatedPassword = $response->json('password');
-        $this->assertSame('paolomega2026', $generatedPassword);
+        $this->assertSame('paolovialo2026', $generatedPassword);
 
         $user = User::query()->where('name', 'Paolo')->where('surname', 'Marino')->firstOrFail();
 

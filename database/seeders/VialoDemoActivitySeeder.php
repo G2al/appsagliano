@@ -13,7 +13,7 @@ use App\Models\Vehicle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
-class MegaDemoActivitySeeder extends Seeder
+class VialoDemoActivitySeeder extends Seeder
 {
     /**
      * Genera viaggi, rifornimenti e manutenzioni realistici usando gli

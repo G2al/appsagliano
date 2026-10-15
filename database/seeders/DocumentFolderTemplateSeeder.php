@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 class DocumentFolderTemplateSeeder extends Seeder
 {
     /**
-     * Seed Mega Trasporti base document folder templates.
+     * Seed Vialo demo document folder templates.
      */
     public function run(): void
     {

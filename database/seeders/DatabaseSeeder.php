@@ -13,7 +13,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
-            MegaBaseSeeder::class,
+            VialoBaseSeeder::class,
+            VialoDemoActivitySeeder::class,
         ]);
     }
 }

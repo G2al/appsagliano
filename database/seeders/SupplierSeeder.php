@@ -8,41 +8,37 @@ use Illuminate\Database\Seeder;
 class SupplierSeeder extends Seeder
 {
     /**
-     * Seed Mega Trasporti base maintenance suppliers.
+     * Seed Vialo demo suppliers (dati fittizi, nessuna ragione sociale reale).
      */
     public function run(): void
     {
         $suppliers = [
-            [
-                'name' => 'Officina Mega Truck',
-                'phone' => '+390171100001',
-                'email' => 'accettazione@officinamegatruck.it',
-                'address' => 'Via degli Artigiani 14, Milano (MI)',
-            ],
-            [
-                'name' => 'Ricambi Diesel Service',
-                'phone' => '+390172100002',
-                'email' => 'info@ricambidieselservice.it',
-                'address' => 'Via Industriale 7, Bergamo (BG)',
-            ],
-            [
-                'name' => 'Pneus Logistic Center',
-                'phone' => '+390173100003',
-                'email' => 'commerciale@pneuslogistic.it',
-                'address' => 'Corso Milano 55, Brescia (BS)',
-            ],
-            [
-                'name' => 'Truck Elettrauto Lombardia',
-                'phone' => '+390111000004',
-                'email' => 'officina@truckelettrauto.it',
-                'address' => 'Via Cristoforo Colombo 128, Milano (MI)',
-            ],
+            ['name' => 'Officina Nord Truck', 'city' => 'Milano (MI)'],
+            ['name' => 'Ricambi Diesel Service', 'city' => 'Bergamo (BG)'],
+            ['name' => 'Pneus Logistic Center', 'city' => 'Brescia (BS)'],
+            ['name' => 'Truck Elettrauto Lombardia', 'city' => 'Milano (MI)'],
+            ['name' => 'Carrozzeria Centro Nord', 'city' => 'Verona (VR)'],
+            ['name' => 'Autofficina Veloce', 'city' => 'Padova (PD)'],
+            ['name' => 'Ricambi Express', 'city' => 'Bologna (BO)'],
+            ['name' => 'Gommista Autostrada', 'city' => 'Modena (MO)'],
+            ['name' => 'Service Truck Center', 'city' => 'Parma (PR)'],
+            ['name' => 'Officina Diesel Plus', 'city' => 'Reggio Emilia (RE)'],
+            ['name' => 'Autoricambi Nord Est', 'city' => 'Treviso (TV)'],
+            ['name' => 'Centro Revisioni Rapide', 'city' => 'Vicenza (VI)'],
+            ['name' => 'Elettrauto Truck Service', 'city' => 'Mantova (MN)'],
         ];
 
-        foreach ($suppliers as $supplier) {
+        foreach ($suppliers as $index => $supplier) {
+            $slug = strtolower(preg_replace('/[^a-z0-9]/i', '', $supplier['name']));
+            $phoneSuffix = str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT);
+
             Supplier::query()->updateOrCreate(
                 ['name' => $supplier['name']],
-                $supplier
+                [
+                    'phone' => "+3902{$phoneSuffix}",
+                    'email' => "info@{$slug}.appvialo.it",
+                    'address' => "Via dell'Artigianato " . ($index + 1) . ', ' . $supplier['city'],
+                ]
             );
         }
     }

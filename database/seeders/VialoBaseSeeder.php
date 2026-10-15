@@ -4,10 +4,10 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 
-class MegaBaseSeeder extends Seeder
+class VialoBaseSeeder extends Seeder
 {
     /**
-     * Seed the Mega Trasporti base data required to use the app.
+     * Seed the Vialo demo base data required to use the app.
      */
     public function run(): void
     {
@@ -15,6 +15,7 @@ class MegaBaseSeeder extends Seeder
             VehicleSeeder::class,
             StationSeeder::class,
             SupplierSeeder::class,
+            VialoPlatformSeeder::class,
             DocumentFolderTemplateSeeder::class,
         ]);
     }

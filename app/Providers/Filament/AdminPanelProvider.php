@@ -26,17 +26,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Mega Trasporti')
+            ->brandName('Vialo')
             ->colors([
-                'primary' => Color::hex('#1A2A9C'),
+                'primary' => Color::hex('#0f7a62'),
             ])
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
-                    <link rel="manifest" href="/admin-manifest.json?v=7">
-                    <link rel="icon" href="/admin-assets/icon-admin.png" type="image/png">
-                    <link rel="apple-touch-icon" href="/admin-assets/icon-admin.png">
-                    <meta name="theme-color" content="#1A2A9C">
+                    <link rel="manifest" href="/admin-manifest.json?v=2">
+                    <link rel="icon" href="/admin-assets/icon-admin.png?v=2" type="image/png">
+                    <link rel="apple-touch-icon" href="/admin-assets/icon-admin.png?v=2">
+                    <meta name="theme-color" content="#0f7a62">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                     <style>
                         /* Impedisce lo zoom automatico di iOS/Android quando si tocca un campo
