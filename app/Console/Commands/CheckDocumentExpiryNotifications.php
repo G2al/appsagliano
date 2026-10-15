@@ -58,10 +58,11 @@ class CheckDocumentExpiryNotifications extends Command
 
             $label = DocumentExpiry::LABELS[$document->document_type] ?? $document->document_type;
             $expiryFormatted = $document->expiry_date->format('d/m/Y');
+            $whenText = $this->whenText((int) $daysRemaining);
 
             $payload = [
-                'title' => "Documento in scadenza: {$document->user_full_name}",
-                'body' => "{$label} scade il {$expiryFormatted} (tra {$threshold} giorni o meno).",
+                'title' => 'Documento in scadenza',
+                'body' => "{$document->user_full_name} - {$label} {$whenText} ({$expiryFormatted}).",
                 'url' => '/admin/scadenze',
             ];
 
@@ -103,5 +104,22 @@ class CheckDocumentExpiryNotifications extends Command
         }
 
         return null;
+    }
+
+    /**
+     * Testo con il conteggio preciso dei giorni rimanenti, con le forme
+     * speciali "scade oggi"/"scade domani" quando pertinenti.
+     */
+    private function whenText(int $daysRemaining): string
+    {
+        if ($daysRemaining === 0) {
+            return 'scade oggi';
+        }
+
+        if ($daysRemaining === 1) {
+            return 'scade domani';
+        }
+
+        return "scade tra {$daysRemaining} giorni";
     }
 }

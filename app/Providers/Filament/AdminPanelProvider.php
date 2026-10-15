@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
                 HTML
             )
             ->renderHook(
-                'panels::body.end',
+                \Filament\View\PanelsRenderHook::GLOBAL_SEARCH_AFTER,
                 function (): string {
                     $user = \Illuminate\Support\Facades\Auth::user();
 
@@ -72,12 +72,30 @@ class AdminPanelProvider extends PanelProvider
                     }
 
                     $subscribeUrl = e(route('push.subscribe'));
+                    $unsubscribeUrl = e(route('push.unsubscribe'));
                     $vapidKeyUrl = e(route('push.vapid-public-key'));
                     $csrfToken = e(csrf_token());
 
                     return <<<HTML
-                        <button id="mega-push-enable-btn" type="button" style="display:none;position:fixed;bottom:1rem;right:1rem;z-index:50;background:#1A2A9C;color:#fff;border:none;border-radius:9999px;padding:0.6rem 1.1rem;font-size:0.85rem;box-shadow:0 2px 8px rgba(0,0,0,0.25);cursor:pointer;">
-                            Attiva notifiche
+                        <style>
+                            .mega-push-btn { color: #6b7280; }
+                            .dark .mega-push-btn { color: #9ca3af; }
+                            .mega-push-btn:hover { color: #374151; }
+                            .dark .mega-push-btn:hover { color: #e5e7eb; }
+                            .mega-push-dot { background: #ef4444; }
+                            .mega-push-dot.is-active { background: #22c55e; }
+                        </style>
+                        <button
+                            id="mega-push-status-btn"
+                            type="button"
+                            title="Notifiche push disattivate (clicca per attivarle)"
+                            class="mega-push-btn"
+                            style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:9999px;background:transparent;border:none;cursor:pointer;"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1.5rem;height:1.5rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                            </svg>
+                            <span id="mega-push-dot" class="mega-push-dot" style="position:absolute;top:0.3rem;right:0.3rem;width:0.5rem;height:0.5rem;border-radius:9999px;"></span>
                         </button>
                         <script>
                         (function () {
@@ -90,6 +108,16 @@ class AdminPanelProvider extends PanelProvider
                                     outputArray[i] = rawData.charCodeAt(i);
                                 }
                                 return outputArray;
+                            }
+
+                            function setStatus(active) {
+                                const dot = document.getElementById('mega-push-dot');
+                                const btn = document.getElementById('mega-push-status-btn');
+                                if (!dot || !btn) return;
+                                dot.classList.toggle('is-active', active);
+                                btn.title = active
+                                    ? 'Notifiche push attive (clicca per disattivarle)'
+                                    : 'Notifiche push disattivate (clicca per attivarle)';
                             }
 
                             async function subscribeToPush() {
@@ -131,29 +159,71 @@ class AdminPanelProvider extends PanelProvider
                                     }),
                                 });
 
-                                document.getElementById('mega-push-enable-btn').style.display = 'none';
+                                setStatus(true);
                             }
 
-                            window.addEventListener('load', async function () {
+                            async function unsubscribeFromPush() {
+                                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                                    return;
+                                }
+
+                                const registration = await navigator.serviceWorker.ready;
+                                const subscription = await registration.pushManager.getSubscription();
+                                if (!subscription) {
+                                    setStatus(false);
+                                    return;
+                                }
+
+                                const endpoint = subscription.endpoint;
+                                await subscription.unsubscribe();
+
+                                await fetch('{$unsubscribeUrl}', {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{$csrfToken}',
+                                    },
+                                    body: JSON.stringify({ endpoint }),
+                                });
+
+                                setStatus(false);
+                            }
+
+                            async function refreshStatus() {
                                 if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') {
                                     return;
                                 }
 
-                                if (Notification.permission === 'granted') {
-                                    const registration = await navigator.serviceWorker.ready;
-                                    const existing = await registration.pushManager.getSubscription();
-                                    if (existing) {
-                                        return;
-                                    }
-                                }
-
-                                if (Notification.permission === 'denied') {
+                                if (Notification.permission !== 'granted') {
+                                    setStatus(false);
                                     return;
                                 }
 
-                                const btn = document.getElementById('mega-push-enable-btn');
-                                btn.style.display = 'block';
-                                btn.addEventListener('click', subscribeToPush);
+                                const registration = await navigator.serviceWorker.ready;
+                                const subscription = await registration.pushManager.getSubscription();
+                                setStatus(!!subscription);
+                            }
+
+                            window.addEventListener('load', function () {
+                                refreshStatus();
+
+                                const btn = document.getElementById('mega-push-status-btn');
+                                if (!btn) return;
+
+                                btn.addEventListener('click', async function () {
+                                    if (typeof Notification === 'undefined' || Notification.permission === 'denied') {
+                                        return;
+                                    }
+
+                                    const registration = await navigator.serviceWorker.ready;
+                                    const existing = await registration.pushManager.getSubscription();
+
+                                    if (existing) {
+                                        await unsubscribeFromPush();
+                                    } else {
+                                        await subscribeToPush();
+                                    }
+                                });
                             });
                         })();
                         </script>
