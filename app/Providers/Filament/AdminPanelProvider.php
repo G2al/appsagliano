@@ -62,6 +62,104 @@ class AdminPanelProvider extends PanelProvider
                     </script>
                 HTML
             )
+            ->renderHook(
+                'panels::body.end',
+                function (): string {
+                    $user = \Illuminate\Support\Facades\Auth::user();
+
+                    if (! $user instanceof \App\Models\User || ! $user->canReceiveExpiryNotifications()) {
+                        return '';
+                    }
+
+                    $subscribeUrl = e(route('push.subscribe'));
+                    $vapidKeyUrl = e(route('push.vapid-public-key'));
+                    $csrfToken = e(csrf_token());
+
+                    return <<<HTML
+                        <button id="mega-push-enable-btn" type="button" style="display:none;position:fixed;bottom:1rem;right:1rem;z-index:50;background:#1A2A9C;color:#fff;border:none;border-radius:9999px;padding:0.6rem 1.1rem;font-size:0.85rem;box-shadow:0 2px 8px rgba(0,0,0,0.25);cursor:pointer;">
+                            Attiva notifiche
+                        </button>
+                        <script>
+                        (function () {
+                            function urlBase64ToUint8Array(base64String) {
+                                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                                const rawData = window.atob(base64);
+                                const outputArray = new Uint8Array(rawData.length);
+                                for (let i = 0; i < rawData.length; ++i) {
+                                    outputArray[i] = rawData.charCodeAt(i);
+                                }
+                                return outputArray;
+                            }
+
+                            async function subscribeToPush() {
+                                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                                    return;
+                                }
+
+                                const permission = await Notification.requestPermission();
+                                if (permission !== 'granted') {
+                                    return;
+                                }
+
+                                const registration = await navigator.serviceWorker.ready;
+                                const keyResponse = await fetch('{$vapidKeyUrl}');
+                                const { publicKey } = await keyResponse.json();
+
+                                let subscription = await registration.pushManager.getSubscription();
+                                if (!subscription) {
+                                    subscription = await registration.pushManager.subscribe({
+                                        userVisibleOnly: true,
+                                        applicationServerKey: urlBase64ToUint8Array(publicKey),
+                                    });
+                                }
+
+                                const key = subscription.getKey('p256dh');
+                                const auth = subscription.getKey('auth');
+
+                                await fetch('{$subscribeUrl}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{$csrfToken}',
+                                    },
+                                    body: JSON.stringify({
+                                        endpoint: subscription.endpoint,
+                                        public_key: btoa(String.fromCharCode(...new Uint8Array(key))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''),
+                                        auth_token: btoa(String.fromCharCode(...new Uint8Array(auth))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, ''),
+                                        content_encoding: 'aes128gcm',
+                                    }),
+                                });
+
+                                document.getElementById('mega-push-enable-btn').style.display = 'none';
+                            }
+
+                            window.addEventListener('load', async function () {
+                                if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') {
+                                    return;
+                                }
+
+                                if (Notification.permission === 'granted') {
+                                    const registration = await navigator.serviceWorker.ready;
+                                    const existing = await registration.pushManager.getSubscription();
+                                    if (existing) {
+                                        return;
+                                    }
+                                }
+
+                                if (Notification.permission === 'denied') {
+                                    return;
+                                }
+
+                                const btn = document.getElementById('mega-push-enable-btn');
+                                btn.style.display = 'block';
+                                btn.addEventListener('click', subscribeToPush);
+                            });
+                        })();
+                        </script>
+                    HTML;
+                }
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

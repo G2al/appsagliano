@@ -187,6 +187,19 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasPanelModule(self::PANEL_MODULE_MAINTENANCE);
     }
 
+    public function canReceiveExpiryNotifications(): bool
+    {
+        return $this->isAdmin() || $this->hasAnyPanelModules([
+            self::PANEL_MODULE_MAINTENANCE,
+            self::PANEL_MODULE_DOCUMENTS,
+        ]);
+    }
+
+    public function pushSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     public function canAccessRefuelsArea(): bool
     {
         return $this->hasPanelModule(self::PANEL_MODULE_REFUELS);

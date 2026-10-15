@@ -41,4 +41,9 @@ return [
         'directions_url' => env('ORS_DIRECTIONS_URL', 'https://api.heigit.org/openrouteservice/v2/directions/driving-hgv/json'),
     ],
 
+    'vapid' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
 ];

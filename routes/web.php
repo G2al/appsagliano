@@ -9,6 +9,7 @@ use App\Http\Controllers\MaintenanceBolleDownloadController;
 use App\Http\Controllers\TripAttachmentDownloadController;
 use App\Http\Controllers\TripAttachmentPrintController;
 use App\Http\Controllers\UserDocumentDownloadController;
+use App\Http\Controllers\PushSubscriptionController;
 
 Route::get('/', function () {
     return redirect('/admin');
@@ -46,3 +47,15 @@ Route::get('/admin/trips/{trip}/attachment', TripAttachmentPrintController::clas
 Route::get('/admin/trips/{trip}/attachments/{attachment}/download', TripAttachmentDownloadController::class)
     ->middleware('auth')
     ->name('trips.attachment.download');
+
+Route::get('/admin/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])
+    ->middleware('auth')
+    ->name('push.vapid-public-key');
+
+Route::post('/admin/push/subscribe', [PushSubscriptionController::class, 'store'])
+    ->middleware('auth')
+    ->name('push.subscribe');
+
+Route::delete('/admin/push/unsubscribe', [PushSubscriptionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('push.unsubscribe');

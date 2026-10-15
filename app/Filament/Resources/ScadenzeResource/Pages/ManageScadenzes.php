@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Filament\Resources\ScadenzeResource\Pages;
+
+use App\Filament\Resources\ScadenzeResource;
+use App\Models\DocumentExpiry;
+use Filament\Resources\Components\Tab;
+use Filament\Resources\Pages\ManageRecords;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+
+class ManageScadenzes extends ManageRecords
+{
+    protected static string $resource = ScadenzeResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [];
+    }
+
+    public function getTabs(): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        return [
+            'scaduti' => Tab::make('Scaduti')
+                ->badge(DocumentExpiry::query()->where('expiry_date', '<', $today)->count())
+                ->badgeColor('danger')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('expiry_date', '<', $today)),
+            'sette_giorni' => Tab::make('In scadenza (7 giorni)')
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn (Builder $query) => $query
+                    ->whereBetween('expiry_date', [$today, Carbon::today()->addDays(7)->toDateString()])),
+            'quindici_giorni' => Tab::make('In scadenza (15 giorni)')
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn (Builder $query) => $query
+                    ->whereBetween('expiry_date', [$today, Carbon::today()->addDays(15)->toDateString()])),
+            'trenta_giorni' => Tab::make('In scadenza (30 giorni)')
+                ->badgeColor('info')
+                ->modifyQueryUsing(fn (Builder $query) => $query
+                    ->whereBetween('expiry_date', [$today, Carbon::today()->addDays(30)->toDateString()])),
+            'tutti' => Tab::make('Tutti i documenti'),
+        ];
+    }
+
+    public function getDefaultActiveTab(): string|int|null
+    {
+        return 'scaduti';
+    }
+}

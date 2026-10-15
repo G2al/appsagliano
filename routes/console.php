@@ -17,3 +17,7 @@ Artisan::command('maintenance:check-due-alerts', function () {
 Schedule::command('maintenance:check-due-alerts')
     ->everyFiveSeconds()
     ->withoutOverlapping();
+
+Schedule::command('verifications:check-expiry')
+    ->everySecond()
+    ->withoutOverlapping();
