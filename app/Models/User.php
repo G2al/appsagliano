@@ -24,6 +24,7 @@ class User extends Authenticatable implements FilamentUser
     public const PANEL_MODULE_REFUELS = 'refuels';
     public const PANEL_MODULE_DOCUMENTS = 'documents';
     public const PANEL_MODULE_TRIPS = 'trips';
+    public const PANEL_MODULE_BORDERO = 'bordero';
 
     /**
      * The attributes that are mass assignable.
@@ -122,6 +123,7 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
             self::PANEL_MODULE_TRIPS,
+            self::PANEL_MODULE_BORDERO,
         ];
     }
 
@@ -134,7 +136,8 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_MAINTENANCE => 'Manutenzione',
             self::PANEL_MODULE_REFUELS => 'Rifornimenti',
             self::PANEL_MODULE_DOCUMENTS => 'Documenti',
-            self::PANEL_MODULE_TRIPS => 'Viaggi',
+            self::PANEL_MODULE_TRIPS => 'Bordero (creazione)',
+            self::PANEL_MODULE_BORDERO => 'Bordero (gestione prezzo)',
         ];
     }
 
@@ -215,6 +218,20 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasPanelModule(self::PANEL_MODULE_TRIPS);
     }
 
+    public function canAccessBorderoArea(): bool
+    {
+        return $this->hasPanelModule(self::PANEL_MODULE_BORDERO);
+    }
+
+    /**
+     * Chi puo' impostare/modificare il prezzo di un record bordero: admin o
+     * chi ha il modulo dedicato (distinto da chi puo' solo crearlo).
+     */
+    public function canManageBorderoPrice(): bool
+    {
+        return $this->isAdmin() || $this->canAccessBorderoArea();
+    }
+
     public function canAccessUsersArea(): bool
     {
         return $this->hasAnyPanelModules([
@@ -222,6 +239,7 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
             self::PANEL_MODULE_TRIPS,
+            self::PANEL_MODULE_BORDERO,
         ]);
     }
 

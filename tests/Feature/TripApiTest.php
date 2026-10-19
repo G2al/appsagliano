@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Filiale;
 use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
@@ -10,20 +11,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
-use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class TripApiTest extends TestCase
 {
-    use FakesOpenRouteService;
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->fakeOpenRouteServiceSuccess();
-    }
 
     private function makeWorker(): User
     {
@@ -33,7 +25,7 @@ class TripApiTest extends TestCase
         ]);
     }
 
-    private function makeVehicle(string $plate = 'MG001AA'): Vehicle
+    private function makeVehicle(string $plate = 'VL001AA'): Vehicle
     {
         return Vehicle::query()->create([
             'name' => 'Camion',
@@ -44,38 +36,44 @@ class TripApiTest extends TestCase
         ]);
     }
 
-    private function payload(Platform $platform, Vehicle $vehicle, array $overrides = []): array
+    private function makeFiliale(string $codice = 'FN01'): Filiale
+    {
+        return Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => $codice]);
+    }
+
+    private function payload(Filiale $filiale, Vehicle $vehicle, array $overrides = []): array
     {
         return array_merge([
             'date' => '2026-09-29 09:00:00',
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'destinations' => ['Milano', 'Torino'],
             'goods_type' => 'freschi',
+            'scarichi' => 3,
             'delivery_note_number' => '12345',
             'attachment' => UploadedFile::fake()->image('bolla.jpg'),
         ], $overrides);
     }
 
-    public function test_worker_can_create_trip_with_multiple_destinations(): void
+    public function test_worker_can_create_bordero_record(): void
     {
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
-        $response = $this->post('/api/trips', $this->payload($platform, $vehicle));
+        $response = $this->post('/api/trips', $this->payload($filiale, $vehicle));
 
         $response->assertCreated();
 
         $trip = Trip::query()->firstOrFail();
 
         $this->assertSame($worker->id, $trip->user_id);
-        $this->assertSame(['Milano', 'Torino'], $trip->destinations);
+        $this->assertSame($filiale->id, $trip->filiale_id);
         $this->assertSame('freschi', $trip->goods_type);
+        $this->assertSame(3, $trip->scarichi);
         $this->assertSame('12345', $trip->delivery_note_number);
         $this->assertNull($trip->price);
         $this->assertFalse($trip->is_certified);
@@ -83,46 +81,46 @@ class TripApiTest extends TestCase
         Storage::disk('public')->assertExists($trip->attachments->first()->path);
     }
 
-    public function test_worker_cannot_set_price_when_creating_trip(): void
+    public function test_worker_cannot_set_price_when_creating_bordero_record(): void
     {
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
-        $this->post('/api/trips', $this->payload($platform, $vehicle, ['price' => 999]))->assertCreated();
+        $this->post('/api/trips', $this->payload($filiale, $vehicle, ['price' => 999]))->assertCreated();
 
         $this->assertNull(Trip::query()->firstOrFail()->price);
     }
 
-    public function test_trip_requires_attachment_bolla_and_a_valid_goods_type(): void
+    public function test_bordero_record_requires_attachment_filiale_and_a_valid_goods_type(): void
     {
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
-        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['attachment' => null]))
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['attachment' => null]))
             ->assertStatus(422)
             ->assertJsonValidationErrors('attachment');
 
-        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['delivery_note_number' => 'ABC']))
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['delivery_note_number' => 'ABC']))
             ->assertStatus(422)
             ->assertJsonValidationErrors('delivery_note_number');
 
-        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['goods_type' => 'surgelati']))
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['goods_type' => 'surgelati']))
             ->assertStatus(422)
             ->assertJsonValidationErrors('goods_type');
 
-        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['destinations' => ['', '  ']]))
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['filiale_id' => 99999]))
             ->assertStatus(422)
-            ->assertJsonValidationErrors('destinations');
+            ->assertJsonValidationErrors('filiale_id');
 
         $this->assertDatabaseCount('trips', 0);
     }
@@ -132,12 +130,12 @@ class TripApiTest extends TestCase
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
-        $this->postJson('/api/trips', $this->payload($platform, $vehicle, ['delivery_note_number' => '2332-2332']))
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['delivery_note_number' => '2332-2332']))
             ->assertCreated();
 
         $this->assertSame('2332-2332', Trip::query()->firstOrFail()->delivery_note_number);
@@ -148,12 +146,12 @@ class TripApiTest extends TestCase
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
-        $payload = $this->payload($platform, $vehicle);
+        $payload = $this->payload($filiale, $vehicle);
         unset($payload['attachment']);
         $payload['attachments'] = [
             UploadedFile::fake()->image('bolla1.jpg'),
@@ -175,17 +173,16 @@ class TripApiTest extends TestCase
         Storage::fake('public');
 
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Sanctum::actingAs($worker);
 
         $trip = Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-09-29 09:00:00',
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
@@ -194,9 +191,8 @@ class TripApiTest extends TestCase
 
         $this->put("/api/trips/{$trip->id}", [
             'date' => '2026-09-29 09:00:00',
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'remove_attachment_ids' => [$removedAttachment->id],
@@ -210,23 +206,22 @@ class TripApiTest extends TestCase
         $this->assertFalse($trip->attachments->contains('id', $removedAttachment->id));
     }
 
-    public function test_worker_lists_only_own_trips_while_admin_sees_all(): void
+    public function test_worker_lists_only_own_bordero_records_while_admin_sees_all(): void
     {
         Storage::fake('public');
 
         $worker = $this->makeWorker();
         $otherWorker = $this->makeWorker();
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         foreach ([$worker, $otherWorker] as $user) {
             $trip = Trip::query()->create([
                 'user_id' => $user->id,
-                'platform_id' => $platform->id,
+                'filiale_id' => $filiale->id,
                 'vehicle_id' => $vehicle->id,
                 'date' => '2026-09-29 09:00:00',
-                'destinations' => ['Roma'],
                 'goods_type' => 'secco',
                 'delivery_note_number' => '1',
             ]);
@@ -238,6 +233,19 @@ class TripApiTest extends TestCase
 
         Sanctum::actingAs($admin);
         $this->getJson('/api/trips?per_page=all')->assertOk()->assertJsonCount(2);
+    }
+
+    public function test_filiali_endpoint_lists_filiali_sorted_by_name(): void
+    {
+        Filiale::query()->create(['name' => 'Zeta', 'codice' => 'Z01']);
+        Filiale::query()->create(['name' => 'Alfa', 'codice' => 'A01']);
+
+        Sanctum::actingAs($this->makeWorker());
+
+        $this->getJson('/api/filiali')
+            ->assertOk()
+            ->assertJsonPath('0.name', 'Alfa')
+            ->assertJsonPath('1.name', 'Zeta');
     }
 
     public function test_platforms_endpoint_lists_platforms_sorted_by_name(): void
@@ -256,15 +264,14 @@ class TripApiTest extends TestCase
     public function test_trip_is_certified_only_once_price_is_set(): void
     {
         $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         $trip = Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-09-29 09:00:00',
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
@@ -274,57 +281,5 @@ class TripApiTest extends TestCase
         $trip->update(['price' => 350.5]);
 
         $this->assertTrue($trip->fresh()->is_certified);
-    }
-
-    public function test_worker_can_preview_distance_without_creating_a_trip(): void
-    {
-        $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
-        $platform->addresses()->create(['address' => 'Via Roma 1, Bari']);
-
-        Sanctum::actingAs($worker);
-
-        $response = $this->postJson('/api/trips/calculate-distance', [
-            'platform_id' => $platform->id,
-            'destinations' => ['Milano', 'Pavia'],
-        ])->assertOk();
-
-        $response->assertJson([
-            'distance_km' => 123.46,
-            'distance_status' => 'calculated',
-            'distance_note' => null,
-        ]);
-
-        $this->assertSame(0, Trip::query()->count());
-    }
-
-    public function test_preview_distance_requires_platform_and_destinations(): void
-    {
-        $worker = $this->makeWorker();
-
-        Sanctum::actingAs($worker);
-
-        $this->postJson('/api/trips/calculate-distance', [])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['platform_id', 'destinations']);
-    }
-
-    public function test_preview_distance_marks_unavailable_when_platform_has_no_address(): void
-    {
-        $worker = $this->makeWorker();
-        $platform = Platform::query()->create(['name' => 'Senza indirizzo']);
-
-        Sanctum::actingAs($worker);
-
-        $this->postJson('/api/trips/calculate-distance', [
-            'platform_id' => $platform->id,
-            'destinations' => ['Milano'],
-        ])->assertOk()
-            ->assertJson([
-                'distance_km' => null,
-                'distance_status' => 'unavailable',
-                'distance_error_code' => 'platform_missing_address',
-                'distance_error_destination' => null,
-            ]);
     }
 }

@@ -10,7 +10,7 @@
             />
         </div>
         <div class="text-sm text-gray-500 dark:text-gray-400">
-            {{ $totalTrips }} {{ $totalTrips === 1 ? 'viaggio' : 'viaggi' }} nel mese selezionato
+            {{ $totalTrips }} {{ $totalTrips === 1 ? 'record' : 'record' }} nel mese selezionato
         </div>
     </div>
 
@@ -20,7 +20,7 @@
                 <tr>
                     <th class="px-3 py-2 font-medium whitespace-nowrap">Giorno</th>
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
-                        <th class="px-3 py-2 font-medium whitespace-nowrap" colspan="2">{{ $i }}° viaggio</th>
+                        <th class="px-3 py-2 font-medium whitespace-nowrap" colspan="2">{{ $i }}° record</th>
                     @endfor
                 </tr>
             </thead>
@@ -36,16 +36,14 @@
                             @php($trip = $row['trips']->get($i))
                             @if ($trip)
                                 <td class="px-3 py-2 align-top">
-                                    <div class="font-medium">{{ $trip->destinations_label ?: 'N/D' }}</div>
+                                    <div class="font-medium">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</div>
                                     <div class="text-xs text-gray-400">
                                         {{ $trip->vehicle?->plate ?? 'N/D' }}
-                                        @if ($trip->platform)
-                                            &middot; {{ $trip->platform->name }}
-                                        @endif
+                                        &middot; {{ \App\Models\Trip::goodsTypeOptions()[$trip->goods_type] ?? $trip->goods_type }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 align-top whitespace-nowrap">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">Bolla</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">N. bordero</span>
                                     <div class="font-medium">{{ $trip->delivery_note_number }}</div>
                                 </td>
                             @else

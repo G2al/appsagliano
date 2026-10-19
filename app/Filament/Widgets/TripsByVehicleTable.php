@@ -21,7 +21,7 @@ class TripsByVehicleTable extends BaseWidget
     protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
-    protected static ?string $heading = 'Viaggi per veicolo';
+    protected static ?string $heading = 'Bordero per veicolo';
 
     protected function getTableQuery(): Builder
     {
@@ -51,7 +51,7 @@ class TripsByVehicleTable extends BaseWidget
                 ->formatStateUsing(fn ($state, $record) => trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')))
                 ->searchable(['vehicles.plate', 'vehicles.name']),
             Tables\Columns\TextColumn::make('trips_count')
-                ->label('Viaggi')
+                ->label('Record')
                 ->sortable(),
             Tables\Columns\TextColumn::make('certified_count')
                 ->label('Certificati')
@@ -89,7 +89,7 @@ class TripsByVehicleTable extends BaseWidget
             Tables\Actions\Action::make('dettagli')
                 ->label('Vedi viaggi')
                 ->icon('heroicon-o-list-bullet')
-                ->modalHeading('Viaggi del veicolo')
+                ->modalHeading('Bordero del veicolo')
                 ->modalWidth('7xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Chiudi')

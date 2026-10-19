@@ -20,14 +20,14 @@ class EditPlatform extends EditRecord
                     /** @var Platform $platform */
                     $platform = $this->getRecord();
 
-                    if (! $platform->trips()->withTrashed()->exists()) {
+                    if (! $platform->movements()->withTrashed()->exists()) {
                         return;
                     }
 
                     Notification::make()
                         ->danger()
                         ->title('Impossibile eliminare')
-                        ->body('Questa piattaforma e usata da uno o piu viaggi.')
+                        ->body('Questa piattaforma e usata da uno o piu rifornimenti.')
                         ->send();
 
                     $action->cancel();

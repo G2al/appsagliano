@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
-use App\Services\TripDistanceCalculator;
 use App\Support\BuildsMonthlyTripSchedule;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
@@ -20,9 +19,10 @@ class TripController extends Controller
     use BuildsMonthlyTripSchedule;
 
     /**
-     * Scheda viaggi mensile dell'utente autenticato (o, solo per admin, di un
-     * altro utente via ?user_id=): giorni del mese con viaggi, totale giorno,
-     * totale mese e totali per piattaforma. Stessa logica usata lato Filament.
+     * Scheda bordero mensile dell'utente autenticato (o, solo per admin, di
+     * un altro utente via ?user_id=): giorni del mese con record, totale
+     * giorno, totale mese e totali per filiale. Stessa logica usata lato
+     * Filament.
      */
     public function schedule(Request $request): JsonResponse
     {
@@ -39,7 +39,7 @@ class TripController extends Controller
 
         if ($targetUserId && (int) $targetUserId !== $user->id) {
             if ($user->role !== 'admin') {
-                abort(403, 'Non puoi vedere la scheda viaggi di un altro utente.');
+                abort(403, 'Non puoi vedere la scheda bordero di un altro utente.');
             }
 
             $owner = User::query()->findOrFail($targetUserId);
@@ -73,61 +73,16 @@ class TripController extends Controller
             'month' => $month,
             'total_trips' => $schedule['totalTrips'],
             'month_total' => $isAdmin ? round($days->sum('total'), 2) : null,
-            'platform_totals' => $isAdmin ? $schedule['platformTotals'] : null,
+            'filiale_totals' => $isAdmin ? $schedule['filialeTotals'] : null,
             'days' => $days,
         ]);
-    }
-
-    public function calculateDistance(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if (! in_array($user->role, ['worker', 'admin'], true)) {
-            throw ValidationException::withMessages([
-                'role' => ['Ruolo non autorizzato a calcolare viaggi.'],
-            ]);
-        }
-
-        $request->merge([
-            'destinations' => collect($request->input('destinations', []))
-                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
-                ->filter(fn ($value) => $value !== '' && $value !== null)
-                ->values()
-                ->all(),
-        ]);
-
-        $validated = $request->validate([
-            'platform_id' => ['required', Rule::exists('platforms', 'id')],
-            'platform_address_id' => ['nullable', Rule::exists('platform_addresses', 'id')],
-            'destinations' => ['required', 'array', 'min:1'],
-            'destinations.*' => ['required', 'string', 'max:255'],
-        ], [
-            'required' => 'Il campo :attribute e obbligatorio.',
-            'exists' => 'Il campo :attribute non esiste.',
-            'destinations.min' => 'Inserisci almeno una destinazione.',
-        ], [
-            'platform_id' => 'piattaforma',
-            'platform_address_id' => 'indirizzo piattaforma',
-            'destinations' => 'destinazioni',
-            'destinations.*' => 'destinazione',
-        ]);
-
-        $platform = Platform::query()->with('addresses')->find($validated['platform_id']);
-
-        $result = app(TripDistanceCalculator::class)->preview(
-            $platform,
-            $validated['destinations'],
-            isset($validated['platform_address_id']) ? (int) $validated['platform_address_id'] : null
-        );
-
-        return response()->json($result);
     }
 
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $query = Trip::with(['platform', 'platformAddress', 'vehicle', 'user', 'attachments'])
+        $query = Trip::with(['filiale', 'vehicle', 'user', 'attachments'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest('date')
             ->latest('id');
@@ -161,7 +116,7 @@ class TripController extends Controller
 
         if (! in_array($user->role, ['worker', 'admin'], true)) {
             throw ValidationException::withMessages([
-                'role' => ['Ruolo non autorizzato a creare viaggi.'],
+                'role' => ['Ruolo non autorizzato a creare record bordero.'],
             ]);
         }
 
@@ -178,9 +133,7 @@ class TripController extends Controller
             ]);
         }
 
-        app(TripDistanceCalculator::class)->calculate($trip);
-
-        $trip->load(['platform', 'platformAddress', 'vehicle', 'user', 'attachments']);
+        $trip->load(['filiale', 'vehicle', 'user', 'attachments']);
 
         if ($user->role !== 'admin') {
             $trip->makeHidden('price');
@@ -195,20 +148,16 @@ class TripController extends Controller
         $isAdmin = $user->role === 'admin';
 
         if (! $isAdmin && (int) $trip->user_id !== (int) $user->id) {
-            abort(403, 'Non puoi modificare un viaggio di un altro utente.');
+            abort(403, 'Non puoi modificare un record di un altro utente.');
         }
 
         if (! $isAdmin && $trip->is_certified) {
-            abort(403, 'Il viaggio e gia stato pagato e non puo piu essere modificato.');
+            abort(403, 'Il record e gia stato pagato e non puo piu essere modificato.');
         }
 
         $validated = $this->validatePayload($request, attachmentRequired: false);
 
         $trip->update($validated);
-
-        if ($trip->wasChanged(['platform_id', 'platform_address_id', 'destinations'])) {
-            app(TripDistanceCalculator::class)->calculate($trip);
-        }
 
         $removeIds = collect($request->input('remove_attachment_ids', []))
             ->filter(fn ($id) => is_numeric($id))
@@ -230,7 +179,7 @@ class TripController extends Controller
             ]);
         }
 
-        $trip->refresh()->load(['platform', 'platformAddress', 'vehicle', 'user', 'attachments']);
+        $trip->refresh()->load(['filiale', 'vehicle', 'user', 'attachments']);
 
         if (! $isAdmin) {
             $trip->makeHidden('price');
@@ -259,22 +208,12 @@ class TripController extends Controller
      */
     private function validatePayload(Request $request, bool $attachmentRequired): array
     {
-        $request->merge([
-            'destinations' => collect($request->input('destinations', []))
-                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
-                ->filter(fn ($value) => $value !== '' && $value !== null)
-                ->values()
-                ->all(),
-        ]);
-
         $validated = $request->validate([
             'date' => ['required', 'date'],
-            'platform_id' => ['required', Rule::exists('platforms', 'id')],
-            'platform_address_id' => ['nullable', Rule::exists('platform_addresses', 'id')],
+            'filiale_id' => ['required', Rule::exists('filiali', 'id')],
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
-            'destinations' => ['required', 'array', 'min:1'],
-            'destinations.*' => ['required', 'string', 'max:255'],
             'goods_type' => ['required', Rule::in(array_keys(Trip::goodsTypeOptions()))],
+            'scarichi' => ['nullable', 'integer', 'min:0'],
             'delivery_note_number' => ['required', 'regex:/^[0-9-]{1,30}$/'],
             'attachment' => [$attachmentRequired ? 'required_without:attachments' : 'nullable', 'file', 'max:16384'],
             'attachments' => [$attachmentRequired ? 'required_without:attachment' : 'nullable', 'array', 'min:1'],
@@ -284,8 +223,7 @@ class TripController extends Controller
             'date' => 'Il campo :attribute non e una data valida.',
             'exists' => 'Il campo :attribute non esiste.',
             'in' => 'Il campo :attribute non e valido.',
-            'destinations.min' => 'Inserisci almeno una destinazione.',
-            'delivery_note_number.regex' => 'Il campo bolla puo contenere solo numeri e trattini.',
+            'delivery_note_number.regex' => 'Il campo numero bordero puo contenere solo numeri e trattini.',
             'attachment.required_without' => "L'allegato e obbligatorio.",
             'attachment.file' => "L'allegato deve essere un file valido.",
             'attachment.max' => "L'allegato non puo superare 16MB.",
@@ -295,16 +233,16 @@ class TripController extends Controller
             'attachments.*.max' => 'Ogni allegato non puo superare 16MB.',
         ], [
             'date' => 'data',
-            'platform_id' => 'piattaforma',
-            'platform_address_id' => 'indirizzo piattaforma',
+            'filiale_id' => 'filiale',
             'vehicle_id' => 'veicolo',
-            'destinations' => 'destinazioni',
-            'destinations.*' => 'destinazione',
-            'goods_type' => 'dicitura',
-            'delivery_note_number' => 'bolla',
+            'goods_type' => 'tipologia',
+            'scarichi' => 'scarichi',
+            'delivery_note_number' => 'numero bordero',
             'attachment' => 'allegato',
             'attachments' => 'allegati',
         ]);
+
+        $validated['scarichi'] = $validated['scarichi'] ?? 0;
 
         unset($validated['attachment'], $validated['attachments']);
 

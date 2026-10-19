@@ -18,22 +18,19 @@ class Trip extends Model
 
     protected $fillable = [
         'user_id',
-        'platform_id',
-        'platform_address_id',
+        'filiale_id',
         'vehicle_id',
         'date',
-        'destinations',
         'goods_type',
+        'scarichi',
         'delivery_note_number',
         'price',
     ];
 
     protected $casts = [
         'date' => 'datetime',
-        'destinations' => 'array',
         'price' => 'decimal:2',
-        'distance_km' => 'decimal:2',
-        'distance_calculated_at' => 'datetime',
+        'scarichi' => 'integer',
     ];
 
     protected $appends = [
@@ -56,14 +53,9 @@ class Trip extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function platform(): BelongsTo
+    public function filiale(): BelongsTo
     {
-        return $this->belongsTo(Platform::class);
-    }
-
-    public function platformAddress(): BelongsTo
-    {
-        return $this->belongsTo(PlatformAddress::class);
+        return $this->belongsTo(Filiale::class);
     }
 
     public function vehicle(): BelongsTo
@@ -84,21 +76,5 @@ class Trip extends Model
     public function getGoodsTypeLabelAttribute(): string
     {
         return self::goodsTypeOptions()[$this->goods_type] ?? (string) $this->goods_type;
-    }
-
-    public function getDestinationsLabelAttribute(): string
-    {
-        return collect($this->destinations ?? [])->filter()->implode(' → ');
-    }
-
-    public function getDistanceLabelAttribute(): string
-    {
-        if ($this->distance_status === 'unavailable' || $this->distance_km === null) {
-            return 'N/D';
-        }
-
-        $label = number_format((float) $this->distance_km, 0, ',', '.') . ' km';
-
-        return $this->distance_status === 'estimated' ? $label . ' (stima)' : $label;
     }
 }

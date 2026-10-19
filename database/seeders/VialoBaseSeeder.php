@@ -16,6 +16,7 @@ class VialoBaseSeeder extends Seeder
             StationSeeder::class,
             SupplierSeeder::class,
             VialoPlatformSeeder::class,
+            VialoFilialeSeeder::class,
             DocumentFolderTemplateSeeder::class,
         ]);
     }

@@ -3,7 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\TripsByDriverTable;
-use App\Filament\Widgets\TripsByPlatformDriverTable;
+use App\Filament\Widgets\TripsByFilialeDriverTable;
+use App\Filament\Widgets\TripsByGoodsTypeTable;
 use App\Filament\Widgets\TripsByVehicleDriverTable;
 use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
@@ -20,8 +21,8 @@ class ReportTrips extends Page
     use HasFiltersAction;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
-    protected static ?string $navigationLabel = 'Report viaggi';
-    protected static ?string $title = 'Report viaggi';
+    protected static ?string $navigationLabel = 'Report bordero';
+    protected static ?string $title = 'Report bordero';
     protected static ?string $navigationGroup = 'Report';
     protected static string $view = 'filament.pages.report-trips';
     protected static bool $shouldRegisterNavigation = true;
@@ -65,9 +66,10 @@ class ReportTrips extends Page
     {
         return [
             TripsStats::class,
+            TripsByGoodsTypeTable::class,
             TripsByVehicleTable::class,
             TripsByDriverTable::class,
-            TripsByPlatformDriverTable::class,
+            TripsByFilialeDriverTable::class,
             TripsByVehicleDriverTable::class,
         ];
     }
@@ -87,6 +89,6 @@ class ReportTrips extends Page
             return false;
         }
 
-        return $user->isAdmin() || $user->canAccessTripsArea();
+        return $user->isAdmin() || $user->canAccessTripsArea() || $user->canAccessBorderoArea();
     }
 }

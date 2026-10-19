@@ -12,7 +12,7 @@ class TripsMonthlyRelationManager extends RelationManager
 {
     protected static string $relationship = 'trips';
 
-    protected static ?string $title = 'Scheda viaggi mensile';
+    protected static ?string $title = 'Scheda bordero mensile';
 
     protected static string $view = 'filament.relation-managers.trips-monthly';
 
@@ -41,7 +41,7 @@ class TripsMonthlyRelationManager extends RelationManager
 
         /** @var Collection<int, Trip> $trips */
         $trips = $this->ownerRecord->trips()
-            ->with(['platform', 'vehicle'])
+            ->with(['filiale', 'vehicle'])
             ->whereBetween('date', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
             ->orderBy('date')
             ->orderBy('id')

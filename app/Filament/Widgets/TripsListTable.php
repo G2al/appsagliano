@@ -3,7 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -21,14 +21,14 @@ class TripsListTable extends BaseWidget
     protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
-    protected static ?string $heading = 'Elenco viaggi';
+    protected static ?string $heading = 'Elenco bordero';
 
     protected function getTableQuery(): Builder
     {
         [$start, $end] = $this->getReportTableCheckDateRange();
 
         return Trip::query()
-            ->with(['user', 'vehicle', 'platform', 'attachments'])
+            ->with(['user', 'vehicle', 'filiale', 'attachments'])
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -47,20 +47,18 @@ class TripsListTable extends BaseWidget
             Tables\Columns\TextColumn::make('vehicle.plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, Trip $record) => trim(($record->vehicle?->plate ? $record->vehicle->plate . ' - ' : '') . ($record->vehicle?->name ?? ''))),
-            Tables\Columns\TextColumn::make('platform.name')
-                ->label('Piattaforma'),
-            Tables\Columns\TextColumn::make('destinations')
-                ->label('Destinazioni')
-                ->state(fn (Trip $record) => $record->destinations_label)
-                ->wrap()
-                ->limit(60),
+            Tables\Columns\TextColumn::make('filiale.name')
+                ->label('Filiale')
+                ->formatStateUsing(fn ($state, Trip $record) => $record->filiale ? "{$record->filiale->codice} - {$record->filiale->name}" : 'N/D'),
             Tables\Columns\TextColumn::make('goods_type')
-                ->label('Dicitura')
+                ->label('Tipologia')
                 ->formatStateUsing(fn ($state) => Trip::goodsTypeOptions()[$state] ?? $state)
                 ->badge(),
             Tables\Columns\TextColumn::make('delivery_note_number')
-                ->label('Bolla')
+                ->label('Numero bordero')
                 ->searchable(),
+            Tables\Columns\TextColumn::make('scarichi')
+                ->label('Scarichi'),
             Tables\Columns\TextColumn::make('price')
                 ->label('Prezzo')
                 ->money('EUR', true)
@@ -102,9 +100,9 @@ class TripsListTable extends BaseWidget
                     ->get()
                     ->mapWithKeys(fn (User $u) => [$u->id => $u->full_name])
                     ->toArray()),
-            Tables\Filters\SelectFilter::make('platform_id')
-                ->label('Piattaforma')
-                ->options(fn () => Platform::query()->orderBy('name')->pluck('name', 'id')->toArray()),
+            Tables\Filters\SelectFilter::make('filiale_id')
+                ->label('Filiale')
+                ->options(fn () => Filiale::query()->orderBy('name')->pluck('name', 'id')->toArray()),
         ];
     }
 }

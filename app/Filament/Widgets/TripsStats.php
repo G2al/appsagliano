@@ -34,7 +34,7 @@ class TripsStats extends StatsOverviewWidget
         $priceTotal = (float) ($totals?->price_total ?? 0);
 
         return [
-            Stat::make('Viaggi', number_format($count, 0, ',', '.'))
+            Stat::make('Bordero', number_format($count, 0, ',', '.'))
                 ->icon('heroicon-o-truck'),
             Stat::make('Certificati', number_format($certified, 0, ',', '.'))
                 ->icon('heroicon-o-check-badge'),

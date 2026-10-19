@@ -14,14 +14,14 @@ class Platform extends Model
         'name',
     ];
 
-    public function trips(): HasMany
-    {
-        return $this->hasMany(Trip::class);
-    }
-
     public function addresses(): HasMany
     {
         return $this->hasMany(PlatformAddress::class)->orderBy('id');
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(Movement::class);
     }
 
     public function hasSingleAddress(): bool

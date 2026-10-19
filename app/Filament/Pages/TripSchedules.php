@@ -15,8 +15,8 @@ class TripSchedules extends Page
     use WithPagination;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
-    protected static ?string $navigationLabel = 'Scheda viaggi';
-    protected static ?string $title = 'Scheda viaggi';
+    protected static ?string $navigationLabel = 'Scheda bordero';
+    protected static ?string $title = 'Scheda bordero';
     protected static ?string $navigationGroup = 'Movimenti';
     protected static string $view = 'filament.pages.trip-schedules';
     protected string $paginationTheme = 'tailwind';
@@ -38,7 +38,7 @@ class TripSchedules extends Page
 
     public static function canAccess(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS]);
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS, User::PANEL_MODULE_BORDERO]);
     }
 
     /**

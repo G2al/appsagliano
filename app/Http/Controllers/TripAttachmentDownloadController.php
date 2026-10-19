@@ -15,7 +15,7 @@ class TripAttachmentDownloadController extends Controller
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! $user->canAccessTripsArea()) {
+        if (! $user instanceof User || (! $user->canAccessTripsArea() && ! $user->canAccessBorderoArea() && ! $user->isAdmin())) {
             abort(403);
         }
 
@@ -30,7 +30,7 @@ class TripAttachmentDownloadController extends Controller
         }
 
         $extension = pathinfo($attachment->path, PATHINFO_EXTENSION);
-        $filename = 'viaggio-' . $trip->id . '-bolla-' . $trip->delivery_note_number . '-' . $attachment->id . ($extension ? '.' . $extension : '');
+        $filename = 'bordero-' . $trip->id . '-numero-' . $trip->delivery_note_number . '-' . $attachment->id . ($extension ? '.' . $extension : '');
 
         return $disk->download($attachment->path, $filename);
     }

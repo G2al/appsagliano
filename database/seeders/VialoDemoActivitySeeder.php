@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Filiale;
 use App\Models\Maintenance;
 use App\Models\Movement;
 use App\Models\Platform;
@@ -16,23 +17,17 @@ use Illuminate\Support\Carbon;
 class VialoDemoActivitySeeder extends Seeder
 {
     /**
-     * Genera viaggi, rifornimenti e manutenzioni realistici usando gli
-     * autisti, i veicoli e le piattaforme GIA' presenti nel database
-     * (non crea anagrafica), per avere dati di prova come se l'app fosse
-     * stata usata davvero negli ultimi mesi.
+     * Genera record bordero, rifornimenti e manutenzioni realistici usando
+     * gli autisti, i veicoli e le piattaforme/filiali GIA' presenti nel
+     * database (non crea anagrafica), per avere dati di prova come se
+     * l'app fosse stata usata davvero negli ultimi mesi.
      *
      * Non idempotente: ogni esecuzione aggiunge nuovi movimenti/manutenzioni/
-     * viaggi. Rilanciarlo piu' volte accumula altri dati demo.
+     * record bordero. Rilanciarlo piu' volte accumula altri dati demo.
      */
     private const DAYS_BACK = 60;
 
     private const MAX_DRIVERS = 40;
-
-    private const DESTINATIONS = [
-        'Roma', 'Napoli', 'Salerno', 'Caserta', 'Frignano', 'Milano', 'Bergamo',
-        'Mantova', 'Torino', 'Bologna', 'Firenze', 'Bari', 'Latina', 'Frosinone',
-        'Avellino', 'Benevento', 'Pescara', 'Foggia', 'Taranto', 'Brindisi',
-    ];
 
     public function run(): void
     {
@@ -45,11 +40,12 @@ class VialoDemoActivitySeeder extends Seeder
 
         $vehicles = Vehicle::query()->inRandomOrder()->get();
         $platforms = Platform::query()->get();
+        $filiali = Filiale::query()->get();
         $stations = Station::query()->get();
         $suppliers = Supplier::query()->get();
 
-        if ($drivers->isEmpty() || $vehicles->isEmpty() || $platforms->isEmpty()) {
-            $this->command?->warn('Servono autisti, veicoli e piattaforme gia presenti nel database: esegui prima i seeder di anagrafica.');
+        if ($drivers->isEmpty() || $vehicles->isEmpty() || $platforms->isEmpty() || $filiali->isEmpty()) {
+            $this->command?->warn('Servono autisti, veicoli, piattaforme e filiali gia presenti nel database: esegui prima i seeder di anagrafica.');
 
             return;
         }
@@ -81,23 +77,21 @@ class VialoDemoActivitySeeder extends Seeder
 
                 $vehicle = $driverVehicle[$driver->id];
 
-                // 1-2 viaggi nel giorno.
+                // 1-2 record bordero nel giorno.
                 $tripsToday = random_int(1, 2);
                 for ($i = 0; $i < $tripsToday; $i++) {
-                    $platform = $platforms->random();
-                    $destinationsCount = random_int(1, 2);
-                    $destinations = collect(self::DESTINATIONS)->shuffle()->take($destinationsCount)->values()->all();
+                    $filiale = $filiali->random();
 
-                    // L'80% dei viaggi passati e' gia' certificato (prezzo impostato).
+                    // L'80% dei record passati e' gia' certificato (prezzo impostato).
                     $isCertified = random_int(1, 100) <= 80;
 
                     Trip::create([
                         'user_id' => $driver->id,
-                        'platform_id' => $platform->id,
+                        'filiale_id' => $filiale->id,
                         'vehicle_id' => $vehicle->id,
                         'date' => $date->copy()->addHours(random_int(6, 18))->addMinutes(random_int(0, 59)),
-                        'destinations' => $destinations,
                         'goods_type' => random_int(0, 1) === 0 ? Trip::GOODS_TYPE_DRY : Trip::GOODS_TYPE_FRESH,
+                        'scarichi' => random_int(0, 8),
                         'delivery_note_number' => (string) $deliveryNoteSequence++,
                         'price' => $isCertified ? round(random_int(600, 3500) / 10, 2) : null,
                     ]);
@@ -161,6 +155,6 @@ class VialoDemoActivitySeeder extends Seeder
             }
         }
 
-        $this->command?->info("Generati: {$tripsCreated} viaggi, {$movementsCreated} rifornimenti, {$maintenancesCreated} manutenzioni su {$drivers->count()} autisti.");
+        $this->command?->info("Generati: {$tripsCreated} record bordero, {$movementsCreated} rifornimenti, {$maintenancesCreated} manutenzioni su {$drivers->count()} autisti.");
     }
 }

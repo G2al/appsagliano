@@ -11,17 +11,17 @@
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
-        <span>{{ $totalTrips }} {{ $totalTrips === 1 ? 'viaggio' : 'viaggi' }} nel mese selezionato</span>
+        <span>{{ $totalTrips }} {{ $totalTrips === 1 ? 'record' : 'record' }} nel mese selezionato</span>
         <span class="font-semibold text-gray-900 dark:text-white">
             Totale mese: € {{ number_format(collect($days)->sum('total'), 2, ',', '.') }}
         </span>
     </div>
 
-    @if ($platformTotals->isNotEmpty())
+    @if ($filialeTotals->isNotEmpty())
         <div class="flex flex-wrap gap-2">
-            @foreach ($platformTotals as $row)
+            @foreach ($filialeTotals as $row)
                 <span class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800">
-                    <span class="text-gray-500 dark:text-gray-400">{{ $row['platform'] }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ $row['filiale'] }}</span>
                     <span class="font-semibold text-gray-900 dark:text-white">€ {{ number_format($row['total'], 2, ',', '.') }}</span>
                 </span>
             @endforeach
@@ -55,7 +55,7 @@
                 <tr>
                     <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">Giorno</th>
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
-                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="3">{{ $i }}° viaggio</th>
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="3">{{ $i }}° record</th>
                     @endfor
                     <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
                 </tr>
@@ -72,22 +72,25 @@
                             @php($trip = $row['trips']->get($i))
                             @if ($trip)
                                 <td class="px-3 py-2 align-top whitespace-nowrap">
-                                    <div class="font-medium whitespace-nowrap">{{ $trip->destinations_label ?: 'N/D' }}</div>
+                                    <div class="font-medium whitespace-nowrap">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</div>
                                     <div class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                                         {{ $trip->vehicle?->plate ?? 'N/D' }}
-                                        @if ($trip->platform)
-                                            &middot; {{ $trip->platform->name }}
-                                        @endif
                                         &middot; {{ $trip->goods_type_label }}
-                                        &middot; {{ $trip->distance_label }}
+                                        &middot; scarichi {{ $trip->scarichi }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 align-top whitespace-nowrap">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">Bolla</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">N. bordero</span>
                                     <div class="font-medium">{{ $trip->delivery_note_number }}</div>
                                 </td>
                                 <td class="px-2 py-2 align-top whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">
-                                    @include('livewire.partials.trip-price-input', ['trip' => $trip])
+                                    @if (auth()->user()?->canManageBorderoPrice())
+                                        @include('livewire.partials.trip-price-input', ['trip' => $trip])
+                                    @else
+                                        <span class="text-xs text-gray-400 dark:text-gray-600">
+                                            {{ $trip->price !== null ? 'Certificato' : 'Da economare' }}
+                                        </span>
+                                    @endif
                                 </td>
                             @else
                                 <td class="px-3 py-2"></td>

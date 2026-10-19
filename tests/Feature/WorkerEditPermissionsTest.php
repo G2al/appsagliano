@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Filiale;
 use App\Models\Maintenance;
 use App\Models\Movement;
 use App\Models\Platform;
@@ -14,22 +15,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
-use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class WorkerEditPermissionsTest extends TestCase
 {
-    use FakesOpenRouteService;
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->fakeOpenRouteServiceSuccess();
-    }
-
-    private function makeVehicle(string $plate = 'MG001AA'): Vehicle
+    private function makeVehicle(string $plate = 'VL001AA'): Vehicle
     {
         return Vehicle::query()->create([
             'name' => 'Camion',
@@ -140,15 +132,14 @@ class WorkerEditPermissionsTest extends TestCase
 
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma']);
+        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
         $vehicle = $this->makeVehicle();
 
         $trip = Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-10-07 09:00:00',
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
@@ -157,9 +148,8 @@ class WorkerEditPermissionsTest extends TestCase
 
         $this->putJson("/api/trips/{$trip->id}", [
             'date' => '2026-10-07 09:00:00',
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'destinations' => ['Napoli'],
             'goods_type' => 'freschi',
             'delivery_note_number' => '2',
         ])->assertOk();
@@ -169,9 +159,8 @@ class WorkerEditPermissionsTest extends TestCase
 
         $this->putJson("/api/trips/{$trip->id}", [
             'date' => '2026-10-07 09:00:00',
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'destinations' => ['Torino'],
             'goods_type' => 'secco',
             'delivery_note_number' => '3',
         ])->assertForbidden();
@@ -179,13 +168,12 @@ class WorkerEditPermissionsTest extends TestCase
         Sanctum::actingAs($admin);
         $this->putJson("/api/trips/{$trip->id}", [
             'date' => '2026-10-07 09:00:00',
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'destinations' => ['Torino'],
             'goods_type' => 'secco',
             'delivery_note_number' => '3',
         ])->assertOk();
 
-        $this->assertSame(['Torino'], $trip->fresh()->destinations);
+        $this->assertSame('3', $trip->fresh()->delivery_note_number);
     }
 }

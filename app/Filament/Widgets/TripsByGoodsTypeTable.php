@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
-class TripsByPlatformDriverTable extends BaseWidget
+class TripsByGoodsTypeTable extends BaseWidget
 {
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
@@ -21,44 +21,35 @@ class TripsByPlatformDriverTable extends BaseWidget
     protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
-    protected static ?string $heading = 'Viaggi per piattaforma e autista';
+    protected static ?string $heading = 'Bordero per tipologia';
 
     protected function getTableQuery(): Builder
     {
         [$start, $end] = $this->getReportTableCheckDateRange();
 
         return Trip::query()
-            ->selectRaw("
+            ->selectRaw('
                 MIN(trips.id) as id,
-                platforms.id as platform_id,
-                platforms.name as platform_name,
-                users.id as user_id,
-                users.name as user_name,
-                users.surname as user_surname,
+                trips.goods_type as goods_type,
                 COUNT(*) as trips_count,
                 SUM(CASE WHEN trips.price IS NOT NULL THEN 1 ELSE 0 END) as certified_count,
                 COALESCE(SUM(trips.price), 0) as price_total
-            ")
-            ->join('users', 'users.id', '=', 'trips.user_id')
-            ->join('platforms', 'platforms.id', '=', 'trips.platform_id')
+            ')
             ->whereBetween('trips.date', [$start, $end])
-            ->groupBy('platforms.id', 'platforms.name', 'users.id', 'users.name', 'users.surname');
+            ->groupBy('trips.goods_type');
     }
 
     protected function getTableColumns(): array
     {
         return [
             $this->getReportTableCheckColumn(),
-            Tables\Columns\TextColumn::make('platform_name')
-                ->label('Piattaforma')
-                ->searchable(['platforms.name'])
+            Tables\Columns\TextColumn::make('goods_type')
+                ->label('Tipologia')
+                ->formatStateUsing(fn ($state) => Trip::goodsTypeOptions()[$state] ?? $state)
+                ->badge()
                 ->sortable(),
-            Tables\Columns\TextColumn::make('user_name')
-                ->label('Autista')
-                ->formatStateUsing(fn ($state, $record) => trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? '')))
-                ->searchable(['users.name', 'users.surname']),
             Tables\Columns\TextColumn::make('trips_count')
-                ->label('Viaggi')
+                ->label('Record')
                 ->sortable(),
             Tables\Columns\TextColumn::make('certified_count')
                 ->label('Certificati')
@@ -80,33 +71,23 @@ class TripsByPlatformDriverTable extends BaseWidget
         ];
     }
 
-    protected function getDefaultTableSortColumn(): ?string
-    {
-        return 'platform_name';
-    }
-
-    protected function getDefaultTableSortDirection(): ?string
-    {
-        return 'asc';
-    }
-
     protected function getReportTableRowKeySql(): string
     {
-        return "CONCAT('platform-user:', platforms.id, '-', users.id)";
+        return "CONCAT('goods-type:', trips.goods_type)";
     }
 
     protected function getReportTableRowKey(Model $record): string
     {
-        return 'platform-user:' . (int) $record->platform_id . '-' . (int) $record->user_id;
+        return 'goods-type:' . (string) $record->goods_type;
     }
 
     protected function getTableActions(): array
     {
         return [
             Tables\Actions\Action::make('dettagli')
-                ->label('Vedi viaggi')
+                ->label('Vedi record')
                 ->icon('heroicon-o-list-bullet')
-                ->modalHeading('Viaggi piattaforma / autista')
+                ->modalHeading('Bordero per tipologia')
                 ->modalWidth('7xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Chiudi')
@@ -114,13 +95,12 @@ class TripsByPlatformDriverTable extends BaseWidget
                     [$start, $end] = $this->getReportTableCheckDateRange();
 
                     $query = Trip::query()
-                        ->where('user_id', (int) $record->user_id)
-                        ->where('platform_id', (int) $record->platform_id)
+                        ->where('goods_type', (string) $record->goods_type)
                         ->whereBetween('date', [$start, $end]);
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        ($record->platform_name ?? 'N/D') . ' — ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? ''))
+                        Trip::goodsTypeOptions()[$record->goods_type] ?? (string) $record->goods_type
                     ));
                 }),
         ];

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\VehicleResource\Pages\ListVehicles;
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -20,10 +20,10 @@ class VehicleDeletionGuardTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
         $vehicle = Vehicle::query()->create([
             'name' => 'Camion',
-            'plate' => 'MG001AA',
+            'plate' => 'VL001AA',
             'color' => 'Blu',
             'current_km' => 1000,
             'maintenance_km' => 0,
@@ -31,10 +31,9 @@ class VehicleDeletionGuardTest extends TestCase
 
         Trip::query()->create([
             'user_id' => $driver->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);

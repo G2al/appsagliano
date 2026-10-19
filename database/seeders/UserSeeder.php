@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
                 'role' => 'worker',
                 'is_approved' => true,
                 'documents_verified' => true,
-                'panel_modules' => ['maintenance', 'documents', 'trips'],
+                'panel_modules' => ['maintenance', 'documents', 'trips', 'bordero'],
             ]
         );
 
@@ -68,10 +68,11 @@ class UserSeeder extends Seeder
             // mostrare onboarding/verifica/scadenze anche nella demo.
             $isFullyOperational = $index % 6 !== 0;
 
-            $panelModules = match ($index % 4) {
+            $panelModules = match ($index % 5) {
                 0 => ['maintenance'],
                 1 => ['documents'],
                 2 => ['trips'],
+                3 => ['bordero'],
                 default => ['maintenance', 'documents'],
             };
 

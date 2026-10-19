@@ -2,17 +2,16 @@
 
 namespace App\Livewire;
 
-use App\Filament\Concerns\ChecksPanelModules;
 use App\Models\Trip;
 use App\Models\User;
 use App\Support\BuildsMonthlyTripSchedule;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class TripScheduleEditor extends Component
 {
     use BuildsMonthlyTripSchedule;
-    use ChecksPanelModules;
 
     public int $userId;
 
@@ -29,7 +28,9 @@ class TripScheduleEditor extends Component
 
     public function updatePrice(int $tripId): void
     {
-        if (! static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS])) {
+        $user = Auth::user();
+
+        if (! $user instanceof User || ! $user->canManageBorderoPrice()) {
             abort(403);
         }
 

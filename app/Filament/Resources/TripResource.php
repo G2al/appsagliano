@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\TripResource\Pages;
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -25,16 +25,18 @@ class TripResource extends Resource
     protected static ?string $model = Trip::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationLabel = 'Viaggi';
-    protected static ?string $modelLabel = 'Viaggio';
-    protected static ?string $pluralLabel = 'Viaggi';
+    protected static ?string $navigationLabel = 'Bordero';
+    protected static ?string $modelLabel = 'Record bordero';
+    protected static ?string $pluralLabel = 'Bordero';
     protected static ?string $navigationGroup = 'Movimenti';
 
     public static function form(Form $form): Form
     {
+        $canManagePrice = static::currentUserCanManageBorderoPrice();
+
         return $form
             ->schema([
-                Forms\Components\Section::make('Dettagli viaggio')
+                Forms\Components\Section::make('Dettagli bordero')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('user_id')
@@ -50,24 +52,17 @@ class TripResource extends Resource
                             ->seconds(false)
                             ->default(now())
                             ->required(),
-                        Forms\Components\Select::make('platform_id')
-                            ->label('Piattaforma')
-                            ->relationship('platform', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(fn (Forms\Set $set) => $set('platform_address_id', null))
+                        Forms\Components\TextInput::make('delivery_note_number')
+                            ->label('Numero bordero')
+                            ->regex('/^[0-9-]+$/')
+                            ->validationMessages(['regex' => 'Il numero bordero puo contenere solo numeri e trattini.'])
+                            ->maxLength(30)
                             ->required(),
-                        Forms\Components\Select::make('platform_address_id')
-                            ->label('Indirizzo piattaforma')
-                            ->options(fn (Forms\Get $get) => $get('platform_id')
-                                ? \App\Models\PlatformAddress::query()->where('platform_id', $get('platform_id'))->pluck('address', 'id')
-                                : [])
-                            ->visible(fn (Forms\Get $get) => $get('platform_id')
-                                && \App\Models\PlatformAddress::query()->where('platform_id', $get('platform_id'))->count() > 1)
-                            ->required(fn (Forms\Get $get) => $get('platform_id')
-                                && \App\Models\PlatformAddress::query()->where('platform_id', $get('platform_id'))->count() > 1)
-                            ->live(),
+                        Forms\Components\Radio::make('goods_type')
+                            ->label('Tipologia')
+                            ->options(Trip::goodsTypeOptions())
+                            ->inline()
+                            ->required(),
                         Forms\Components\Select::make('vehicle_id')
                             ->label('Veicolo')
                             ->relationship('vehicle', 'plate')
@@ -75,42 +70,28 @@ class TripResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-                        Forms\Components\Repeater::make('destinations')
-                            ->label('Destinazioni')
-                            ->simple(
-                                Forms\Components\TextInput::make('destination')
-                                    ->label('Destinazione')
-                                    ->required()
-                                    ->maxLength(255)
-                            )
-                            ->addActionLabel('Aggiungi destinazione')
-                            ->minItems(1)
-                            ->defaultItems(1)
-                            ->required()
-                            ->columnSpanFull(),
-                        Forms\Components\Radio::make('goods_type')
-                            ->label('Dicitura')
-                            ->options(Trip::goodsTypeOptions())
-                            ->inline()
+                        Forms\Components\Select::make('filiale_id')
+                            ->label('Filiale')
+                            ->relationship('filiale', 'name')
+                            ->getOptionLabelFromRecordUsing(fn (Filiale $record) => "{$record->codice} - {$record->name}")
+                            ->searchable(['name', 'codice'])
+                            ->preload()
                             ->required(),
-                        Forms\Components\TextInput::make('delivery_note_number')
-                            ->label('Bolla')
-                            ->regex('/^[0-9-]+$/')
-                            ->validationMessages(['regex' => 'La bolla puo contenere solo numeri e trattini.'])
-                            ->maxLength(30)
+                        Forms\Components\TextInput::make('scarichi')
+                            ->label('Scarichi')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->default(0)
                             ->required(),
                         Forms\Components\TextInput::make('price')
-                            ->label('Prezzo viaggio (€)')
+                            ->label('Prezzo (€)')
                             ->numeric()
                             ->step('0.01')
                             ->minValue(0)
                             ->nullable()
-                            ->helperText('Inserendo il prezzo il viaggio risulta certificato.'),
-                        Forms\Components\Placeholder::make('distance_label')
-                            ->label('Distanza stradale')
-                            ->content(fn (?Trip $record): string => $record?->distance_label ?? 'Calcolata al salvataggio')
-                            ->helperText(fn (?Trip $record): ?string => $record?->distance_note)
-                            ->visibleOn('edit'),
+                            ->visible($canManagePrice)
+                            ->helperText('Inserendo il prezzo il record risulta certificato.'),
                         Forms\Components\FileUpload::make('attachments')
                             ->label('Allegati')
                             ->multiple()
@@ -129,8 +110,10 @@ class TripResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $canManagePrice = static::currentUserCanManageBorderoPrice();
+
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'platform', 'vehicle', 'attachments']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'filiale', 'vehicle', 'attachments']))
             ->defaultSort('date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('date')
@@ -141,40 +124,30 @@ class TripResource extends Resource
                     ->label('Autista')
                     ->formatStateUsing(fn ($state, Trip $record) => $record->user?->full_name ?? 'N/D')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('platform.name')
-                    ->label('Piattaforma')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('vehicle.plate')
                     ->label('Veicolo')
                     ->formatStateUsing(fn ($state, Trip $record) => trim(($record->vehicle?->plate ? $record->vehicle->plate . ' - ' : '') . ($record->vehicle?->name ?? '')))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('destinations')
-                    ->label('Destinazioni')
-                    ->state(fn (Trip $record) => $record->destinations_label)
-                    ->wrap()
-                    ->limit(60),
+                Tables\Columns\TextColumn::make('filiale.name')
+                    ->label('Filiale')
+                    ->formatStateUsing(fn ($state, Trip $record) => $record->filiale ? "{$record->filiale->codice} - {$record->filiale->name}" : 'N/D')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('goods_type')
-                    ->label('Dicitura')
+                    ->label('Tipologia')
                     ->formatStateUsing(fn ($state) => Trip::goodsTypeOptions()[$state] ?? $state)
                     ->badge(),
                 Tables\Columns\TextColumn::make('delivery_note_number')
-                    ->label('Bolla')
+                    ->label('Numero bordero')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('scarichi')
+                    ->label('Scarichi')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('price')
                     ->label('Prezzo')
                     ->money('EUR', true)
                     ->placeholder('—')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('distance_label')
-                    ->label('Km')
-                    ->state(fn (Trip $record) => $record->distance_label)
-                    ->tooltip(fn (Trip $record) => $record->distance_note)
-                    ->color(fn (Trip $record) => match ($record->distance_status) {
-                        'estimated' => 'warning',
-                        'unavailable', null => 'gray',
-                        default => 'success',
-                    })
-                    ->sortable(query: fn (Builder $query, string $direction) => $query->orderBy('distance_km', $direction)),
+                    ->sortable()
+                    ->visible($canManagePrice),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Stato')
                     ->state(fn (Trip $record) => $record->is_certified ? 'Certificato' : 'Da certificare')
@@ -193,9 +166,9 @@ class TripResource extends Resource
                         false: fn (Builder $query) => $query->whereNull('price'),
                         blank: fn (Builder $query) => $query,
                     ),
-                Tables\Filters\SelectFilter::make('platform_id')
-                    ->label('Piattaforma')
-                    ->options(fn () => Platform::query()->orderBy('name')->pluck('name', 'id')->toArray()),
+                Tables\Filters\SelectFilter::make('filiale_id')
+                    ->label('Filiale')
+                    ->options(fn () => Filiale::query()->orderBy('name')->pluck('name', 'id')->toArray()),
                 Tables\Filters\SelectFilter::make('vehicle_id')
                     ->label('Veicolo')
                     ->options(fn () => Vehicle::query()
@@ -211,18 +184,18 @@ class TripResource extends Resource
                         ->mapWithKeys(fn (User $u) => [$u->id => $u->full_name])
                         ->toArray()),
                 Tables\Filters\SelectFilter::make('goods_type')
-                    ->label('Dicitura')
+                    ->label('Tipologia')
                     ->options(Trip::goodsTypeOptions()),
             ])
             ->actions([
                 Tables\Actions\Action::make('set_price')
-                    ->label(fn (Trip $record) => $record->is_certified ? 'Modifica prezzo' : 'Certifica')
+                    ->label(fn (Trip $record) => $record->is_certified ? 'Modifica prezzo' : 'Economa')
                     ->icon('heroicon-o-currency-euro')
                     ->color('success')
-                    ->visible(fn (Trip $record): bool => ! $record->trashed())
+                    ->visible(fn (Trip $record): bool => ! $record->trashed() && $canManagePrice)
                     ->form([
                         Forms\Components\TextInput::make('price')
-                            ->label('Prezzo viaggio (€)')
+                            ->label('Prezzo (€)')
                             ->numeric()
                             ->step('0.01')
                             ->minValue(0)
@@ -272,9 +245,16 @@ class TripResource extends Resource
         ];
     }
 
+    public static function currentUserCanManageBorderoPrice(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->canManageBorderoPrice();
+    }
+
     public static function canViewAny(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS]);
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS, User::PANEL_MODULE_BORDERO]);
     }
 
     public static function canCreate(): bool

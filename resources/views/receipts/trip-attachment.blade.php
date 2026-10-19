@@ -55,12 +55,11 @@
 </head>
 <body onload="window.print(); window.onafterprint = () => window.close();">
     <div class="card">
-        <h1>Allegati viaggio #{{ $trip->id }}</h1>
+        <h1>Allegati bordero #{{ $trip->id }}</h1>
         <p class="meta">Autista: {{ $trip->user?->full_name ?? $trip->user?->name ?? 'N/D' }}</p>
         <p class="meta">Veicolo: {{ $trip->vehicle?->plate ?? $trip->vehicle?->name ?? 'N/D' }}</p>
-        <p class="meta">Piattaforma: {{ $trip->platform?->name ?? 'N/D' }}</p>
-        <p class="meta">Destinazioni: {{ $trip->destinations_label ?: 'N/D' }}</p>
-        <p class="meta">Bolla: {{ $trip->delivery_note_number }}</p>
+        <p class="meta">Filiale: {{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</p>
+        <p class="meta">Numero bordero: {{ $trip->delivery_note_number }}</p>
         @if($trip->date)
             <p class="meta">Data: {{ $trip->date->format('d/m/Y H:i') }}</p>
         @endif

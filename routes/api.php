@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\UserDocumentController;
 use App\Http\Controllers\Api\MovementController;
 use App\Http\Controllers\Api\MaintenanceController;
 use App\Http\Controllers\Api\PlatformController;
+use App\Http\Controllers\Api\FilialeController;
 use App\Http\Controllers\Api\StationCardController;
 use App\Http\Controllers\Api\StationController;
 use App\Http\Controllers\Api\SupplierController;
@@ -47,10 +48,10 @@ Route::middleware(['auth:sanctum', 'onboarded'])->group(function () {
     Route::put('/maintenances/{maintenance}', [MaintenanceController::class, 'update']);
 
     Route::get('/platforms', [PlatformController::class, 'index']);
+    Route::get('/filiali', [FilialeController::class, 'index']);
     Route::get('/trips', [TripController::class, 'index']);
     Route::get('/trips/schedule', [TripController::class, 'schedule']);
     Route::post('/trips', [TripController::class, 'store']);
-    Route::post('/trips/calculate-distance', [TripController::class, 'calculateDistance']);
     Route::put('/trips/{trip}', [TripController::class, 'update']);
 
     Route::get('/documents', [UserDocumentController::class, 'index']);

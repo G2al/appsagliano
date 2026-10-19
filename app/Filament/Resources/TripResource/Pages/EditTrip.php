@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\TripResource\Pages;
 
 use App\Filament\Resources\TripResource;
-use App\Services\TripDistanceCalculator;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Storage;
@@ -55,10 +54,6 @@ class EditTrip extends EditRecord
             if (! in_array($path, $existingPaths, true)) {
                 $this->record->attachments()->create(['path' => $path]);
             }
-        }
-
-        if ($this->record->wasChanged(['platform_id', 'platform_address_id', 'destinations'])) {
-            app(TripDistanceCalculator::class)->calculate($this->record);
         }
     }
 }

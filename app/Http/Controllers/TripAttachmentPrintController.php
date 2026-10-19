@@ -13,11 +13,11 @@ class TripAttachmentPrintController extends Controller
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! $user->canAccessTripsArea()) {
+        if (! $user instanceof User || (! $user->canAccessTripsArea() && ! $user->canAccessBorderoArea() && ! $user->isAdmin())) {
             abort(403);
         }
 
-        $trip->load(['user', 'vehicle', 'platform', 'attachments']);
+        $trip->load(['user', 'vehicle', 'filiale', 'attachments']);
 
         if ($trip->attachments->isEmpty()) {
             abort(404);

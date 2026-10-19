@@ -2,28 +2,19 @@
 
 namespace Tests\Feature;
 
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
-use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class TripScheduleApiTest extends TestCase
 {
-    use FakesOpenRouteService;
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->fakeOpenRouteServiceSuccess();
-    }
-
-    private function makeVehicle(string $plate = 'MG001AA'): Vehicle
+    private function makeVehicle(string $plate = 'VL001AA'): Vehicle
     {
         return Vehicle::query()->create([
             'name' => 'Camion',
@@ -34,21 +25,25 @@ class TripScheduleApiTest extends TestCase
         ]);
     }
 
+    private function makeFiliale(string $codice = 'FN01'): Filiale
+    {
+        return Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => $codice]);
+    }
+
     public function test_worker_gets_only_own_monthly_schedule(): void
     {
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
         $otherWorker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         $day = now()->startOfMonth()->addDays(4);
 
         Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day,
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 100,
@@ -56,10 +51,9 @@ class TripScheduleApiTest extends TestCase
 
         Trip::query()->create([
             'user_id' => $otherWorker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day,
-            'destinations' => ['Napoli'],
             'goods_type' => 'secco',
             'delivery_note_number' => '2',
             'price' => 200,
@@ -74,7 +68,7 @@ class TripScheduleApiTest extends TestCase
 
         // Il worker non deve mai vedere importi: i totali economici spariscono del tutto.
         $response->assertJsonPath('month_total', null);
-        $response->assertJsonPath('platform_totals', null);
+        $response->assertJsonPath('filiale_totals', null);
 
         $days = $response->json('days');
         $this->assertCount(now()->daysInMonth, $days);
@@ -88,15 +82,14 @@ class TripScheduleApiTest extends TestCase
     public function test_worker_never_receives_price_field_on_trip_endpoints(): void
     {
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 999,
@@ -128,15 +121,14 @@ class TripScheduleApiTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = $this->makeFiliale();
         $vehicle = $this->makeVehicle();
 
         Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 50,
@@ -171,19 +163,18 @@ class TripScheduleApiTest extends TestCase
             ->assertJsonPath('month', now()->format('Y-m'));
     }
 
-    public function test_schedule_includes_platform_totals_for_admin(): void
+    public function test_schedule_includes_filiale_totals_for_admin(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Multicedi']);
+        $filiale = Filiale::query()->create(['name' => 'Multicedi', 'codice' => 'MC01']);
         $vehicle = $this->makeVehicle();
 
         Trip::query()->create([
             'user_id' => $worker->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'destinations' => ['Roma'],
             'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 75,
@@ -193,6 +184,6 @@ class TripScheduleApiTest extends TestCase
 
         $this->getJson('/api/trips/schedule?user_id=' . $worker->id)
             ->assertOk()
-            ->assertJsonFragment(['platform' => 'Multicedi', 'total' => 75]);
+            ->assertJsonFragment(['filiale' => 'Multicedi', 'total' => 75]);
     }
 }

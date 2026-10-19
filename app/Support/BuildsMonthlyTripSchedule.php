@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 trait BuildsMonthlyTripSchedule
 {
     /**
-     * @return array{days: array<int, array{day: int, date: Carbon, trips: Collection<int, Trip>}>, maxTripsPerDay: int, totalTrips: int, platformTotals: Collection<int, array{platform: string, total: float}>}
+     * @return array{days: array<int, array{day: int, date: Carbon, trips: Collection<int, Trip>}>, maxTripsPerDay: int, totalTrips: int, filialeTotals: Collection<int, array{filiale: string, total: float}>}
      */
     protected function buildMonthlyScheduleFor(User $owner, ?string $month): array
     {
@@ -20,7 +20,7 @@ trait BuildsMonthlyTripSchedule
 
         /** @var Collection<int, Trip> $trips */
         $trips = $owner->trips()
-            ->with(['platform', 'platformAddress', 'vehicle'])
+            ->with(['filiale', 'vehicle'])
             ->whereBetween('date', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
             ->orderBy('date')
             ->orderBy('id')
@@ -43,20 +43,20 @@ trait BuildsMonthlyTripSchedule
             ];
         }
 
-        $platformTotals = $trips
-            ->groupBy(fn (Trip $trip) => $trip->platform?->name ?? 'N/D')
-            ->map(fn (Collection $platformTrips, string $platformName) => [
-                'platform' => $platformName,
-                'total' => $platformTrips->sum(fn (Trip $trip) => (float) ($trip->price ?? 0)),
+        $filialeTotals = $trips
+            ->groupBy(fn (Trip $trip) => $trip->filiale?->name ?? 'N/D')
+            ->map(fn (Collection $filialeTrips, string $filialeName) => [
+                'filiale' => $filialeName,
+                'total' => $filialeTrips->sum(fn (Trip $trip) => (float) ($trip->price ?? 0)),
             ])
-            ->sortBy('platform')
+            ->sortBy('filiale')
             ->values();
 
         return [
             'days' => $days,
             'maxTripsPerDay' => $maxTripsPerDay,
             'totalTrips' => $trips->count(),
-            'platformTotals' => $platformTotals,
+            'filialeTotals' => $filialeTotals,
         ];
     }
 }

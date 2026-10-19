@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\ReportTrips;
-use App\Filament\Resources\PlatformResource\Pages\ListPlatforms;
 use App\Filament\Resources\TripResource\Pages\EditTrip;
 use App\Filament\Resources\TripResource\Pages\ListTrips;
 use App\Filament\Widgets\TripsByDriverTable;
@@ -11,7 +10,7 @@ use App\Filament\Widgets\TripsByVehicleDriverTable;
 use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
 use App\Filament\Widgets\TripsStats;
-use App\Models\Platform;
+use App\Models\Filiale;
 use App\Models\ReportTableCheck;
 use App\Models\Trip;
 use App\Models\User;
@@ -20,12 +19,10 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
-use Tests\Concerns\FakesOpenRouteService;
 use Tests\TestCase;
 
 class TripFilamentTest extends TestCase
 {
-    use FakesOpenRouteService;
     use RefreshDatabase;
 
     private User $admin;
@@ -36,14 +33,12 @@ class TripFilamentTest extends TestCase
     {
         parent::setUp();
 
-        $this->fakeOpenRouteServiceSuccess();
-
         $this->admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $platform = Platform::query()->create(['name' => 'Piattaforma Nord']);
+        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
         $vehicle = Vehicle::query()->create([
             'name' => 'Camion',
-            'plate' => 'MG001AA',
+            'plate' => 'VL001AA',
             'color' => 'Blu',
             'current_km' => 1000,
             'maintenance_km' => 0,
@@ -51,10 +46,9 @@ class TripFilamentTest extends TestCase
 
         $base = [
             'user_id' => $driver->id,
-            'platform_id' => $platform->id,
+            'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'destinations' => ['Roma', 'Napoli'],
             'goods_type' => 'secco',
         ];
 
@@ -65,13 +59,11 @@ class TripFilamentTest extends TestCase
         $this->actingAs($this->admin);
     }
 
-    public function test_trip_resource_and_platform_resource_pages_render(): void
+    public function test_trip_resource_page_renders(): void
     {
         Livewire::test(ListTrips::class)
             ->assertSuccessful()
             ->assertCanSeeTableRecords([$this->certifiedTrip, $this->pendingTrip]);
-
-        Livewire::test(ListPlatforms::class)->assertSuccessful();
     }
 
     public function test_admin_can_certify_a_trip_by_setting_the_price(): void

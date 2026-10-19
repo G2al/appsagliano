@@ -70,10 +70,6 @@ class PlatformResource extends Resource
                         'addresses',
                         fn (Builder $q) => $q->where('address', 'like', "%{$search}%")
                     )),
-                Tables\Columns\TextColumn::make('trips_count')
-                    ->label('Viaggi')
-                    ->counts('trips')
-                    ->sortable(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -86,14 +82,14 @@ class PlatformResource extends Resource
     {
         return Tables\Actions\DeleteAction::make()
             ->before(function (Tables\Actions\DeleteAction $action, Platform $record): void {
-                if (! $record->trips()->withTrashed()->exists()) {
+                if (! $record->movements()->withTrashed()->exists()) {
                     return;
                 }
 
                 Notification::make()
                     ->danger()
                     ->title('Impossibile eliminare')
-                    ->body('Questa piattaforma e usata da uno o piu viaggi.')
+                    ->body('Questa piattaforma e usata da uno o piu rifornimenti.')
                     ->send();
 
                 $action->cancel();
@@ -111,7 +107,7 @@ class PlatformResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS]);
+        return static::currentUserCanAccessModules([User::PANEL_MODULE_REFUELS]);
     }
 
     public static function canCreate(): bool
