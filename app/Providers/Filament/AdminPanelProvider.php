@@ -26,17 +26,20 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Mega Trasporti')
+            ->brandName('Redif')
+            ->brandLogo(asset('redif-assets/logo-light.png'))
+            ->darkModeBrandLogo(asset('redif-assets/logo-dark.png'))
+            ->brandLogoHeight('2.25rem')
             ->colors([
-                'primary' => Color::hex('#1A2A9C'),
+                'primary' => Color::hex('#FC4D04'),
             ])
             ->renderHook(
                 'panels::head.start',
                 fn (): string => <<<'HTML'
-                    <link rel="manifest" href="/admin-manifest.json?v=7">
+                    <link rel="manifest" href="/admin-manifest.json?v=1">
                     <link rel="icon" href="/admin-assets/icon-admin.png" type="image/png">
                     <link rel="apple-touch-icon" href="/admin-assets/icon-admin.png">
-                    <meta name="theme-color" content="#1A2A9C">
+                    <meta name="theme-color" content="#FC4D04">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                     <style>
                         /* Impedisce lo zoom automatico di iOS/Android quando si tocca un campo

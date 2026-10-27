@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 class DocumentFolderTemplateSeeder extends Seeder
 {
     /**
-     * Seed Mega Trasporti base document folder templates.
+     * Seed Redif base document folder templates.
      */
     public function run(): void
     {
