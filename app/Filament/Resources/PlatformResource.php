@@ -36,6 +36,10 @@ class PlatformResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('company')
+                    ->label('Società di appartenenza')
+                    ->maxLength(255)
+                    ->nullable(),
                 Forms\Components\Repeater::make('addresses')
                     ->label('Indirizzi')
                     ->relationship()
@@ -59,6 +63,11 @@ class PlatformResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome piattaforma')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('company')
+                    ->label('Società di appartenenza')
+                    ->placeholder('—')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('addresses')

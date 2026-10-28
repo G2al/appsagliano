@@ -13,10 +13,11 @@ class PlatformController extends Controller
         $platforms = Platform::query()
             ->with('addresses:id,platform_id,address')
             ->orderBy('name')
-            ->get(['id', 'name'])
+            ->get(['id', 'name', 'company'])
             ->map(fn (Platform $platform) => [
                 'id' => $platform->id,
                 'name' => $platform->name,
+                'company' => $platform->company,
                 'addresses' => $platform->addresses->map(fn ($a) => [
                     'id' => $a->id,
                     'address' => $a->address,
