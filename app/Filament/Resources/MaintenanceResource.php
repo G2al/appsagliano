@@ -54,7 +54,19 @@ class MaintenanceResource extends Resource
                             ->relationship('supplier', 'name')
                             ->searchable()
                             ->preload()
+                            ->live()
                             ->required(),
+                        Forms\Components\Placeholder::make('supplier_type')
+                            ->label('Tipologia fornitore')
+                            ->content(function (Get $get): string {
+                                $supplierId = $get('supplier_id');
+
+                                if (! $supplierId) {
+                                    return '—';
+                                }
+
+                                return \App\Models\Supplier::find($supplierId)?->type?->name ?? '—';
+                            }),
                         Forms\Components\Select::make('vehicle_id')
                             ->label('Veicolo')
                             ->relationship('vehicle', 'plate')
@@ -137,6 +149,10 @@ class MaintenanceResource extends Resource
                 Tables\Columns\TextColumn::make('supplier.name')
                     ->label('Fornitore')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('supplier.type.name')
+                    ->label('Tipologia')
+                    ->badge()
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('invoice_number')
                     ->label('Numero bolla')
                     ->searchable(),

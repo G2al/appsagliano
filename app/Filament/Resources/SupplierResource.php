@@ -33,6 +33,19 @@ class SupplierResource extends Resource
                     ->label('Nome')
                     ->required()
                     ->maxLength(255),
+                Forms\Components\Select::make('supplier_type_id')
+                    ->label('Tipologia')
+                    ->relationship('type', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nome')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255),
+                    ])
+                    ->nullable(),
                 Forms\Components\TextInput::make('phone')
                     ->label('Telefono')
                     ->tel()
@@ -58,6 +71,11 @@ class SupplierResource extends Resource
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('type.name')
+                    ->label('Tipologia')
+                    ->badge()
+                    ->placeholder('—')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telefono')
                     ->searchable(),
@@ -72,6 +90,11 @@ class SupplierResource extends Resource
                     ->label('Creato il')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('supplier_type_id')
+                    ->label('Tipologia')
+                    ->relationship('type', 'name'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

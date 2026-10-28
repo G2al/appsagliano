@@ -12,6 +12,7 @@ class Supplier extends Model
 
     protected $fillable = [
         'name',
+        'supplier_type_id',
         'phone',
         'email',
         'address',
@@ -20,5 +21,10 @@ class Supplier extends Model
     public function maintenances(): HasMany
     {
         return $this->hasMany(Maintenance::class);
+    }
+
+    public function type(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(SupplierType::class, 'supplier_type_id');
     }
 }
