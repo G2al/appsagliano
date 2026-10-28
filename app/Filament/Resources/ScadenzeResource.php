@@ -18,9 +18,9 @@ class ScadenzeResource extends Resource
     protected static ?string $slug = 'scadenze';
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
-    protected static ?string $navigationLabel = 'Scadenze';
-    protected static ?string $pluralLabel = 'Scadenze';
-    protected static ?string $modelLabel = 'Scadenza';
+    protected static ?string $navigationLabel = 'Scadenze Autisti';
+    protected static ?string $pluralLabel = 'Scadenze Autisti';
+    protected static ?string $modelLabel = 'Scadenza Autista';
     protected static ?string $navigationGroup = 'Impostazioni';
 
     public static function form(Form $form): Form

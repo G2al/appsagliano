@@ -21,3 +21,7 @@ Schedule::command('maintenance:check-due-alerts')
 Schedule::command('verifications:check-expiry')
     ->everySecond()
     ->withoutOverlapping();
+
+Schedule::command('vehicles:check-document-expiry')
+    ->everySecond()
+    ->withoutOverlapping();

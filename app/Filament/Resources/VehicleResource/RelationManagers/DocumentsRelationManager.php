@@ -8,7 +8,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Storage;
 
 class DocumentsRelationManager extends RelationManager
 {
@@ -38,10 +37,26 @@ class DocumentsRelationManager extends RelationManager
                         $state === 'application/pdf' => 'danger',
                         default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('document_type')
+                    ->label('Tipologia')
+                    ->placeholder('—')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('file_path')
                     ->label('File')
                     ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : 'N/D')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('expiry_date')
+                    ->label('Scadenza')
+                    ->date('d/m/Y')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->color(fn (VehicleDocument $record): ?string => match (true) {
+                        $record->expiry_date === null => null,
+                        $record->expiry_date->isPast() => 'danger',
+                        $record->expiry_date->diffInDays(now()) <= 15 => 'warning',
+                        $record->expiry_date->diffInDays(now()) <= 30 => 'info',
+                        default => 'success',
+                    }),
                 Tables\Columns\TextColumn::make('file_size')
                     ->label('Dimensione')
                     ->formatStateUsing(fn ($state): string => $this->formatBytes((int) ($state ?? 0))),
@@ -51,51 +66,21 @@ class DocumentsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('upload_photos')
-                    ->label('Carica file')
+                Tables\Actions\Action::make('upload_document')
+                    ->label('Carica documento')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->visible(fn (): bool => $this->remainingSlots() > 0)
-                    ->modalHeading('Carica documenti veicolo')
-                    ->form([
-                        Forms\Components\FileUpload::make('files')
-                            ->label('File')
-                            ->multiple()
-                            ->acceptedFileTypes(self::ACCEPTED_FILE_TYPES)
-                            ->disk('public')
-                            ->directory(fn (): string => 'vehicle-documents/' . $this->ownerRecord->getKey())
-                            ->visibility('public')
-                            ->maxFiles(fn (): int => $this->remainingSlots())
-                            ->required()
-                            ->helperText(fn (): string => 'Puoi caricare fino a ' . self::MAX_FILES . ' file per veicolo. Formati accettati: immagini e PDF.'),
-                    ])
+                    ->modalHeading('Carica documento veicolo')
+                    ->form($this->documentForm())
                     ->action(function (array $data): void {
-                        $paths = array_values(array_filter((array) ($data['files'] ?? [])));
-                        $remainingSlots = $this->remainingSlots();
-
-                        if (empty($paths)) {
-                            return;
-                        }
-
-                        if (count($paths) > $remainingSlots) {
-                            Storage::disk('public')->delete($paths);
-
-                            Notification::make()
-                                ->title('Limite documenti raggiunto')
-                                ->body('Ogni veicolo puo avere al massimo ' . self::MAX_FILES . ' file.')
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        foreach ($paths as $path) {
-                            $this->ownerRecord->documents()->create([
-                                'file_path' => $path,
-                            ]);
-                        }
+                        $this->ownerRecord->documents()->create([
+                            'document_type' => $data['document_type'] ?? null,
+                            'expiry_date' => $data['expiry_date'] ?? null,
+                            'file_path' => $data['file_path'],
+                        ]);
 
                         Notification::make()
-                            ->title('File caricati')
+                            ->title('Documento caricato')
                             ->success()
                             ->send();
                     }),
@@ -107,19 +92,35 @@ class DocumentsRelationManager extends RelationManager
                     ->url(fn (VehicleDocument $record): ?string => $record->file_url)
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()
-                    ->label('Sostituisci')
-                    ->form([
-                        Forms\Components\FileUpload::make('file_path')
-                            ->label('File')
-                            ->acceptedFileTypes(self::ACCEPTED_FILE_TYPES)
-                            ->disk('public')
-                            ->directory(fn (): string => 'vehicle-documents/' . $this->ownerRecord->getKey())
-                            ->visibility('public')
-                            ->required(),
-                    ]),
+                    ->label('Modifica')
+                    ->form($this->documentForm(requireFile: false)),
                 Tables\Actions\DeleteAction::make()
                     ->label('Elimina'),
             ]);
+    }
+
+    /**
+     * @return array<int, \Filament\Forms\Components\Component>
+     */
+    private function documentForm(bool $requireFile = true): array
+    {
+        return [
+            Forms\Components\TextInput::make('document_type')
+                ->label('Tipologia documento')
+                ->maxLength(255)
+                ->placeholder('Es. Assicurazione, Revisione, Bollo, Libretto')
+                ->nullable(),
+            Forms\Components\DatePicker::make('expiry_date')
+                ->label('Scadenza')
+                ->nullable(),
+            Forms\Components\FileUpload::make('file_path')
+                ->label('File')
+                ->acceptedFileTypes(self::ACCEPTED_FILE_TYPES)
+                ->disk('public')
+                ->directory(fn (): string => 'vehicle-documents/' . $this->ownerRecord->getKey())
+                ->visibility('public')
+                ->required($requireFile),
+        ];
     }
 
     private function remainingSlots(): int

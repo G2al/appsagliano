@@ -14,6 +14,8 @@ class VehicleDocument extends Model
 
     protected $fillable = [
         'vehicle_id',
+        'document_type',
+        'expiry_date',
         'file_path',
         'mime_type',
         'file_size',
@@ -21,6 +23,7 @@ class VehicleDocument extends Model
 
     protected $casts = [
         'file_size' => 'integer',
+        'expiry_date' => 'date',
     ];
 
     protected $appends = [
