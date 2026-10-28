@@ -10,8 +10,21 @@ class SupplierController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(
-            Supplier::select('id', 'name', 'phone', 'email')->orderBy('name')->get()
-        );
+        $suppliers = Supplier::select('id', 'name', 'phone', 'email', 'supplier_type_id')
+            ->with('type:id,name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Supplier $supplier) => [
+                'id' => $supplier->id,
+                'name' => $supplier->name,
+                'phone' => $supplier->phone,
+                'email' => $supplier->email,
+                'type' => $supplier->type ? [
+                    'id' => $supplier->type->id,
+                    'name' => $supplier->type->name,
+                ] : null,
+            ]);
+
+        return response()->json($suppliers);
     }
 }
