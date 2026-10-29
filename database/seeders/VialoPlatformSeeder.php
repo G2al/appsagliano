@@ -8,13 +8,16 @@ use Illuminate\Database\Seeder;
 class VialoPlatformSeeder extends Seeder
 {
     /**
-     * Seed Vialo demo platforms (anagrafica fittizia). Una piattaforma ha
-     * piu' indirizzi apposta, per mostrare in demo la selezione obbligatoria
-     * lato viaggio quando sono presenti piu' sedi.
+     * Seed Vialo demo platforms (anagrafica fittizia).
+     *
+     * Due gruppi distinti che condividono lo stesso modello Platform:
+     * - piattaforme "rifornimenti" (indirizzi per i movimenti carburante);
+     * - piattaforme "bordero" (MD, Conad, Megamark...), con le diciture
+     *   (secco, freschi, frutta...) usate per la cascata del bordero.
      */
     public function run(): void
     {
-        $platforms = [
+        $refuelPlatforms = [
             'Deposito Nord' => ['Via Industriale 1, Milano (MI)'],
             'Hub Logistico Sud' => ['Via Appia 450, Roma (RM)'],
             'Centro Smistamento Est' => ['Via Emilia 200, Bologna (BO)'],
@@ -27,7 +30,7 @@ class VialoPlatformSeeder extends Seeder
             'Snodo Logistico Interno' => ['Via Interporto 30, Padova (PD)'],
         ];
 
-        foreach ($platforms as $name => $addresses) {
+        foreach ($refuelPlatforms as $name => $addresses) {
             $platform = Platform::query()->updateOrCreate(['name' => $name]);
 
             foreach ($addresses as $address) {
@@ -35,6 +38,20 @@ class VialoPlatformSeeder extends Seeder
             }
         }
 
-        $this->command?->info('Piattaforme demo Vialo create: ' . count($platforms) . '.');
+        $borderoPlatforms = [
+            'MD' => ['Secco', 'Freschi', 'Frutta', 'Surgelati'],
+            'Conad' => ['Secco', 'Freschi', 'Frutta'],
+            'Megamark' => ['Secco', 'Freschi', 'Surgelati'],
+        ];
+
+        foreach ($borderoPlatforms as $name => $goodsTypes) {
+            $platform = Platform::query()->updateOrCreate(['name' => $name]);
+
+            foreach ($goodsTypes as $goodsType) {
+                $platform->goodsTypes()->firstOrCreate(['name' => $goodsType]);
+            }
+        }
+
+        $this->command?->info('Piattaforme demo Vialo create: ' . (count($refuelPlatforms) + count($borderoPlatforms)) . '.');
     }
 }

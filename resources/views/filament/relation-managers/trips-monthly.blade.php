@@ -39,7 +39,7 @@
                                     <div class="font-medium">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</div>
                                     <div class="text-xs text-gray-400">
                                         {{ $trip->vehicle?->plate ?? 'N/D' }}
-                                        &middot; {{ \App\Models\Trip::goodsTypeOptions()[$trip->goods_type] ?? $trip->goods_type }}
+                                        &middot; {{ $trip->goods_type_label }}
                                     </div>
                                 </td>
                                 <td class="px-3 py-2 align-top whitespace-nowrap">

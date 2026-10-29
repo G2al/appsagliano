@@ -132,7 +132,9 @@ class WorkerEditPermissionsTest extends TestCase
 
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
-        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
+        $platform = Platform::query()->firstOrCreate(['name' => 'MD']);
+        $goodsType = $platform->goodsTypes()->firstOrCreate(['name' => 'Secco']);
+        $filiale = Filiale::query()->create(['platform_id' => $platform->id, 'goods_type_id' => $goodsType->id, 'name' => 'Filiale Nord', 'codice' => 'FN01']);
         $vehicle = $this->makeVehicle();
 
         $trip = Trip::query()->create([
@@ -140,7 +142,6 @@ class WorkerEditPermissionsTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-10-07 09:00:00',
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
 
@@ -150,7 +151,6 @@ class WorkerEditPermissionsTest extends TestCase
             'date' => '2026-10-07 09:00:00',
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'goods_type' => 'freschi',
             'delivery_note_number' => '2',
         ])->assertOk();
 
@@ -161,7 +161,6 @@ class WorkerEditPermissionsTest extends TestCase
             'date' => '2026-10-07 09:00:00',
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'goods_type' => 'secco',
             'delivery_note_number' => '3',
         ])->assertForbidden();
 
@@ -170,7 +169,6 @@ class WorkerEditPermissionsTest extends TestCase
             'date' => '2026-10-07 09:00:00',
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'goods_type' => 'secco',
             'delivery_note_number' => '3',
         ])->assertOk();
 

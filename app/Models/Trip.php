@@ -13,40 +13,30 @@ class Trip extends Model
     use HasFactory;
     use SoftDeletes;
 
-    public const GOODS_TYPE_DRY = 'secco';
-    public const GOODS_TYPE_FRESH = 'freschi';
-
     protected $fillable = [
         'user_id',
         'filiale_id',
         'vehicle_id',
         'date',
-        'goods_type',
+        'trip_order',
         'scarichi',
         'delivery_note_number',
         'price',
+        'reviewed_at',
     ];
 
     protected $casts = [
         'date' => 'datetime',
         'price' => 'decimal:2',
         'scarichi' => 'integer',
+        'trip_order' => 'integer',
+        'reviewed_at' => 'datetime',
     ];
 
     protected $appends = [
         'is_certified',
+        'is_reviewed',
     ];
-
-    /**
-     * @return array<string, string>
-     */
-    public static function goodsTypeOptions(): array
-    {
-        return [
-            self::GOODS_TYPE_DRY => 'Secco',
-            self::GOODS_TYPE_FRESH => 'Freschi',
-        ];
-    }
 
     public function user(): BelongsTo
     {
@@ -73,8 +63,17 @@ class Trip extends Model
         return $this->price !== null;
     }
 
+    public function getIsReviewedAttribute(): bool
+    {
+        return $this->reviewed_at !== null;
+    }
+
+    /**
+     * Nome della dicitura (secco/freschi/...), derivata dalla filiale
+     * selezionata (non e' piu' un campo diretto su Trip).
+     */
     public function getGoodsTypeLabelAttribute(): string
     {
-        return self::goodsTypeOptions()[$this->goods_type] ?? (string) $this->goods_type;
+        return $this->filiale?->goodsType?->name ?? 'N/D';
     }
 }

@@ -12,12 +12,14 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
         <span>{{ $totalTrips }} {{ $totalTrips === 1 ? 'record' : 'record' }} nel mese selezionato</span>
-        <span class="font-semibold text-gray-900 dark:text-white">
-            Totale mese: € {{ number_format(collect($days)->sum('total'), 2, ',', '.') }}
-        </span>
+        @if (auth()->user()?->canManageBorderoPrice())
+            <span class="font-semibold text-gray-900 dark:text-white">
+                Totale mese: € {{ number_format(collect($days)->sum('total'), 2, ',', '.') }}
+            </span>
+        @endif
     </div>
 
-    @if ($filialeTotals->isNotEmpty())
+    @if (auth()->user()?->canManageBorderoPrice() && $filialeTotals->isNotEmpty())
         <div class="flex flex-wrap gap-2">
             @foreach ($filialeTotals as $row)
                 <span class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800">
@@ -57,7 +59,9 @@
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
                         <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="3">{{ $i }}° record</th>
                     @endfor
-                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
+                    @if (auth()->user()?->canManageBorderoPrice())
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -88,7 +92,7 @@
                                         @include('livewire.partials.trip-price-input', ['trip' => $trip])
                                     @else
                                         <span class="text-xs text-gray-400 dark:text-gray-600">
-                                            {{ $trip->price !== null ? 'Certificato' : 'Da economare' }}
+                                            {{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}
                                         </span>
                                     @endif
                                 </td>
@@ -99,13 +103,15 @@
                             @endif
                         @endfor
 
-                        <td class="px-3 py-2 align-top font-semibold whitespace-nowrap">
-                            @if ($row['total'] > 0)
-                                € {{ number_format($row['total'], 2, ',', '.') }}
-                            @else
-                                <span class="text-gray-300 dark:text-gray-600">-</span>
-                            @endif
-                        </td>
+                        @if (auth()->user()?->canManageBorderoPrice())
+                            <td class="px-3 py-2 align-top font-semibold whitespace-nowrap">
+                                @if ($row['total'] > 0)
+                                    € {{ number_format($row['total'], 2, ',', '.') }}
+                                @else
+                                    <span class="text-gray-300 dark:text-gray-600">-</span>
+                                @endif
+                            </td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>

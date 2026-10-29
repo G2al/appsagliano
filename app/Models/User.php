@@ -227,7 +227,21 @@ class User extends Authenticatable implements FilamentUser
      * Chi puo' impostare/modificare il prezzo di un record bordero: admin o
      * chi ha il modulo dedicato (distinto da chi puo' solo crearlo).
      */
+    /**
+     * Il prezzo lo calcola il listino in automatico: resta modificabile
+     * solo dall'admin vero, i revisionatori (modulo bordero) non lo
+     * vedono ne' lo toccano piu' - controllano e accettano il record.
+     */
     public function canManageBorderoPrice(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /**
+     * Chi puo' controllare/accettare un record bordero (eventualmente
+     * allegando la scansione del documento cartaceo).
+     */
+    public function canReviewBordero(): bool
     {
         return $this->isAdmin() || $this->canAccessBorderoArea();
     }

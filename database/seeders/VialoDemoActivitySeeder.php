@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\TripPriceCalculator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -31,6 +32,8 @@ class VialoDemoActivitySeeder extends Seeder
 
     public function run(): void
     {
+        $calculator = app(TripPriceCalculator::class);
+
         $drivers = User::query()
             ->where('role', 'worker')
             ->where('is_approved', true)
@@ -40,7 +43,7 @@ class VialoDemoActivitySeeder extends Seeder
 
         $vehicles = Vehicle::query()->inRandomOrder()->get();
         $platforms = Platform::query()->get();
-        $filiali = Filiale::query()->get();
+        $filiali = Filiale::query()->with('prices')->get();
         $stations = Station::query()->get();
         $suppliers = Supplier::query()->get();
 
@@ -81,19 +84,22 @@ class VialoDemoActivitySeeder extends Seeder
                 $tripsToday = random_int(1, 2);
                 for ($i = 0; $i < $tripsToday; $i++) {
                     $filiale = $filiali->random();
+                    $tripDate = $date->copy()->addHours(random_int(6, 18))->addMinutes(random_int(0, 59));
+                    $tripOrder = $calculator->resolveTripOrder($driver->id, $tripDate);
 
-                    // L'80% dei record passati e' gia' certificato (prezzo impostato).
-                    $isCertified = random_int(1, 100) <= 80;
+                    // L'80% dei record passati e' gia' certificato (revisionato).
+                    $isReviewed = random_int(1, 100) <= 80;
 
                     Trip::create([
                         'user_id' => $driver->id,
                         'filiale_id' => $filiale->id,
                         'vehicle_id' => $vehicle->id,
-                        'date' => $date->copy()->addHours(random_int(6, 18))->addMinutes(random_int(0, 59)),
-                        'goods_type' => random_int(0, 1) === 0 ? Trip::GOODS_TYPE_DRY : Trip::GOODS_TYPE_FRESH,
+                        'date' => $tripDate,
+                        'trip_order' => $tripOrder,
                         'scarichi' => random_int(0, 8),
                         'delivery_note_number' => (string) $deliveryNoteSequence++,
-                        'price' => $isCertified ? round(random_int(600, 3500) / 10, 2) : null,
+                        'price' => $calculator->resolvePrice($filiale, $tripOrder),
+                        'reviewed_at' => $isReviewed ? $tripDate->copy()->addHours(random_int(1, 48)) : null,
                     ]);
 
                     $tripsCreated++;

@@ -28,24 +28,26 @@ class TripsByGoodsTypeTable extends BaseWidget
         [$start, $end] = $this->getReportTableCheckDateRange();
 
         return Trip::query()
+            ->join('filiali', 'filiali.id', '=', 'trips.filiale_id')
+            ->join('goods_types', 'goods_types.id', '=', 'filiali.goods_type_id')
             ->selectRaw('
                 MIN(trips.id) as id,
-                trips.goods_type as goods_type,
+                goods_types.id as goods_type_id,
+                goods_types.name as goods_type_name,
                 COUNT(*) as trips_count,
                 SUM(CASE WHEN trips.price IS NOT NULL THEN 1 ELSE 0 END) as certified_count,
                 COALESCE(SUM(trips.price), 0) as price_total
             ')
             ->whereBetween('trips.date', [$start, $end])
-            ->groupBy('trips.goods_type');
+            ->groupBy('goods_types.id', 'goods_types.name');
     }
 
     protected function getTableColumns(): array
     {
         return [
             $this->getReportTableCheckColumn(),
-            Tables\Columns\TextColumn::make('goods_type')
+            Tables\Columns\TextColumn::make('goods_type_name')
                 ->label('Tipologia')
-                ->formatStateUsing(fn ($state) => Trip::goodsTypeOptions()[$state] ?? $state)
                 ->badge()
                 ->sortable(),
             Tables\Columns\TextColumn::make('trips_count')
@@ -73,12 +75,12 @@ class TripsByGoodsTypeTable extends BaseWidget
 
     protected function getReportTableRowKeySql(): string
     {
-        return "CONCAT('goods-type:', trips.goods_type)";
+        return "CONCAT('goods-type:', goods_types.id)";
     }
 
     protected function getReportTableRowKey(Model $record): string
     {
-        return 'goods-type:' . (string) $record->goods_type;
+        return 'goods-type:' . (string) $record->goods_type_id;
     }
 
     protected function getTableActions(): array
@@ -95,12 +97,12 @@ class TripsByGoodsTypeTable extends BaseWidget
                     [$start, $end] = $this->getReportTableCheckDateRange();
 
                     $query = Trip::query()
-                        ->where('goods_type', (string) $record->goods_type)
+                        ->whereHas('filiale.goodsType', fn ($q) => $q->where('id', (int) $record->goods_type_id))
                         ->whereBetween('date', [$start, $end]);
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        Trip::goodsTypeOptions()[$record->goods_type] ?? (string) $record->goods_type
+                        (string) $record->goods_type_name
                     ));
                 }),
         ];

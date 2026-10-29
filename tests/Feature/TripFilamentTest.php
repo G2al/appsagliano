@@ -11,6 +11,7 @@ use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
 use App\Filament\Widgets\TripsStats;
 use App\Models\Filiale;
+use App\Models\Platform;
 use App\Models\ReportTableCheck;
 use App\Models\Trip;
 use App\Models\User;
@@ -35,7 +36,9 @@ class TripFilamentTest extends TestCase
 
         $this->admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
+        $platform = Platform::query()->firstOrCreate(['name' => 'MD']);
+        $goodsType = $platform->goodsTypes()->firstOrCreate(['name' => 'Secco']);
+        $filiale = Filiale::query()->create(['platform_id' => $platform->id, 'goods_type_id' => $goodsType->id, 'name' => 'Filiale Nord', 'codice' => 'FN01']);
         $vehicle = Vehicle::query()->create([
             'name' => 'Camion',
             'plate' => 'VL001AA',
@@ -49,7 +52,6 @@ class TripFilamentTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'goods_type' => 'secco',
         ];
 
         $this->certifiedTrip = Trip::query()->create($base + ['delivery_note_number' => '1', 'price' => 400]);

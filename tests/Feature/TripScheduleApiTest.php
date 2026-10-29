@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Filiale;
+use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -25,9 +26,17 @@ class TripScheduleApiTest extends TestCase
         ]);
     }
 
-    private function makeFiliale(string $codice = 'FN01'): Filiale
+    private function makeFiliale(string $codice = 'FN01', string $name = 'Filiale Nord'): Filiale
     {
-        return Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => $codice]);
+        $platform = Platform::query()->firstOrCreate(['name' => 'MD']);
+        $goodsType = $platform->goodsTypes()->firstOrCreate(['name' => 'Secco']);
+
+        return Filiale::query()->create([
+            'platform_id' => $platform->id,
+            'goods_type_id' => $goodsType->id,
+            'name' => $name,
+            'codice' => $codice,
+        ]);
     }
 
     public function test_worker_gets_only_own_monthly_schedule(): void
@@ -44,7 +53,6 @@ class TripScheduleApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day,
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 100,
         ]);
@@ -54,7 +62,6 @@ class TripScheduleApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day,
-            'goods_type' => 'secco',
             'delivery_note_number' => '2',
             'price' => 200,
         ]);
@@ -90,7 +97,6 @@ class TripScheduleApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 999,
         ]);
@@ -129,7 +135,6 @@ class TripScheduleApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 50,
         ]);
@@ -167,7 +172,7 @@ class TripScheduleApiTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $filiale = Filiale::query()->create(['name' => 'Multicedi', 'codice' => 'MC01']);
+        $filiale = $this->makeFiliale('MC01', 'Multicedi');
         $vehicle = $this->makeVehicle();
 
         Trip::query()->create([
@@ -175,7 +180,6 @@ class TripScheduleApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => now(),
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'price' => 75,
         ]);

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Filiale;
+use App\Models\GoodsType;
 use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
@@ -36,9 +37,23 @@ class TripApiTest extends TestCase
         ]);
     }
 
-    private function makeFiliale(string $codice = 'FN01'): Filiale
+    private function makeGoodsType(string $platformName = 'MD', string $goodsTypeName = 'Freschi'): GoodsType
     {
-        return Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => $codice]);
+        $platform = Platform::query()->firstOrCreate(['name' => $platformName]);
+
+        return $platform->goodsTypes()->create(['name' => $goodsTypeName]);
+    }
+
+    private function makeFiliale(string $codice = 'FN01', ?GoodsType $goodsType = null): Filiale
+    {
+        $goodsType ??= $this->makeGoodsType();
+
+        return Filiale::query()->create([
+            'platform_id' => $goodsType->platform_id,
+            'goods_type_id' => $goodsType->id,
+            'name' => 'Filiale Nord',
+            'codice' => $codice,
+        ]);
     }
 
     private function payload(Filiale $filiale, Vehicle $vehicle, array $overrides = []): array
@@ -47,7 +62,6 @@ class TripApiTest extends TestCase
             'date' => '2026-09-29 09:00:00',
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'goods_type' => 'freschi',
             'scarichi' => 3,
             'delivery_note_number' => '12345',
             'attachment' => UploadedFile::fake()->image('bolla.jpg'),
@@ -72,7 +86,7 @@ class TripApiTest extends TestCase
 
         $this->assertSame($worker->id, $trip->user_id);
         $this->assertSame($filiale->id, $trip->filiale_id);
-        $this->assertSame('freschi', $trip->goods_type);
+        $this->assertSame('Freschi', $trip->filiale->goodsType->name);
         $this->assertSame(3, $trip->scarichi);
         $this->assertSame('12345', $trip->delivery_note_number);
         $this->assertNull($trip->price);
@@ -96,7 +110,7 @@ class TripApiTest extends TestCase
         $this->assertNull(Trip::query()->firstOrFail()->price);
     }
 
-    public function test_bordero_record_requires_attachment_filiale_and_a_valid_goods_type(): void
+    public function test_bordero_record_requires_filiale_and_allows_optional_attachment(): void
     {
         Storage::fake('public');
 
@@ -106,23 +120,20 @@ class TripApiTest extends TestCase
 
         Sanctum::actingAs($worker);
 
-        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['attachment' => null]))
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('attachment');
-
         $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['delivery_note_number' => 'ABC']))
             ->assertStatus(422)
             ->assertJsonValidationErrors('delivery_note_number');
-
-        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['goods_type' => 'surgelati']))
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('goods_type');
 
         $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['filiale_id' => 99999]))
             ->assertStatus(422)
             ->assertJsonValidationErrors('filiale_id');
 
         $this->assertDatabaseCount('trips', 0);
+
+        $this->postJson('/api/trips', $this->payload($filiale, $vehicle, ['attachment' => null]))
+            ->assertCreated();
+
+        $this->assertCount(0, Trip::query()->firstOrFail()->attachments);
     }
 
     public function test_delivery_note_number_accepts_digits_and_dashes(): void
@@ -183,7 +194,6 @@ class TripApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-09-29 09:00:00',
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
         $keptAttachment = $trip->attachments()->create(['path' => 'trips/keep.jpg']);
@@ -193,7 +203,6 @@ class TripApiTest extends TestCase
             'date' => '2026-09-29 09:00:00',
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
             'remove_attachment_ids' => [$removedAttachment->id],
             'attachments' => [UploadedFile::fake()->image('new.jpg')],
@@ -222,7 +231,6 @@ class TripApiTest extends TestCase
                 'filiale_id' => $filiale->id,
                 'vehicle_id' => $vehicle->id,
                 'date' => '2026-09-29 09:00:00',
-                'goods_type' => 'secco',
                 'delivery_note_number' => '1',
             ]);
             $trip->attachments()->create(['path' => 'trips/x.jpg']);
@@ -237,8 +245,19 @@ class TripApiTest extends TestCase
 
     public function test_filiali_endpoint_lists_filiali_sorted_by_name(): void
     {
-        Filiale::query()->create(['name' => 'Zeta', 'codice' => 'Z01']);
-        Filiale::query()->create(['name' => 'Alfa', 'codice' => 'A01']);
+        $goodsType = $this->makeGoodsType();
+        Filiale::query()->create([
+            'platform_id' => $goodsType->platform_id,
+            'goods_type_id' => $goodsType->id,
+            'name' => 'Zeta',
+            'codice' => 'Z01',
+        ]);
+        Filiale::query()->create([
+            'platform_id' => $goodsType->platform_id,
+            'goods_type_id' => $goodsType->id,
+            'name' => 'Alfa',
+            'codice' => 'A01',
+        ]);
 
         Sanctum::actingAs($this->makeWorker());
 
@@ -272,7 +291,6 @@ class TripApiTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => '2026-09-29 09:00:00',
-            'goods_type' => 'secco',
             'delivery_note_number' => '1',
         ]);
 

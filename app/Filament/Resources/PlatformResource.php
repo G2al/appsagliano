@@ -37,7 +37,7 @@ class PlatformResource extends Resource
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
                 Forms\Components\Repeater::make('addresses')
-                    ->label('Indirizzi')
+                    ->label('Indirizzi (per i rifornimenti)')
                     ->relationship()
                     ->simple(
                         Forms\Components\TextInput::make('address')
@@ -48,13 +48,25 @@ class PlatformResource extends Resource
                     ->addActionLabel('Aggiungi indirizzo')
                     ->reorderable(false)
                     ->columnSpanFull(),
+                Forms\Components\Repeater::make('goodsTypes')
+                    ->label('Diciture (per il bordero: secco, freschi, frutta...)')
+                    ->relationship()
+                    ->simple(
+                        Forms\Components\TextInput::make('name')
+                            ->label('Dicitura')
+                            ->required()
+                            ->maxLength(255)
+                    )
+                    ->addActionLabel('Aggiungi dicitura')
+                    ->reorderable(false)
+                    ->columnSpanFull(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('addresses'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['addresses', 'goodsTypes']))
             ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
@@ -70,6 +82,11 @@ class PlatformResource extends Resource
                         'addresses',
                         fn (Builder $q) => $q->where('address', 'like', "%{$search}%")
                     )),
+                Tables\Columns\TextColumn::make('goodsTypes')
+                    ->label('Diciture')
+                    ->state(fn (Platform $record) => $record->goodsTypes->pluck('name')->implode(' • '))
+                    ->placeholder('—')
+                    ->wrap(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -82,17 +99,32 @@ class PlatformResource extends Resource
     {
         return Tables\Actions\DeleteAction::make()
             ->before(function (Tables\Actions\DeleteAction $action, Platform $record): void {
-                if (! $record->movements()->withTrashed()->exists()) {
+                if ($record->movements()->withTrashed()->exists()) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Impossibile eliminare')
+                        ->body('Questa piattaforma e usata da uno o piu rifornimenti.')
+                        ->send();
+
+                    $action->cancel();
+
                     return;
                 }
 
-                Notification::make()
-                    ->danger()
-                    ->title('Impossibile eliminare')
-                    ->body('Questa piattaforma e usata da uno o piu rifornimenti.')
-                    ->send();
+                $hasTrips = \App\Models\Filiale::query()
+                    ->where('platform_id', $record->id)
+                    ->whereHas('trips', fn ($q) => $q->withTrashed())
+                    ->exists();
 
-                $action->cancel();
+                if ($hasTrips) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Impossibile eliminare')
+                        ->body('Una filiale di questa piattaforma e usata da uno o piu record bordero.')
+                        ->send();
+
+                    $action->cancel();
+                }
             });
     }
 
@@ -107,7 +139,11 @@ class PlatformResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_REFUELS]);
+        return static::currentUserCanAccessModules([
+            User::PANEL_MODULE_REFUELS,
+            User::PANEL_MODULE_TRIPS,
+            User::PANEL_MODULE_BORDERO,
+        ]);
     }
 
     public static function canCreate(): bool

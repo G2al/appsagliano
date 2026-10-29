@@ -28,7 +28,7 @@ class TripsListTable extends BaseWidget
         [$start, $end] = $this->getReportTableCheckDateRange();
 
         return Trip::query()
-            ->with(['user', 'vehicle', 'filiale', 'attachments'])
+            ->with(['user', 'vehicle', 'filiale.goodsType', 'attachments'])
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -50,9 +50,9 @@ class TripsListTable extends BaseWidget
             Tables\Columns\TextColumn::make('filiale.name')
                 ->label('Filiale')
                 ->formatStateUsing(fn ($state, Trip $record) => $record->filiale ? "{$record->filiale->codice} - {$record->filiale->name}" : 'N/D'),
-            Tables\Columns\TextColumn::make('goods_type')
+            Tables\Columns\TextColumn::make('filiale.goodsType.name')
                 ->label('Tipologia')
-                ->formatStateUsing(fn ($state) => Trip::goodsTypeOptions()[$state] ?? $state)
+                ->placeholder('N/D')
                 ->badge(),
             Tables\Columns\TextColumn::make('delivery_note_number')
                 ->label('Numero bordero')

@@ -48,6 +48,10 @@ class VehicleResource extends Resource
                     ->label('Colore')
                     ->maxLength(255)
                     ->nullable(),
+                Forms\Components\TextInput::make('company')
+                    ->label('Società di appartenenza')
+                    ->maxLength(255)
+                    ->nullable(),
                 Forms\Components\TextInput::make('current_km')
                     ->label('Km attuali')
                     ->numeric()
@@ -120,6 +124,11 @@ class VehicleResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('color')
                     ->label('Colore')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('company')
+                    ->label('Società')
+                    ->placeholder('—')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('current_km')

@@ -24,6 +24,11 @@ class Platform extends Model
         return $this->hasMany(Movement::class);
     }
 
+    public function goodsTypes(): HasMany
+    {
+        return $this->hasMany(GoodsType::class);
+    }
+
     public function hasSingleAddress(): bool
     {
         return $this->addresses->count() === 1;

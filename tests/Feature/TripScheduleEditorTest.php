@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Pages\TripSchedules;
 use App\Livewire\TripScheduleEditor;
 use App\Models\Filiale;
+use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -20,7 +21,14 @@ class TripScheduleEditorTest extends TestCase
     private function makeDriverWithTrips(): User
     {
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'name' => 'Mario', 'surname' => 'Rossi']);
-        $filiale = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
+        $platform = Platform::query()->firstOrCreate(['name' => 'MD']);
+        $goodsType = $platform->goodsTypes()->firstOrCreate(['name' => 'Secco']);
+        $filiale = Filiale::query()->create([
+            'platform_id' => $platform->id,
+            'goods_type_id' => $goodsType->id,
+            'name' => 'Filiale Nord',
+            'codice' => 'FN01',
+        ]);
         $vehicle = Vehicle::query()->create(['name' => 'Camion', 'plate' => 'VL001AA', 'current_km' => 0, 'maintenance_km' => 0]);
 
         $day = now()->startOfMonth()->addDays(2);
@@ -30,7 +38,6 @@ class TripScheduleEditorTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day,
-            'goods_type' => 'secco',
             'delivery_note_number' => '101',
         ]);
 
@@ -39,7 +46,6 @@ class TripScheduleEditorTest extends TestCase
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
             'date' => $day->copy()->addHours(3),
-            'goods_type' => 'freschi',
             'delivery_note_number' => '102',
         ]);
 
@@ -108,7 +114,7 @@ class TripScheduleEditorTest extends TestCase
         $this->assertNull($trip101->fresh()->price);
     }
 
-    public function test_worker_with_bordero_module_can_set_price(): void
+    public function test_worker_with_bordero_module_cannot_set_price(): void
     {
         $driver = $this->makeDriverWithTrips();
         $borderoUser = User::factory()->create([
@@ -125,9 +131,9 @@ class TripScheduleEditorTest extends TestCase
         Livewire::test(TripScheduleEditor::class, ['userId' => $driver->id])
             ->set("prices.{$trip101->id}", '60.00')
             ->call('updatePrice', $trip101->id)
-            ->assertSuccessful();
+            ->assertForbidden();
 
-        $this->assertSame('60.00', $trip101->fresh()->price);
+        $this->assertNull($trip101->fresh()->price);
     }
 
     public function test_clearing_a_price_uncertifies_the_trip(): void

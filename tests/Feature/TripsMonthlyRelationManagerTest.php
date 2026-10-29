@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\RelationManagers\TripsMonthlyRelationManager;
 use App\Models\Filiale;
+use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -21,8 +22,10 @@ class TripsMonthlyRelationManagerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
         $driver = User::factory()->create(['role' => 'worker', 'is_approved' => true]);
-        $filialeA = Filiale::query()->create(['name' => 'Filiale Nord', 'codice' => 'FN01']);
-        $filialeB = Filiale::query()->create(['name' => 'Filiale Sud', 'codice' => 'FS01']);
+        $platform = Platform::query()->firstOrCreate(['name' => 'MD']);
+        $goodsType = $platform->goodsTypes()->firstOrCreate(['name' => 'Secco']);
+        $filialeA = Filiale::query()->create(['platform_id' => $platform->id, 'goods_type_id' => $goodsType->id, 'name' => 'Filiale Nord', 'codice' => 'FN01']);
+        $filialeB = Filiale::query()->create(['platform_id' => $platform->id, 'goods_type_id' => $goodsType->id, 'name' => 'Filiale Sud', 'codice' => 'FS01']);
         $vehicleA = Vehicle::query()->create(['name' => 'Camion A', 'plate' => 'VL001AA', 'current_km' => 0, 'maintenance_km' => 0]);
         $vehicleB = Vehicle::query()->create(['name' => 'Camion B', 'plate' => 'VL002BB', 'current_km' => 0, 'maintenance_km' => 0]);
 
@@ -33,7 +36,6 @@ class TripsMonthlyRelationManagerTest extends TestCase
             'filiale_id' => $filialeA->id,
             'vehicle_id' => $vehicleA->id,
             'date' => $day3,
-            'goods_type' => 'secco',
             'delivery_note_number' => '101',
         ]);
 
@@ -42,7 +44,6 @@ class TripsMonthlyRelationManagerTest extends TestCase
             'filiale_id' => $filialeB->id,
             'vehicle_id' => $vehicleB->id,
             'date' => $day3->copy()->addHours(3),
-            'goods_type' => 'freschi',
             'delivery_note_number' => '102',
         ]);
 

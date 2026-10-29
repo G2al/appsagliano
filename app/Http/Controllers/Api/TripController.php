@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Filiale;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\TripPriceCalculator;
 use App\Support\BuildsMonthlyTripSchedule;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -82,7 +84,7 @@ class TripController extends Controller
     {
         $user = $request->user();
 
-        $query = Trip::with(['filiale', 'vehicle', 'user', 'attachments'])
+        $query = Trip::with(['filiale.platform', 'filiale.goodsType', 'vehicle', 'user', 'attachments'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest('date')
             ->latest('id');
@@ -120,11 +122,19 @@ class TripController extends Controller
             ]);
         }
 
-        $validated = $this->validatePayload($request, attachmentRequired: true);
+        $validated = $this->validatePayload($request);
+
+        $date = Carbon::parse($validated['date']);
+        $filiale = Filiale::query()->with('prices')->findOrFail($validated['filiale_id']);
+
+        $calculator = app(TripPriceCalculator::class);
+        $tripOrder = $calculator->resolveTripOrder($user->id, $date);
 
         $trip = Trip::create([
             'user_id' => $user->id,
             ...$validated,
+            'trip_order' => $tripOrder,
+            'price' => $calculator->resolvePrice($filiale, $tripOrder),
         ]);
 
         foreach ($this->collectAttachmentFiles($request) as $file) {
@@ -133,7 +143,7 @@ class TripController extends Controller
             ]);
         }
 
-        $trip->load(['filiale', 'vehicle', 'user', 'attachments']);
+        $trip->load(['filiale.platform', 'filiale.goodsType', 'vehicle', 'user', 'attachments']);
 
         if ($user->role !== 'admin') {
             $trip->makeHidden('price');
@@ -155,9 +165,19 @@ class TripController extends Controller
             abort(403, 'Il record e gia stato pagato e non puo piu essere modificato.');
         }
 
-        $validated = $this->validatePayload($request, attachmentRequired: false);
+        $validated = $this->validatePayload($request);
 
-        $trip->update($validated);
+        $date = Carbon::parse($validated['date']);
+        $filiale = Filiale::query()->with('prices')->findOrFail($validated['filiale_id']);
+
+        $calculator = app(TripPriceCalculator::class);
+        $tripOrder = $calculator->resolveTripOrder($trip->user_id, $date, excludeTripId: $trip->id);
+
+        $trip->update([
+            ...$validated,
+            'trip_order' => $tripOrder,
+            'price' => $calculator->resolvePrice($filiale, $tripOrder),
+        ]);
 
         $removeIds = collect($request->input('remove_attachment_ids', []))
             ->filter(fn ($id) => is_numeric($id))
@@ -179,7 +199,7 @@ class TripController extends Controller
             ]);
         }
 
-        $trip->refresh()->load(['filiale', 'vehicle', 'user', 'attachments']);
+        $trip->refresh()->load(['filiale.platform', 'filiale.goodsType', 'vehicle', 'user', 'attachments']);
 
         if (! $isAdmin) {
             $trip->makeHidden('price');
@@ -206,36 +226,30 @@ class TripController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validatePayload(Request $request, bool $attachmentRequired): array
+    private function validatePayload(Request $request): array
     {
         $validated = $request->validate([
             'date' => ['required', 'date'],
             'filiale_id' => ['required', Rule::exists('filiali', 'id')],
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
-            'goods_type' => ['required', Rule::in(array_keys(Trip::goodsTypeOptions()))],
             'scarichi' => ['nullable', 'integer', 'min:0'],
             'delivery_note_number' => ['required', 'regex:/^[0-9-]{1,30}$/'],
-            'attachment' => [$attachmentRequired ? 'required_without:attachments' : 'nullable', 'file', 'max:16384'],
-            'attachments' => [$attachmentRequired ? 'required_without:attachment' : 'nullable', 'array', 'min:1'],
+            'attachment' => ['nullable', 'file', 'max:16384'],
+            'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
             'exists' => 'Il campo :attribute non esiste.',
-            'in' => 'Il campo :attribute non e valido.',
             'delivery_note_number.regex' => 'Il campo numero bordero puo contenere solo numeri e trattini.',
-            'attachment.required_without' => "L'allegato e obbligatorio.",
             'attachment.file' => "L'allegato deve essere un file valido.",
             'attachment.max' => "L'allegato non puo superare 16MB.",
-            'attachments.required_without' => 'Carica almeno un allegato.',
-            'attachments.min' => 'Carica almeno un allegato.',
             'attachments.*.file' => 'Ogni allegato deve essere un file valido.',
             'attachments.*.max' => 'Ogni allegato non puo superare 16MB.',
         ], [
             'date' => 'data',
             'filiale_id' => 'filiale',
             'vehicle_id' => 'veicolo',
-            'goods_type' => 'tipologia',
             'scarichi' => 'scarichi',
             'delivery_note_number' => 'numero bordero',
             'attachment' => 'allegato',
