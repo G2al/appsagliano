@@ -11,6 +11,7 @@ use App\Filament\Widgets\RefuelsStats;
 use App\Filament\Widgets\RefuelsByStationTable;
 use App\Filament\Widgets\RefuelsByVehicleTable;
 use App\Filament\Widgets\RefuelsByVehicleStationTable;
+use App\Filament\Widgets\RefuelsByPlatformTable;
 use App\Filament\Widgets\RefuelsListTable;
 
 class ReportRefuels extends Page
@@ -52,6 +53,7 @@ class ReportRefuels extends Page
             RefuelsStats::class,
             RefuelsByVehicleStationTable::class,
             RefuelsByStationTable::class,
+            RefuelsByPlatformTable::class,
             RefuelsByVehicleTable::class,
         ];
     }
