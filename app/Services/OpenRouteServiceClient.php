@@ -61,7 +61,7 @@ class OpenRouteServiceClient
     }
 
     /**
-     * Calcola la distanza stradale (metri) per mezzi pesanti lungo una sequenza di coordinate.
+     * Calcola la distanza stradale (metri) lungo una sequenza di coordinate.
      *
      * @param  array<int, array{0: float, 1: float}>  $coordinates  coppie [lon, lat], almeno 2
      */
