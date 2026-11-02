@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\MovementResource\Pages;
 use App\Models\Movement;
-use App\Models\Platform;
 use App\Models\Station;
 use App\Models\StationCard;
 use App\Models\User;
@@ -70,12 +69,6 @@ class MovementResource extends Resource
                                     $set('station_card_id', null);
                                 }
                             })
-                            ->required(),
-                        Forms\Components\Select::make('platform_id')
-                            ->label('Piattaforma')
-                            ->relationship('platform', 'name')
-                            ->searchable()
-                            ->preload()
                             ->required(),
                         Forms\Components\Select::make('vehicle_id')
                             ->label('Veicolo')
@@ -188,11 +181,6 @@ class MovementResource extends Resource
                     ->label('Stazione')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('platform.name')
-                    ->label('Piattaforma')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(),
                 Tables\Columns\TextColumn::make('vehicle.plate')
                     ->label('Veicolo')
                     ->sortable()

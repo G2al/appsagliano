@@ -176,7 +176,7 @@ class MovementController extends Controller
     {
         $validated = $request->validate([
             'station_id' => ['required', Rule::exists('stations', 'id')],
-            'platform_id' => ['required', Rule::exists('platforms', 'id')],
+            'platform_id' => ['nullable', Rule::exists('platforms', 'id')],
             'vehicle_id' => ['required', Rule::exists('vehicles', 'id')],
             'date' => ['required', 'date'],
             'km_start' => ['required', 'integer', 'min:0'],
