@@ -146,9 +146,10 @@ class TripDistanceCalculator
 
         $waypoints = [$platformCoords];
         $isEstimate = false;
+        $previousPoint = ['lat' => $platformCoords[1], 'lon' => $platformCoords[0]];
 
         foreach ($cleanDestinations as $destination) {
-            $geo = $this->geocodeCached($destination);
+            $geo = $this->geocodeCached($destination, $previousPoint);
 
             if (! $geo) {
                 return $this->unavailable(
@@ -163,6 +164,7 @@ class TripDistanceCalculator
             }
 
             $waypoints[] = [$geo['lon'], $geo['lat']];
+            $previousPoint = ['lat' => $geo['lat'], 'lon' => $geo['lon']];
         }
 
         $waypoints[] = $platformCoords;
@@ -222,12 +224,14 @@ class TripDistanceCalculator
     }
 
     /**
+     * @param  array{lat: float, lon: float}  $focusPoint
      * @return array{lat: float, lon: float, confidence: float}|null
      */
-    private function geocodeCached(string $query): ?array
+    private function geocodeCached(string $query, array $focusPoint): ?array
     {
-        $key = 'ors:geocode:' . md5(mb_strtolower(trim($query)));
+        $focusKey = round($focusPoint['lat'], 2) . ',' . round($focusPoint['lon'], 2);
+        $key = 'ors:geocode:' . md5(mb_strtolower(trim($query)) . '|' . $focusKey);
 
-        return Cache::remember($key, now()->addDays(30), fn () => $this->client->geocode($query));
+        return Cache::remember($key, now()->addDays(30), fn () => $this->client->geocode($query, $focusPoint));
     }
 }

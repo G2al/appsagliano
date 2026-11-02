@@ -12,9 +12,16 @@ class OpenRouteServiceClient
     /**
      * Geocodifica un indirizzo/citta' in coordinate GPS tramite Pelias.
      *
+     * Molti nomi di via/paese sono ambigui (es. "Corso Umberto I" esiste in
+     * decine di comuni italiani): quando si conosce un punto di riferimento
+     * vicino al risultato atteso (la piattaforma o la tappa precedente del
+     * viaggio), lo si passa come $focusPoint per far preferire a Pelias i
+     * risultati piu' vicini a quel punto, invece del primo match qualsiasi.
+     *
+     * @param  array{lat: float, lon: float}|null  $focusPoint
      * @return array{lat: float, lon: float, confidence: float}|null
      */
-    public function geocode(string $query): ?array
+    public function geocode(string $query, ?array $focusPoint = null): ?array
     {
         $apiKey = config('services.openrouteservice.key');
 
@@ -22,13 +29,20 @@ class OpenRouteServiceClient
             return null;
         }
 
+        $params = [
+            'text' => $query,
+            'size' => 1,
+        ];
+
+        if ($focusPoint !== null) {
+            $params['focus.point.lat'] = $focusPoint['lat'];
+            $params['focus.point.lon'] = $focusPoint['lon'];
+        }
+
         try {
             $response = Http::timeout(self::TIMEOUT_SECONDS)
                 ->withHeaders(['Authorization' => $apiKey])
-                ->get(config('services.openrouteservice.geocode_url'), [
-                    'text' => $query,
-                    'size' => 1,
-                ]);
+                ->get(config('services.openrouteservice.geocode_url'), $params);
         } catch (\Throwable $e) {
             Log::warning('ORS geocode request failed', ['query' => $query, 'error' => $e->getMessage()]);
 
