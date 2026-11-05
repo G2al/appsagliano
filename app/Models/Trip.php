@@ -15,6 +15,7 @@ class Trip extends Model
 
     public const GOODS_TYPE_DRY = 'secco';
     public const GOODS_TYPE_FRESH = 'freschi';
+    public const GOODS_TYPE_DRY_FRESH = 'secco_freschi';
 
     protected $fillable = [
         'user_id',
@@ -48,6 +49,7 @@ class Trip extends Model
         return [
             self::GOODS_TYPE_DRY => 'Secco',
             self::GOODS_TYPE_FRESH => 'Freschi',
+            self::GOODS_TYPE_DRY_FRESH => 'Secco + Freschi',
         ];
     }
 
