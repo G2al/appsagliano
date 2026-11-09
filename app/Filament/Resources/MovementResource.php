@@ -163,6 +163,8 @@ class MovementResource extends Resource
                             ->directory('receipts')
                             ->disk('public')
                             ->visibility('public')
+                            ->downloadable()
+                            ->openable()
                             ->required(),
                     ]),
             ]);

@@ -124,6 +124,8 @@ class MaintenanceResource extends Resource
                             ->directory('maintenances')
                             ->disk('public')
                             ->visibility('public')
+                            ->downloadable()
+                            ->openable()
                             ->required(),
                     ]),
             ]);
