@@ -17,11 +17,11 @@ class MovementAttachmentPrintController extends Controller
             abort(403);
         }
 
-        if (! $movement->photo_url) {
+        $movement->load(['user', 'vehicle', 'station', 'attachments']);
+
+        if ($movement->attachments->isEmpty()) {
             abort(404);
         }
-
-        $movement->load(['user', 'vehicle', 'station']);
 
         return view('receipts.photo', [
             'movement' => $movement,

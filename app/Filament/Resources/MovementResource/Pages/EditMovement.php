@@ -7,6 +7,7 @@ use App\Models\Station;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class EditMovement extends EditRecord
@@ -16,6 +17,9 @@ class EditMovement extends EditRecord
     protected ?int $previousStationId = null;
     protected float $previousStationCharge = 0.0;
 
+    /** @var array<int, string> */
+    protected array $pendingAttachmentPaths = [];
+
     protected function getHeaderActions(): array
     {
         return [
@@ -23,8 +27,18 @@ class EditMovement extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['attachments'] = $this->record->attachments->pluck('path')->toArray();
+
+        return $data;
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $this->pendingAttachmentPaths = $data['attachments'] ?? [];
+        unset($data['attachments']);
+
         $this->previousStationId = $this->record->station_id;
         $this->previousStationCharge = (float) ($this->record->station_charge ?? 0);
 
@@ -74,6 +88,24 @@ class EditMovement extends EditRecord
 
     protected function afterSave(): void
     {
+        $existing = $this->record->attachments()->get();
+        $keptPaths = $this->pendingAttachmentPaths;
+
+        foreach ($existing as $attachment) {
+            if (! in_array($attachment->path, $keptPaths, true)) {
+                Storage::disk('public')->delete($attachment->path);
+                $attachment->delete();
+            }
+        }
+
+        $existingPaths = $existing->pluck('path')->all();
+
+        foreach ($keptPaths as $path) {
+            if (! in_array($path, $existingPaths, true)) {
+                $this->record->attachments()->create(['path' => $path]);
+            }
+        }
+
         $oldStationId = $this->previousStationId;
         $oldCharge = $this->previousStationCharge;
         $newStationId = $this->record->station_id;

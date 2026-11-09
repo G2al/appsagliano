@@ -53,7 +53,9 @@
         @if($movement->date)
             <p class="meta">Data: {{ $movement->date->format('d/m/Y H:i') }}</p>
         @endif
-        <img class="photo" src="{{ $movement->photo_url }}" alt="Ricevuta movimento #{{ $movement->id }}">
+        @foreach ($movement->attachments as $attachment)
+            <img class="photo" src="{{ $attachment->url }}" alt="Ricevuta movimento #{{ $movement->id }}">
+        @endforeach
     </div>
 </body>
 </html>

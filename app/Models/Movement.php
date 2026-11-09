@@ -5,11 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use App\Models\Vehicle;
 use App\Models\Maintenance;
 
@@ -36,7 +35,6 @@ class Movement extends Model
         'is_voucher',
         'adblue',
         'notes',
-        'photo_path',
     ];
 
     protected $casts = [
@@ -51,9 +49,6 @@ class Movement extends Model
         'adblue' => 'decimal:2',
     ];
 
-    protected $appends = [
-        'photo_url',
-    ];
 
     protected static function booted(): void
     {
@@ -79,11 +74,6 @@ class Movement extends Model
 
             self::refundStationCharge($movement);
         });
-
-        static::created(function (self $movement) {
-            $movement->notifyTelegram();
-        });
-
 
         static::saved(function (self $movement) {
             $vehicleId = $movement->vehicle_id;
@@ -146,16 +136,9 @@ class Movement extends Model
         return $this->belongsTo(Vehicle::class);
     }
 
-    public function getPhotoUrlAttribute(): ?string
+    public function attachments(): HasMany
     {
-        if (! $this->photo_path) {
-            return null;
-        }
-
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
-
-        return $disk->url($this->photo_path);
+        return $this->hasMany(MovementAttachment::class)->orderBy('id');
     }
 
     protected static function syncVehicleCurrentKm(int $vehicleId): void
@@ -318,8 +301,10 @@ class Movement extends Model
             $lines[] = '📝 <b>Note:</b> ' . $this->notes;
         }
 
-        if ($this->photo_url) {
-            $lines[] = '📎 <a href="' . $this->photo_url . '">Ricevuta</a>';
+        $firstAttachmentUrl = $this->attachments->first()?->url;
+
+        if ($firstAttachmentUrl) {
+            $lines[] = '📎 <a href="' . $firstAttachmentUrl . '">Ricevuta</a>';
         }
 
         $text = implode("\n", $lines);

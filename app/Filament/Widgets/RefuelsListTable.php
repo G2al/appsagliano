@@ -26,7 +26,7 @@ class RefuelsListTable extends BaseWidget
         [$start, $end] = $this->resolveDateRange();
 
         return Movement::query()
-            ->with(['vehicle', 'station', 'user'])
+            ->with(['vehicle', 'station', 'user', 'attachments'])
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date');
     }
@@ -75,10 +75,10 @@ class RefuelsListTable extends BaseWidget
                 ->label('Note')
                 ->limit(40)
                 ->toggleable(),
-            Tables\Columns\TextColumn::make('photo_path')
+            Tables\Columns\TextColumn::make('attachments_count')
                 ->label('Allegato')
-                ->state(fn ($record) => $record->photo_path ? 'Stampa' : 'N/D')
-                ->url(fn ($record) => $record->photo_path ? asset('storage/' . $record->photo_path) : null, true)
+                ->state(fn (Movement $record) => $record->attachments->isNotEmpty() ? 'Apri (' . $record->attachments->count() . ')' : 'N/D')
+                ->url(fn (Movement $record) => $record->attachments->isNotEmpty() ? route('movements.attachment', $record) : null, true)
                 ->openUrlInNewTab()
                 ->toggleable(),
         ];

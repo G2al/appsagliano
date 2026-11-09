@@ -96,7 +96,7 @@ class RefuelsByStationTable extends BaseWidget
     {
         [$start, $end] = $this->resolveDateRange();
 
-        $rows = Movement::with(['vehicle', 'station'])
+        $rows = Movement::with(['vehicle', 'station', 'attachments'])
             ->where('station_id', $stationId)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date')
@@ -109,8 +109,8 @@ class RefuelsByStationTable extends BaseWidget
                 $liters = $movement->liters !== null ? number_format((float) $movement->liters, 2, ',', '.') . ' L' : '0,00 L';
                 $paymentLabel = $movement->is_voucher ? 'Buono' : 'Credito';
                 $note = $movement->notes ?: '';
-                $attachment = $movement->photo_path
-                    ? '<a href="' . e(asset('storage/' . $movement->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+                $attachment = $movement->attachments->isNotEmpty()
+                    ? '<a href="' . e(route('movements.attachment', $movement)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
                     : 'N/D';
 
                 return "<tr>

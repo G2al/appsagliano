@@ -13,8 +13,14 @@ class CreateMovement extends CreateRecord
 {
     protected static string $resource = MovementResource::class;
 
+    /** @var array<int, string> */
+    protected array $pendingAttachmentPaths = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->pendingAttachmentPaths = $data['attachments'] ?? [];
+        unset($data['attachments']);
+
         // Se l'admin crea un movimento da Filament, salviamo updated_by.
         if (Auth::check()) {
             $data['updated_by'] = Auth::id();
@@ -53,6 +59,12 @@ class CreateMovement extends CreateRecord
 
     protected function afterCreate(): void
     {
+        foreach ($this->pendingAttachmentPaths as $path) {
+            $this->record->attachments()->create(['path' => $path]);
+        }
+
+        $this->record->notifyTelegram();
+
         $stationId = $this->record?->station_id;
         $charge = (float) ($this->record?->station_charge ?? 0);
 

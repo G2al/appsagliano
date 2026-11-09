@@ -54,7 +54,7 @@ class MovementController extends Controller
     {
         $user = $request->user();
 
-        $query = Movement::with(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy'])
+        $query = Movement::with(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy', 'attachments'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest();
 
@@ -90,10 +90,6 @@ class MovementController extends Controller
 
         $validated = $this->validatePayload($request, photoRequired: true);
 
-        if ($request->hasFile('photo')) {
-            $validated['photo_path'] = $request->file('photo')->store('receipts', 'public');
-        }
-
         $this->applyPaymentMethod($request, $validated);
 
         $kmStart = Movement::resolveKmStartForVehicleAtDate(
@@ -117,7 +113,15 @@ class MovementController extends Controller
             return $movement;
         });
 
-        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy']);
+        foreach ($this->collectAttachmentFiles($request) as $file) {
+            $movement->attachments()->create([
+                'path' => $file->store('receipts', 'public'),
+            ]);
+        }
+
+        $movement->notifyTelegram();
+
+        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy', 'attachments']);
 
         return response()->json($movement, 201);
     }
@@ -131,14 +135,6 @@ class MovementController extends Controller
         }
 
         $validated = $this->validatePayload($request, photoRequired: false);
-
-        $oldPhotoPath = $movement->photo_path;
-
-        if ($request->hasFile('photo')) {
-            $validated['photo_path'] = $request->file('photo')->store('receipts', 'public');
-        } else {
-            $validated['photo_path'] = $oldPhotoPath;
-        }
 
         $this->applyPaymentMethod($request, $validated);
 
@@ -160,13 +156,44 @@ class MovementController extends Controller
             }
         });
 
-        if ($request->hasFile('photo') && $oldPhotoPath && $oldPhotoPath !== $movement->photo_path) {
-            Storage::disk('public')->delete($oldPhotoPath);
+        $removeIds = collect($request->input('remove_attachment_ids', []))
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id);
+
+        if ($removeIds->isNotEmpty()) {
+            $movement->attachments()
+                ->whereIn('id', $removeIds)
+                ->get()
+                ->each(function ($attachment) {
+                    Storage::disk('public')->delete($attachment->path);
+                    $attachment->delete();
+                });
         }
 
-        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy']);
+        foreach ($this->collectAttachmentFiles($request) as $file) {
+            $movement->attachments()->create([
+                'path' => $file->store('receipts', 'public'),
+            ]);
+        }
+
+        $movement->refresh()->load(['station', 'stationCard', 'platform', 'vehicle', 'user', 'updatedBy', 'attachments']);
 
         return response()->json($movement);
+    }
+
+    /**
+     * @return array<int, \Illuminate\Http\UploadedFile>
+     */
+    private function collectAttachmentFiles(Request $request): array
+    {
+        $files = $request->file('attachments', []);
+        $files = is_array($files) ? $files : [$files];
+
+        if ($request->hasFile('photo')) {
+            $files[] = $request->file('photo');
+        }
+
+        return array_values(array_filter($files));
     }
 
     /**
@@ -187,7 +214,9 @@ class MovementController extends Controller
             'station_card_id' => ['nullable', Rule::exists('station_cards', 'id')],
             'adblue' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-            'photo' => [$photoRequired ? 'required' : 'nullable', 'file', 'max:16384'],
+            'photo' => ['nullable', 'file', 'max:16384'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:16384'],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
@@ -199,6 +228,8 @@ class MovementController extends Controller
             'photo.file' => 'La ricevuta deve essere un file valido.',
             'photo.max' => 'La ricevuta non puo superare 16MB.',
             'photo.uploaded' => 'Caricamento ricevuta non riuscito. Riprova o usa un file piu piccolo.',
+            'attachments.*.file' => 'Ogni allegato deve essere un file valido.',
+            'attachments.*.max' => 'Ogni allegato non puo superare 16MB.',
         ], [
             'station_id' => 'stazione',
             'platform_id' => 'piattaforma',
@@ -209,9 +240,16 @@ class MovementController extends Controller
             'liters' => 'litri',
             'price' => 'prezzo',
             'photo' => 'ricevuta',
+            'attachments' => 'allegati',
         ]);
 
-        unset($validated['photo']);
+        if ($photoRequired && $this->collectAttachmentFiles($request) === []) {
+            throw ValidationException::withMessages([
+                'photo' => ['Il campo ricevuta e obbligatorio.'],
+            ]);
+        }
+
+        unset($validated['photo'], $validated['attachments']);
 
         return $validated;
     }

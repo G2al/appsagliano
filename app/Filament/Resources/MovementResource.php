@@ -164,13 +164,20 @@ class MovementResource extends Resource
                             ->label('Note')
                             ->columnSpanFull()
                             ->nullable(),
-                        Forms\Components\FileUpload::make('photo_path')
-                            ->label('Ricevuta')
+                        Forms\Components\FileUpload::make('attachments')
+                            ->label('Ricevute')
+                            ->multiple()
+                            ->reorderable()
+                            ->appendFiles()
                             ->image()
                             ->directory('receipts')
                             ->disk('public')
                             ->visibility('public')
-                            ->required(),
+                            ->downloadable()
+                            ->openable()
+                            ->minFiles(1)
+                            ->required()
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -178,6 +185,7 @@ class MovementResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('attachments'))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Autore')
@@ -252,7 +260,7 @@ class MovementResource extends Resource
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')
-                    ->visible(fn (Movement $record): bool => ! $record->trashed() && filled($record->photo_url))
+                    ->visible(fn (Movement $record): bool => ! $record->trashed() && $record->attachments->isNotEmpty())
                     ->url(fn (Movement $record) => route('movements.attachment', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()

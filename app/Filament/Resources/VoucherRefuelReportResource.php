@@ -39,7 +39,7 @@ class VoucherRefuelReportResource extends Resource
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->where('is_voucher', true)
-                ->with(['user', 'station', 'vehicle'])
+                ->with(['user', 'station', 'vehicle', 'attachments'])
             )
             ->defaultSort('date', 'desc')
             ->columns([
@@ -131,7 +131,7 @@ class VoucherRefuelReportResource extends Resource
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')
-                    ->visible(fn (Movement $record): bool => filled($record->photo_url))
+                    ->visible(fn (Movement $record): bool => $record->attachments->isNotEmpty())
                     ->url(fn (Movement $record) => route('movements.attachment', $record))
                     ->openUrlInNewTab(),
             ])

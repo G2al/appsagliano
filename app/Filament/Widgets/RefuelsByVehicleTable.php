@@ -101,7 +101,7 @@ class RefuelsByVehicleTable extends BaseWidget
     {
         [$start, $end] = $this->resolveDateRange();
 
-        $movements = Movement::with(['vehicle', 'station'])
+        $movements = Movement::with(['vehicle', 'station', 'attachments'])
             ->where('vehicle_id', $vehicleId)
             ->whereBetween('date', [$start, $end])
             ->orderByDesc('date')
@@ -124,8 +124,8 @@ class RefuelsByVehicleTable extends BaseWidget
                     : 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-300';
                 $paymentBadge = '<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ' . $paymentClasses . '">' . $paymentLabel . '</span>';
                 $note = $movement->notes ?: '';
-                $attachment = $movement->photo_path
-                    ? '<a href="' . e(asset('storage/' . $movement->photo_path)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+                $attachment = $movement->attachments->isNotEmpty()
+                    ? '<a href="' . e(route('movements.attachment', $movement)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
                     : 'N/D';
 
                 return "<tr>
