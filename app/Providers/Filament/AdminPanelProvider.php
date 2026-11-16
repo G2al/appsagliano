@@ -26,9 +26,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Mega Trasporti')
+            ->brandName('ADV Logistica')
             ->colors([
-                'primary' => Color::hex('#1A2A9C'),
+                'primary' => Color::hex('#101015'),
             ])
             ->renderHook(
                 'panels::head.start',
@@ -36,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
                     <link rel="manifest" href="/admin-manifest.json?v=7">
                     <link rel="icon" href="/admin-assets/icon-admin.png" type="image/png">
                     <link rel="apple-touch-icon" href="/admin-assets/icon-admin.png">
-                    <meta name="theme-color" content="#1A2A9C">
+                    <meta name="theme-color" content="#101015">
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
                     <style>
                         /* Impedisce lo zoom automatico di iOS/Android quando si tocca un campo

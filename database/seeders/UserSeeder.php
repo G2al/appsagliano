@@ -14,11 +14,11 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['phone' => '+390000000000'],
+            ['phone' => '+390000000002'],
             [
-                'email' => 'admin@appmegatrasporti.it',
+                'email' => 'admin@app-adv.it',
                 'name' => 'Admin',
-                'surname' => 'Mega Trasporti',
+                'surname' => 'ADV Logistica',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
                 'is_approved' => true,
@@ -26,11 +26,11 @@ class UserSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['phone' => '+391111111111'],
+            ['phone' => '+391111111112'],
             [
-                'email' => 'worker@appmegatrasporti.it',
+                'email' => 'worker@app-adv.it',
                 'name' => 'Mario',
-                'surname' => 'Operaio',
+                'surname' => 'Operaio ADV',
                 'password' => Hash::make('password'),
                 'role' => 'worker',
                 'is_approved' => true,
