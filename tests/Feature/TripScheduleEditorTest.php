@@ -174,6 +174,24 @@ class TripScheduleEditorTest extends TestCase
             ->assertSee((string) $emptyDay);
     }
 
+    public function test_trip_schedules_page_shows_certified_and_uncertified_counts_per_driver(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $trip101 = Trip::where('delivery_note_number', '101')->firstOrFail();
+        $trip101->update(['price' => 45.50]);
+
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        Livewire::test(TripSchedules::class)
+            ->assertSuccessful()
+            ->assertSee('1 certificati')
+            ->assertSee('1 da certificare')
+            ->assertSee('45,50');
+    }
+
     public function test_changing_the_month_input_changes_the_displayed_trips(): void
     {
         $driver = $this->makeDriverWithTrips();

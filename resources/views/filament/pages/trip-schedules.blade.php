@@ -35,9 +35,22 @@
                     </x-slot>
 
                     <x-slot name="headerEnd">
-                        <x-filament::badge color="gray">
-                            {{ $user->trips_count }} {{ $user->trips_count === 1 ? 'viaggio' : 'viaggi' }}
-                        </x-filament::badge>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <x-filament::badge color="gray">
+                                {{ $user->trips_count }} {{ $user->trips_count === 1 ? 'viaggio' : 'viaggi' }}
+                            </x-filament::badge>
+                            <x-filament::badge color="success">
+                                {{ $user->certified_trips_count }} certificati
+                            </x-filament::badge>
+                            <x-filament::badge color="warning">
+                                {{ $user->uncertified_trips_count }} da certificare
+                            </x-filament::badge>
+                            @if (auth()->user()?->canManageBorderoPrice())
+                                <x-filament::badge color="primary">
+                                    € {{ number_format((float) ($user->certified_trips_total ?? 0), 2, ',', '.') }}
+                                </x-filament::badge>
+                            @endif
+                        </div>
                     </x-slot>
 
                     @livewire('trip-schedule-editor', ['userId' => $user->id], key('trip-schedule-editor-' . $user->id))

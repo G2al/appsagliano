@@ -49,7 +49,12 @@ class TripSchedules extends Page
     public function getUsersProperty(): LengthAwarePaginator
     {
         return User::query()
-            ->withCount('trips')
+            ->withCount([
+                'trips',
+                'trips as certified_trips_count' => fn ($query) => $query->whereNotNull('price'),
+                'trips as uncertified_trips_count' => fn ($query) => $query->whereNull('price'),
+            ])
+            ->withSum(['trips as certified_trips_total' => fn ($query) => $query->whereNotNull('price')], 'price')
             ->when($this->search !== '', function ($query) {
                 $term = '%' . $this->search . '%';
                 $query->where(fn ($q) => $q

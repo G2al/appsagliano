@@ -89,7 +89,7 @@
                                 </td>
                                 <td class="px-2 py-2 align-top whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">
                                     <span
-                                        class="inline-block w-2 h-2 rounded-full align-middle mr-1 {{ $trip->is_reviewed ? 'bg-success-500' : 'bg-warning-500' }}"
+                                        style="display:inline-block;width:0.6rem;height:0.6rem;border-radius:9999px;vertical-align:middle;margin-right:0.35rem;background-color:{{ $trip->is_reviewed ? '#22c55e' : '#f59e0b' }};"
                                         title="{{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}"
                                     ></span>
                                     @if (auth()->user()?->canManageBorderoPrice())
