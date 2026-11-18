@@ -6,6 +6,7 @@ use App\Models\Filiale;
 use App\Models\Maintenance;
 use App\Models\Movement;
 use App\Models\Platform;
+use App\Models\PriceRule;
 use App\Models\Station;
 use App\Models\Supplier;
 use App\Models\Trip;
@@ -42,8 +43,8 @@ class VialoDemoActivitySeeder extends Seeder
             ->get();
 
         $vehicles = Vehicle::query()->inRandomOrder()->get();
-        $platforms = Platform::query()->get();
-        $filiali = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->get();
+        $platforms = Platform::query()->with('extras')->get();
+        $filiali = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses', 'platform.extras'])->get();
         $stations = Station::query()->get();
         $suppliers = Supplier::query()->get();
 
@@ -85,24 +86,20 @@ class VialoDemoActivitySeeder extends Seeder
                 for ($i = 0; $i < $tripsToday; $i++) {
                     $filiale = $filiali->random();
                     $tripDate = $date->copy()->addHours(random_int(6, 18))->addMinutes(random_int(0, 59));
-                    $tripOrder = $calculator->resolveTripOrder($driver->id, $tripDate);
                     $scarichi = random_int(0, 8);
 
                     // L'80% dei record passati e' gia' certificato (revisionato).
                     $isReviewed = random_int(1, 100) <= 80;
 
-                    Trip::create([
-                        'user_id' => $driver->id,
-                        'filiale_id' => $filiale->id,
-                        'vehicle_id' => $vehicle->id,
-                        'date' => $tripDate,
-                        'trip_order' => $tripOrder,
-                        'scarichi' => $scarichi,
-                        'delivery_note_number' => (string) $deliveryNoteSequence++,
-                        'price' => $calculator->resolvePrice($filiale, $tripOrder),
-                        'owner_price' => $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi),
-                        'reviewed_at' => $isReviewed ? $tripDate->copy()->addHours(random_int(1, 48)) : null,
-                    ]);
+                    $trip = $this->createDemoTrip($calculator, $driver, $vehicle, $filiale, $tripDate, $scarichi, (string) $deliveryNoteSequence++, $isReviewed);
+
+                    // 10% di probabilita' di aggiungere un extra piattaforma, se ce ne sono.
+                    $availableExtras = $filiale->platform?->extras ?? collect();
+                    if ($availableExtras->isNotEmpty() && random_int(1, 100) <= 10) {
+                        $extra = $availableExtras->random();
+                        $trip->extras()->sync([$extra->id]);
+                        $trip->update(['price' => round((float) $trip->price + (float) $extra->amount, 2)]);
+                    }
 
                     $tripsCreated++;
                 }
@@ -163,6 +160,106 @@ class VialoDemoActivitySeeder extends Seeder
             }
         }
 
-        $this->command?->info("Generati: {$tripsCreated} record bordero, {$movementsCreated} rifornimenti, {$maintenancesCreated} manutenzioni su {$drivers->count()} autisti.");
+        // Giorno riservato, fuori dal periodo random sopra, cosi' il veicolo
+        // scelto per la dimostrazione non ha gia' altri viaggi quel giorno
+        // (altrimenti la sequenza non partirebbe pulita dalla posizione 1).
+        $ruleDemoDate = $start->copy()->subDay()->setTime(8, 0);
+        $ruleTripsCreated = $this->seedRuleDemoTrips($calculator, $drivers, $filiali, $deliveryNoteSequence, $ruleDemoDate);
+
+        $this->command?->info("Generati: {$tripsCreated} record bordero, {$movementsCreated} rifornimenti, {$maintenancesCreated} manutenzioni su {$drivers->count()} autisti ({$ruleTripsCreated} viaggi dimostrativi delle regole prezzo).");
+    }
+
+    /**
+     * Crea un record bordero usando la stessa logica reale (numero viaggio
+     * autista, listino filiale, supplemento scarichi, regola prezzo per
+     * veicolo/bancali se scatta), cosi' i dati demo si comportano esattamente
+     * come farebbe l'app.
+     */
+    private function createDemoTrip(
+        TripPriceCalculator $calculator,
+        User $driver,
+        Vehicle $vehicle,
+        Filiale $filiale,
+        Carbon $tripDate,
+        int $scarichi,
+        string $deliveryNoteNumber,
+        bool $isReviewed,
+        ?int $excludeTripId = null,
+    ): Trip {
+        $tripOrder = $calculator->resolveTripOrder($driver->id, $tripDate, excludeTripId: $excludeTripId);
+
+        $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $tripDate, excludeTripId: $excludeTripId);
+        $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $tripDate, excludeTripId: $excludeTripId);
+        $ruleOverride = $calculator->resolveRuleOverride($vehicle, $filiale, $vehicleDayPosition, $priorSequence);
+
+        $price = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
+        $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
+
+        return Trip::create([
+            'user_id' => $driver->id,
+            'filiale_id' => $filiale->id,
+            'vehicle_id' => $vehicle->id,
+            'date' => $tripDate,
+            'trip_order' => $tripOrder,
+            'scarichi' => $scarichi,
+            'delivery_note_number' => $deliveryNoteNumber,
+            'price' => $price,
+            'owner_price' => $ownerPrice,
+            'reviewed_at' => $isReviewed ? $tripDate->copy()->addHours(random_int(1, 48)) : null,
+        ]);
+    }
+
+    /**
+     * Crea qualche viaggio garantito che fa scattare davvero una regola
+     * prezzo demo (se presente), cosi' nella demo si vede subito l'effetto
+     * senza doverlo sperare dalla casualita' dei dati generati sopra.
+     */
+    private function seedRuleDemoTrips(TripPriceCalculator $calculator, $drivers, $filiali, int &$deliveryNoteSequence, Carbon $tripDate): int
+    {
+        $rule = PriceRule::query()->with('steps.goodsType')->first();
+
+        if (! $rule || $rule->steps->isEmpty()) {
+            return 0;
+        }
+
+        $vehicleQuery = Vehicle::query();
+        $vehicle = $rule->bancali !== null
+            ? $vehicleQuery->where('bancali', $rule->bancali)->first()
+            : $vehicleQuery->first();
+
+        if (! $vehicle) {
+            return 0;
+        }
+
+        $driver = $drivers->first();
+
+        if (! $driver) {
+            return 0;
+        }
+
+        $created = 0;
+
+        foreach ($rule->steps as $step) {
+            $filiale = $filiali->first(fn (Filiale $f) => $f->goods_type_id === $step->goods_type_id);
+
+            if (! $filiale) {
+                continue;
+            }
+
+            $this->createDemoTrip(
+                $calculator,
+                $driver,
+                $vehicle,
+                $filiale,
+                $tripDate->copy()->addHours($step->position),
+                scarichi: 0,
+                deliveryNoteNumber: 'REGOLA-' . $deliveryNoteSequence++,
+                isReviewed: true,
+            );
+
+            $created++;
+        }
+
+        return $created;
     }
 }
