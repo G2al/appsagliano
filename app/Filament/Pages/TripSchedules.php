@@ -51,8 +51,8 @@ class TripSchedules extends Page
         return User::query()
             ->withCount([
                 'trips',
-                'trips as certified_trips_count' => fn ($query) => $query->whereNotNull('price'),
-                'trips as uncertified_trips_count' => fn ($query) => $query->whereNull('price'),
+                'trips as reviewed_trips_count' => fn ($query) => $query->whereNotNull('reviewed_at'),
+                'trips as unreviewed_trips_count' => fn ($query) => $query->whereNull('reviewed_at'),
             ])
             ->withSum(['trips as certified_trips_total' => fn ($query) => $query->whereNotNull('price')], 'price')
             ->when($this->search !== '', function ($query) {

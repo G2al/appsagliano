@@ -40,10 +40,10 @@
                                 {{ $user->trips_count }} {{ $user->trips_count === 1 ? 'viaggio' : 'viaggi' }}
                             </x-filament::badge>
                             <x-filament::badge color="success">
-                                {{ $user->certified_trips_count }} certificati
+                                {{ $user->reviewed_trips_count }} revisionati
                             </x-filament::badge>
                             <x-filament::badge color="warning">
-                                {{ $user->uncertified_trips_count }} da certificare
+                                {{ $user->unreviewed_trips_count }} da revisionare
                             </x-filament::badge>
                             @if (auth()->user()?->canManageBorderoPrice())
                                 <x-filament::badge color="primary">
