@@ -7,6 +7,7 @@ use App\Models\Filiale;
 use App\Models\PlatformExtra;
 use App\Models\Trip;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Services\TripPriceCalculator;
 use App\Support\BuildsMonthlyTripSchedule;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -135,6 +136,7 @@ class TripController extends Controller
 
         $date = Carbon::parse($validated['date']);
         $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
+        $vehicle = Vehicle::query()->findOrFail($validated['vehicle_id']);
 
         $this->assertExtrasBelongToPlatform($extraIds, $filiale->platform_id);
 
@@ -143,14 +145,20 @@ class TripController extends Controller
         $scarichi = (int) ($validated['scarichi'] ?? 0);
 
         $extras = PlatformExtra::query()->whereIn('id', $extraIds)->get();
-        $basePrice = $calculator->resolvePrice($filiale, $tripOrder);
+
+        $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date);
+        $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date);
+        $ruleOverride = $calculator->resolveRuleOverride($vehicle, $filiale, $vehicleDayPosition, $priorSequence);
+
+        $basePrice = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
+        $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         $trip = Trip::create([
             'user_id' => $user->id,
             ...$validated,
             'trip_order' => $tripOrder,
             'price' => $basePrice !== null ? round($basePrice + $calculator->resolveExtrasAmount($extras), 2) : null,
-            'owner_price' => $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi),
+            'owner_price' => $ownerPrice,
         ]);
 
         if ($extras->isNotEmpty()) {
@@ -192,6 +200,7 @@ class TripController extends Controller
 
         $date = Carbon::parse($validated['date']);
         $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
+        $vehicle = Vehicle::query()->findOrFail($validated['vehicle_id']);
 
         $this->assertExtrasBelongToPlatform($extraIds, $filiale->platform_id);
 
@@ -200,13 +209,19 @@ class TripController extends Controller
         $scarichi = (int) ($validated['scarichi'] ?? 0);
 
         $extras = PlatformExtra::query()->whereIn('id', $extraIds)->get();
-        $basePrice = $calculator->resolvePrice($filiale, $tripOrder);
+
+        $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date, excludeTripId: $trip->id);
+        $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date, excludeTripId: $trip->id);
+        $ruleOverride = $calculator->resolveRuleOverride($vehicle, $filiale, $vehicleDayPosition, $priorSequence);
+
+        $basePrice = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
+        $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         $trip->update([
             ...$validated,
             'trip_order' => $tripOrder,
             'price' => $basePrice !== null ? round($basePrice + $calculator->resolveExtrasAmount($extras), 2) : null,
-            'owner_price' => $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi),
+            'owner_price' => $ownerPrice,
         ]);
 
         $trip->extras()->sync($extras->pluck('id'));

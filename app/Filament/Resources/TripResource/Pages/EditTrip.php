@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TripResource\Pages;
 use App\Filament\Resources\TripResource;
 use App\Models\Filiale;
 use App\Models\PlatformExtra;
+use App\Models\Vehicle;
 use App\Services\TripPriceCalculator;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -50,17 +51,25 @@ class EditTrip extends EditRecord
 
         $calculator = app(TripPriceCalculator::class);
         $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($data['filiale_id']);
-        $tripOrder = $calculator->resolveTripOrder((int) $data['user_id'], Carbon::parse($data['date']), excludeTripId: $this->record->id);
+        $vehicle = Vehicle::query()->findOrFail($data['vehicle_id']);
+        $date = Carbon::parse($data['date']);
+        $tripOrder = $calculator->resolveTripOrder((int) $data['user_id'], $date, excludeTripId: $this->record->id);
         $scarichi = (int) ($data['scarichi'] ?? 0);
 
         $extrasTotal = $calculator->resolveExtrasAmount(
             PlatformExtra::query()->whereIn('id', $this->pendingExtraIds)->get()
         );
-        $basePrice = $calculator->resolvePrice($filiale, $tripOrder);
+
+        $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date, excludeTripId: $this->record->id);
+        $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date, excludeTripId: $this->record->id);
+        $ruleOverride = $calculator->resolveRuleOverride($vehicle, $filiale, $vehicleDayPosition, $priorSequence);
+
+        $basePrice = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
+        $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         $data['trip_order'] = $tripOrder;
         $data['price'] = $basePrice !== null ? round($basePrice + $extrasTotal, 2) : null;
-        $data['owner_price'] = $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
+        $data['owner_price'] = $ownerPrice;
 
         return $data;
     }

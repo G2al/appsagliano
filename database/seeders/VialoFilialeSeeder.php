@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\GoodsType;
 use App\Models\Platform;
+use App\Models\PriceRule;
+use App\Models\Vehicle;
 use Illuminate\Database\Seeder;
 
 class VialoFilialeSeeder extends Seeder
@@ -77,5 +79,39 @@ class VialoFilialeSeeder extends Seeder
         }
 
         $this->command?->info("Filiali demo Vialo create: {$filialiCreated}.");
+
+        $this->seedDemoRule();
+    }
+
+    /**
+     * Dato di esempio per mostrare il meccanismo delle regole prezzo:
+     * i primi 2 veicoli demo diventano motrici da 23 bancali, e una
+     * regola fa si' che due viaggi "Secco" di fila su MD paghino di piu'
+     * del listino normale.
+     */
+    private function seedDemoRule(): void
+    {
+        $mdSecco = GoodsType::query()
+            ->whereHas('platform', fn ($q) => $q->where('name', 'MD'))
+            ->where('name', 'Secco')
+            ->first();
+
+        if (! $mdSecco) {
+            return;
+        }
+
+        Vehicle::query()->inRandomOrder()->limit(2)->get()->each(
+            fn (Vehicle $vehicle) => $vehicle->update(['bancali' => 23])
+        );
+
+        $rule = PriceRule::query()->updateOrCreate(
+            ['name' => 'Motrice 23 bancali - Secco x2'],
+            ['bancali' => 23]
+        );
+
+        $rule->steps()->updateOrCreate(['position' => 1], ['goods_type_id' => $mdSecco->id, 'price' => 90, 'owner_price' => 110]);
+        $rule->steps()->updateOrCreate(['position' => 2], ['goods_type_id' => $mdSecco->id, 'price' => 90, 'owner_price' => 110]);
+
+        $this->command?->info('Regola prezzo demo creata: ' . $rule->name . '.');
     }
 }

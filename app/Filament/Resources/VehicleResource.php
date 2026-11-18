@@ -52,6 +52,16 @@ class VehicleResource extends Resource
                     ->label('Società di appartenenza')
                     ->maxLength(255)
                     ->nullable(),
+                Forms\Components\Select::make('bancali')
+                    ->label('Bancali (motrice)')
+                    ->options([
+                        7 => '7 bancali',
+                        10 => '10 bancali',
+                        15 => '15 bancali',
+                        23 => '23 bancali',
+                    ])
+                    ->helperText('Serve per far scattare le regole prezzo dedicate.')
+                    ->nullable(),
                 Forms\Components\TextInput::make('current_km')
                     ->label('Km attuali')
                     ->numeric()
@@ -130,6 +140,10 @@ class VehicleResource extends Resource
                     ->label('Società')
                     ->placeholder('—')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('bancali')
+                    ->label('Bancali')
+                    ->placeholder('—')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('current_km')
                     ->label('Km attuali')

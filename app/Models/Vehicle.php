@@ -17,6 +17,11 @@ class Vehicle extends Model
         'color',
         'current_km',
         'maintenance_km',
+        'bancali',
+    ];
+
+    protected $casts = [
+        'bancali' => 'integer',
     ];
 
     protected static function booted(): void
