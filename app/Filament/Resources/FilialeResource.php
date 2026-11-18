@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\ChecksPanelModules;
 use App\Filament\Resources\FilialeResource\Pages;
 use App\Models\Filiale;
-use App\Models\GoodsType;
 use App\Models\Platform;
 use App\Models\User;
 use Filament\Forms;
@@ -52,9 +51,13 @@ class FilialeResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('goods_type_id')
                     ->label('Dicitura')
-                    ->options(fn (Forms\Get $get) => $get('platform_id')
-                        ? GoodsType::query()->where('platform_id', $get('platform_id'))->pluck('name', 'id')
-                        : [])
+                    ->relationship(
+                        name: 'goodsType',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query, Forms\Get $get) => $get('platform_id')
+                            ? $query->where('platform_id', $get('platform_id'))
+                            : $query->whereRaw('1 = 0'),
+                    )
                     ->disabled(fn (Forms\Get $get) => ! $get('platform_id'))
                     ->helperText(fn (Forms\Get $get) => $get('platform_id') ? null : 'Scegli prima la piattaforma.')
                     ->createOptionForm(fn (Forms\Get $get) => [
