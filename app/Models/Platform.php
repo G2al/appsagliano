@@ -29,6 +29,11 @@ class Platform extends Model
         return $this->hasMany(GoodsType::class);
     }
 
+    public function extras(): HasMany
+    {
+        return $this->hasMany(PlatformExtra::class);
+    }
+
     public function hasSingleAddress(): bool
     {
         return $this->addresses->count() === 1;

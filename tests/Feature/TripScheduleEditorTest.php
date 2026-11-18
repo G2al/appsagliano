@@ -52,17 +52,17 @@ class TripScheduleEditorTest extends TestCase
         return $driver;
     }
 
-    public function test_trip_schedules_page_requires_admin_or_trips_or_bordero_module(): void
+    public function test_trip_schedules_page_requires_admin_or_bordero_module(): void
     {
         $outsider = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'panel_modules' => ['maintenance']]);
         $this->actingAs($outsider);
 
         $this->assertFalse(TripSchedules::canAccess());
 
-        $tripsUser = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'panel_modules' => [User::PANEL_MODULE_TRIPS]]);
-        $this->actingAs($tripsUser);
+        $plainWorker = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'panel_modules' => []]);
+        $this->actingAs($plainWorker);
 
-        $this->assertTrue(TripSchedules::canAccess());
+        $this->assertFalse(TripSchedules::canAccess());
 
         $borderoUser = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'panel_modules' => [User::PANEL_MODULE_BORDERO]]);
         $this->actingAs($borderoUser);
@@ -92,17 +92,17 @@ class TripScheduleEditorTest extends TestCase
         $component->assertSee('45,50');
     }
 
-    public function test_worker_with_trips_module_only_cannot_set_price(): void
+    public function test_plain_worker_cannot_set_price(): void
     {
         $driver = $this->makeDriverWithTrips();
-        $tripsOnlyUser = User::factory()->create([
+        $plainWorker = User::factory()->create([
             'role' => 'worker',
             'is_approved' => true,
-            'panel_modules' => [User::PANEL_MODULE_TRIPS],
+            'panel_modules' => [],
         ]);
 
         Filament::setCurrentPanel(Filament::getPanel('admin'));
-        $this->actingAs($tripsOnlyUser);
+        $this->actingAs($plainWorker);
 
         $trip101 = Trip::where('delivery_note_number', '101')->firstOrFail();
 

@@ -48,8 +48,15 @@ class VialoPlatformSeeder extends Seeder
             $platform = Platform::query()->updateOrCreate(['name' => $name]);
 
             foreach ($goodsTypes as $goodsType) {
-                $platform->goodsTypes()->firstOrCreate(['name' => $goodsType]);
+                $gt = $platform->goodsTypes()->firstOrCreate(['name' => $goodsType]);
+
+                // Supplemento guadagno demo: da 2 scarichi in poi +10€, da 4 in poi +20€.
+                $gt->dischargeBonuses()->firstOrCreate(['min_scarichi' => 2], ['bonus' => 10]);
+                $gt->dischargeBonuses()->firstOrCreate(['min_scarichi' => 4], ['bonus' => 20]);
             }
+
+            $platform->extras()->firstOrCreate(['name' => 'Extra serale'], ['amount' => 20]);
+            $platform->extras()->firstOrCreate(['name' => 'Extra festivo'], ['amount' => 30]);
         }
 
         $this->command?->info('Piattaforme demo Vialo create: ' . (count($refuelPlatforms) + count($borderoPlatforms)) . '.');

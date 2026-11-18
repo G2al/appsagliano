@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
                 'role' => 'worker',
                 'is_approved' => true,
                 'documents_verified' => true,
-                'panel_modules' => ['maintenance', 'documents', 'trips', 'bordero'],
+                'panel_modules' => ['maintenance', 'documents', 'bordero'],
             ]
         );
 
@@ -71,7 +71,7 @@ class UserSeeder extends Seeder
             $panelModules = match ($index % 5) {
                 0 => ['maintenance'],
                 1 => ['documents'],
-                2 => ['trips'],
+                2 => [],
                 3 => ['bordero'],
                 default => ['maintenance', 'documents'],
             };

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\TripResource\Pages;
 
 use App\Filament\Resources\TripResource;
 use App\Models\Filiale;
+use App\Models\PlatformExtra;
 use App\Services\TripPriceCalculator;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -17,6 +18,9 @@ class EditTrip extends EditRecord
     /** @var array<int, string> */
     protected array $pendingAttachmentPaths = [];
 
+    /** @var array<int, int> */
+    protected array $pendingExtraIds = [];
+
     protected function getHeaderActions(): array
     {
         return [
@@ -27,6 +31,7 @@ class EditTrip extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['attachments'] = $this->record->attachments->pluck('path')->toArray();
+        $data['extras'] = $this->record->extras->pluck('id')->toArray();
 
         $filiale = $this->record->filiale;
         $data['platform_id'] = $filiale?->platform_id;
@@ -40,12 +45,22 @@ class EditTrip extends EditRecord
         $this->pendingAttachmentPaths = $data['attachments'] ?? [];
         unset($data['attachments']);
 
+        $this->pendingExtraIds = array_map('intval', $data['extras'] ?? []);
+        unset($data['extras']);
+
         $calculator = app(TripPriceCalculator::class);
-        $filiale = Filiale::query()->with('prices')->findOrFail($data['filiale_id']);
+        $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($data['filiale_id']);
         $tripOrder = $calculator->resolveTripOrder((int) $data['user_id'], Carbon::parse($data['date']), excludeTripId: $this->record->id);
+        $scarichi = (int) ($data['scarichi'] ?? 0);
+
+        $extrasTotal = $calculator->resolveExtrasAmount(
+            PlatformExtra::query()->whereIn('id', $this->pendingExtraIds)->get()
+        );
+        $basePrice = $calculator->resolvePrice($filiale, $tripOrder);
 
         $data['trip_order'] = $tripOrder;
-        $data['price'] = $calculator->resolvePrice($filiale, $tripOrder);
+        $data['price'] = $basePrice !== null ? round($basePrice + $extrasTotal, 2) : null;
+        $data['owner_price'] = $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         return $data;
     }
@@ -69,5 +84,7 @@ class EditTrip extends EditRecord
                 $this->record->attachments()->create(['path' => $path]);
             }
         }
+
+        $this->record->extras()->sync($this->pendingExtraIds);
     }
 }

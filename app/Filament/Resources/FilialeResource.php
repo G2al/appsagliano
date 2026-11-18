@@ -42,6 +42,13 @@ class FilialeResource extends Resource
                     ->preload()
                     ->live()
                     ->afterStateUpdated(fn (Forms\Set $set) => $set('goods_type_id', null))
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nome piattaforma')
+                            ->required()
+                            ->unique('platforms', 'name')
+                            ->maxLength(255),
+                    ])
                     ->required(),
                 Forms\Components\Select::make('goods_type_id')
                     ->label('Dicitura')
@@ -50,6 +57,40 @@ class FilialeResource extends Resource
                         : [])
                     ->disabled(fn (Forms\Get $get) => ! $get('platform_id'))
                     ->helperText(fn (Forms\Get $get) => $get('platform_id') ? null : 'Scegli prima la piattaforma.')
+                    ->createOptionForm(fn (Forms\Get $get) => [
+                        Forms\Components\Hidden::make('platform_id')->default($get('platform_id')),
+                        Forms\Components\TextInput::make('name')
+                            ->label('Dicitura')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->editOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Dicitura')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Repeater::make('dischargeBonuses')
+                            ->label('Supplemento guadagno per numero di scarichi')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\TextInput::make('min_scarichi')
+                                    ->label('A partire da scarichi')
+                                    ->numeric()
+                                    ->integer()
+                                    ->minValue(0)
+                                    ->required(),
+                                Forms\Components\TextInput::make('bonus')
+                                    ->label('Supplemento (€)')
+                                    ->numeric()
+                                    ->step('0.01')
+                                    ->minValue(0)
+                                    ->required(),
+                            ])
+                            ->columns(2)
+                            ->addActionLabel('Aggiungi scaglione')
+                            ->reorderable(false)
+                            ->columnSpanFull(),
+                    ])
                     ->required(),
                 Forms\Components\TextInput::make('name')
                     ->label('Nome filiale')
@@ -76,13 +117,20 @@ class FilialeResource extends Resource
                             ])
                             ->required(),
                         Forms\Components\TextInput::make('price')
-                            ->label('Prezzo (€)')
+                            ->label('Prezzo autista (€)')
                             ->numeric()
                             ->step('0.01')
                             ->minValue(0)
                             ->required(),
+                        Forms\Components\TextInput::make('owner_price')
+                            ->label('Prezzo guadagno (€)')
+                            ->helperText('Quanto incassi tu per questo viaggio.')
+                            ->numeric()
+                            ->step('0.01')
+                            ->minValue(0)
+                            ->nullable(),
                     ])
-                    ->columns(2)
+                    ->columns(3)
                     ->addActionLabel('Aggiungi prezzo')
                     ->maxItems(6)
                     ->reorderable(false)
@@ -94,8 +142,12 @@ class FilialeResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['platform', 'goodsType']))
-            ->defaultSort('name')
+            ->defaultSort('codice')
             ->columns([
+                Tables\Columns\TextColumn::make('codice')
+                    ->label('Codice')
+                    ->searchable(isIndividual: false)
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('platform.name')
                     ->label('Piattaforma')
                     ->searchable()
@@ -106,10 +158,6 @@ class FilialeResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome filiale')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('codice')
-                    ->label('Codice')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('prices_count')
@@ -162,7 +210,9 @@ class FilialeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS, User::PANEL_MODULE_BORDERO]);
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        return $user instanceof User && ($user->isAdmin() || $user->canAccessBorderoArea());
     }
 
     public static function canCreate(): bool

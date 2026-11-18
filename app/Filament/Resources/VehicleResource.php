@@ -219,16 +219,23 @@ class VehicleResource extends Resource
 
     public static function canViewAny(): bool
     {
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        if ($user instanceof User && $user->canAccessTripsArea()) {
+            return true;
+        }
+
         return static::currentUserCanAccessModules([
             User::PANEL_MODULE_MAINTENANCE,
             User::PANEL_MODULE_REFUELS,
-            User::PANEL_MODULE_TRIPS,
         ]);
     }
 
     public static function canCreate(): bool
     {
-        return static::canViewAny();
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        return $user instanceof User && $user->isAdmin();
     }
 
     public static function canEdit(Model $record): bool

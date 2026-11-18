@@ -102,7 +102,8 @@ class TripsByDriverTable extends BaseWidget
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        'Autista: ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? ''))
+                        'Autista: ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? '')),
+                        $this->getReportTableRowKey($record)
                     ));
                 }),
         ];

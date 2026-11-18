@@ -34,4 +34,33 @@ class TripPriceCalculator
     {
         return $filiale->priceForTripOrder($tripOrder);
     }
+
+    /**
+     * Guadagno del proprietario per il viaggio: prezzo owner del listino
+     * filiale per quel numero di viaggio, piu' l'eventuale supplemento
+     * per scarichi configurato sulla dicitura (goods type) della filiale.
+     */
+    public function resolveOwnerPrice(Filiale $filiale, int $tripOrder, int $scarichi): ?float
+    {
+        $base = $filiale->ownerPriceForTripOrder($tripOrder);
+
+        if ($base === null) {
+            return null;
+        }
+
+        $bonus = $filiale->goodsType?->dischargeBonusForScarichi($scarichi) ?? 0.0;
+
+        return round($base + $bonus, 2);
+    }
+
+    /**
+     * Somma degli importi extra selezionati (es. extra serale/festivo),
+     * da aggiungere al prezzo autista.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\PlatformExtra>  $extras
+     */
+    public function resolveExtrasAmount($extras): float
+    {
+        return round((float) $extras->sum(fn ($extra) => (float) $extra->amount), 2);
+    }
 }

@@ -102,7 +102,8 @@ class TripsByVehicleTable extends BaseWidget
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        'Veicolo: ' . trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? ''))
+                        'Veicolo: ' . trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')),
+                        $this->getReportTableRowKey($record)
                     ));
                 }),
         ];

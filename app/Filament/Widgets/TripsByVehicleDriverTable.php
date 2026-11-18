@@ -112,7 +112,7 @@ class TripsByVehicleDriverTable extends BaseWidget
                     $title = 'Veicolo: ' . trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? ''))
                         . ' · Autista: ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? ''));
 
-                    return new HtmlString($this->renderTripDetails($query, $title));
+                    return new HtmlString($this->renderTripDetails($query, $title, $this->getReportTableRowKey($record)));
                 }),
         ];
     }

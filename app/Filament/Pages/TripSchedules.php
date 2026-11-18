@@ -38,7 +38,9 @@ class TripSchedules extends Page
 
     public static function canAccess(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS, User::PANEL_MODULE_BORDERO]);
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        return $user instanceof User && ($user->isAdmin() || $user->canAccessBorderoArea());
     }
 
     /**

@@ -88,12 +88,29 @@
                                     <div class="font-medium">{{ $trip->delivery_note_number }}</div>
                                 </td>
                                 <td class="px-2 py-2 align-top whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">
+                                    <span
+                                        class="inline-block w-2 h-2 rounded-full align-middle mr-1 {{ $trip->is_reviewed ? 'bg-success-500' : 'bg-warning-500' }}"
+                                        title="{{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}"
+                                    ></span>
                                     @if (auth()->user()?->canManageBorderoPrice())
                                         @include('livewire.partials.trip-price-input', ['trip' => $trip])
                                     @else
                                         <span class="text-xs text-gray-400 dark:text-gray-600">
                                             {{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}
                                         </span>
+                                    @endif
+                                    @if (auth()->user()?->canReviewBordero())
+                                        <div class="mt-1 flex items-center gap-2">
+                                            <a href="{{ $this->editUrl($trip->id) }}" target="_blank" class="text-xs text-primary-600 hover:underline">Modifica</a>
+                                            @unless ($trip->is_reviewed)
+                                                <button
+                                                    type="button"
+                                                    wire:click="acceptTrip({{ $trip->id }})"
+                                                    wire:confirm="Confermi l'accettazione di questo bordero?"
+                                                    class="text-xs text-success-600 hover:underline"
+                                                >Accetta</button>
+                                            @endunless
+                                        </div>
                                     @endif
                                 </td>
                             @else

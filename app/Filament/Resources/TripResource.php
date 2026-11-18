@@ -66,6 +66,16 @@ class TripResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Forms\Components\CheckboxList::make('extras')
+                            ->label('Diciture extra')
+                            ->options(fn (Forms\Get $get) => $get('platform_id')
+                                ? \App\Models\PlatformExtra::query()->where('platform_id', $get('platform_id'))->pluck('name', 'id')
+                                : [])
+                            ->helperText('Facoltativo: extra serale, extra festivo, ecc.')
+                            ->columns(2)
+                            ->visible(fn (Forms\Get $get) => $get('platform_id')
+                                && \App\Models\PlatformExtra::query()->where('platform_id', $get('platform_id'))->exists())
+                            ->columnSpanFull(),
                         Forms\Components\Select::make('platform_id')
                             ->label('Piattaforma')
                             ->options(fn () => Platform::query()->orderBy('name')->pluck('name', 'id'))
@@ -275,10 +285,18 @@ class TripResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        $user = Auth::user();
+
+        if ($user instanceof User && ! $user->isAdmin() && ! $user->canAccessBorderoArea()) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array
@@ -311,7 +329,9 @@ class TripResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::currentUserCanAccessModules([User::PANEL_MODULE_TRIPS, User::PANEL_MODULE_BORDERO]);
+        $user = Auth::user();
+
+        return $user instanceof User && $user->canAccessTripsArea();
     }
 
     public static function canCreate(): bool

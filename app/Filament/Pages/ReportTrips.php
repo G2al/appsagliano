@@ -89,6 +89,6 @@ class ReportTrips extends Page
             return false;
         }
 
-        return $user->isAdmin() || $user->canAccessTripsArea() || $user->canAccessBorderoArea();
+        return $user->isAdmin() || $user->canAccessBorderoArea();
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -22,12 +23,14 @@ class Trip extends Model
         'scarichi',
         'delivery_note_number',
         'price',
+        'owner_price',
         'reviewed_at',
     ];
 
     protected $casts = [
         'date' => 'datetime',
         'price' => 'decimal:2',
+        'owner_price' => 'decimal:2',
         'scarichi' => 'integer',
         'trip_order' => 'integer',
         'reviewed_at' => 'datetime',
@@ -56,6 +59,11 @@ class Trip extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(TripAttachment::class)->orderBy('id');
+    }
+
+    public function extras(): BelongsToMany
+    {
+        return $this->belongsToMany(PlatformExtra::class, 'trip_platform_extra');
     }
 
     public function getIsCertifiedAttribute(): bool

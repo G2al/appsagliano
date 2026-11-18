@@ -43,7 +43,7 @@ class VialoDemoActivitySeeder extends Seeder
 
         $vehicles = Vehicle::query()->inRandomOrder()->get();
         $platforms = Platform::query()->get();
-        $filiali = Filiale::query()->with('prices')->get();
+        $filiali = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->get();
         $stations = Station::query()->get();
         $suppliers = Supplier::query()->get();
 
@@ -86,6 +86,7 @@ class VialoDemoActivitySeeder extends Seeder
                     $filiale = $filiali->random();
                     $tripDate = $date->copy()->addHours(random_int(6, 18))->addMinutes(random_int(0, 59));
                     $tripOrder = $calculator->resolveTripOrder($driver->id, $tripDate);
+                    $scarichi = random_int(0, 8);
 
                     // L'80% dei record passati e' gia' certificato (revisionato).
                     $isReviewed = random_int(1, 100) <= 80;
@@ -96,9 +97,10 @@ class VialoDemoActivitySeeder extends Seeder
                         'vehicle_id' => $vehicle->id,
                         'date' => $tripDate,
                         'trip_order' => $tripOrder,
-                        'scarichi' => random_int(0, 8),
+                        'scarichi' => $scarichi,
                         'delivery_note_number' => (string) $deliveryNoteSequence++,
                         'price' => $calculator->resolvePrice($filiale, $tripOrder),
+                        'owner_price' => $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi),
                         'reviewed_at' => $isReviewed ? $tripDate->copy()->addHours(random_int(1, 48)) : null,
                     ]);
 

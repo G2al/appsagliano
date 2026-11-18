@@ -43,4 +43,11 @@ class Filiale extends Model
 
         return $price?->price !== null ? (float) $price->price : null;
     }
+
+    public function ownerPriceForTripOrder(int $tripOrder): ?float
+    {
+        $price = $this->prices->firstWhere('trip_order', $tripOrder);
+
+        return $price?->owner_price !== null ? (float) $price->owner_price : null;
+    }
 }

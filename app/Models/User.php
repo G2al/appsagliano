@@ -23,7 +23,6 @@ class User extends Authenticatable implements FilamentUser
     public const PANEL_MODULE_MAINTENANCE = 'maintenance';
     public const PANEL_MODULE_REFUELS = 'refuels';
     public const PANEL_MODULE_DOCUMENTS = 'documents';
-    public const PANEL_MODULE_TRIPS = 'trips';
     public const PANEL_MODULE_BORDERO = 'bordero';
 
     /**
@@ -122,7 +121,6 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
-            self::PANEL_MODULE_TRIPS,
             self::PANEL_MODULE_BORDERO,
         ];
     }
@@ -136,7 +134,6 @@ class User extends Authenticatable implements FilamentUser
             self::PANEL_MODULE_MAINTENANCE => 'Manutenzione',
             self::PANEL_MODULE_REFUELS => 'Rifornimenti',
             self::PANEL_MODULE_DOCUMENTS => 'Documenti',
-            self::PANEL_MODULE_TRIPS => 'Bordero (creazione)',
             self::PANEL_MODULE_BORDERO => 'Bordero (gestione prezzo)',
         ];
     }
@@ -213,9 +210,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasPanelModule(self::PANEL_MODULE_DOCUMENTS);
     }
 
+    /**
+     * Il Bordero e' aperto a tutti i worker di default, non e' piu' un
+     * modulo da assegnare esplicitamente.
+     */
     public function canAccessTripsArea(): bool
     {
-        return $this->hasPanelModule(self::PANEL_MODULE_TRIPS);
+        return $this->isAdmin() || $this->role === 'worker';
     }
 
     public function canAccessBorderoArea(): bool
@@ -248,21 +249,19 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessUsersArea(): bool
     {
-        return $this->hasAnyPanelModules([
+        return $this->canAccessTripsArea() || $this->hasAnyPanelModules([
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
             self::PANEL_MODULE_DOCUMENTS,
-            self::PANEL_MODULE_TRIPS,
             self::PANEL_MODULE_BORDERO,
         ]);
     }
 
     public function canAccessVehiclesArea(): bool
     {
-        return $this->hasAnyPanelModules([
+        return $this->canAccessTripsArea() || $this->hasAnyPanelModules([
             self::PANEL_MODULE_MAINTENANCE,
             self::PANEL_MODULE_REFUELS,
-            self::PANEL_MODULE_TRIPS,
         ]);
     }
 

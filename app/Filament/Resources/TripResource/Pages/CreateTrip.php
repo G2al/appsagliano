@@ -4,6 +4,7 @@ namespace App\Filament\Resources\TripResource\Pages;
 
 use App\Filament\Resources\TripResource;
 use App\Models\Filiale;
+use App\Models\PlatformExtra;
 use App\Services\TripPriceCalculator;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Carbon;
@@ -15,17 +16,30 @@ class CreateTrip extends CreateRecord
     /** @var array<int, string> */
     protected array $pendingAttachmentPaths = [];
 
+    /** @var array<int, int> */
+    protected array $pendingExtraIds = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->pendingAttachmentPaths = $data['attachments'] ?? [];
         unset($data['attachments']);
 
+        $this->pendingExtraIds = array_map('intval', $data['extras'] ?? []);
+        unset($data['extras']);
+
         $calculator = app(TripPriceCalculator::class);
-        $filiale = Filiale::query()->with('prices')->findOrFail($data['filiale_id']);
+        $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($data['filiale_id']);
         $tripOrder = $calculator->resolveTripOrder((int) $data['user_id'], Carbon::parse($data['date']));
+        $scarichi = (int) ($data['scarichi'] ?? 0);
+
+        $extrasTotal = $calculator->resolveExtrasAmount(
+            PlatformExtra::query()->whereIn('id', $this->pendingExtraIds)->get()
+        );
+        $basePrice = $calculator->resolvePrice($filiale, $tripOrder);
 
         $data['trip_order'] = $tripOrder;
-        $data['price'] = $calculator->resolvePrice($filiale, $tripOrder);
+        $data['price'] = $basePrice !== null ? round($basePrice + $extrasTotal, 2) : null;
+        $data['owner_price'] = $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         return $data;
     }
@@ -34,6 +48,10 @@ class CreateTrip extends CreateRecord
     {
         foreach ($this->pendingAttachmentPaths as $path) {
             $this->record->attachments()->create(['path' => $path]);
+        }
+
+        if (! empty($this->pendingExtraIds)) {
+            $this->record->extras()->sync($this->pendingExtraIds);
         }
     }
 }

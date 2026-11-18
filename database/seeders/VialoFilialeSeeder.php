@@ -60,9 +60,14 @@ class VialoFilialeSeeder extends Seeder
                     );
 
                     for ($tripOrder = 1; $tripOrder <= 6; $tripOrder++) {
+                        $driverPrice = round(random_int(600, 900) / 10 - ($tripOrder * 2), 2);
+
                         $filiale->prices()->firstOrCreate(
                             ['trip_order' => $tripOrder],
-                            ['price' => round(random_int(600, 900) / 10 - ($tripOrder * 2), 2)]
+                            [
+                                'price' => $driverPrice,
+                                'owner_price' => round($driverPrice + random_int(150, 300) / 10, 2),
+                            ]
                         );
                     }
 

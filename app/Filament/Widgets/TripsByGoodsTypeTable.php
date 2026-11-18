@@ -102,7 +102,8 @@ class TripsByGoodsTypeTable extends BaseWidget
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        (string) $record->goods_type_name
+                        (string) $record->goods_type_name,
+                        $this->getReportTableRowKey($record)
                     ));
                 }),
         ];

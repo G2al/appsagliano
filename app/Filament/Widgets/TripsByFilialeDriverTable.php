@@ -122,7 +122,8 @@ class TripsByFilialeDriverTable extends BaseWidget
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        "{$record->filiale_codice} - {$record->filiale_name}" . ' — ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? ''))
+                        "{$record->filiale_codice} - {$record->filiale_name}" . ' — ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? '')),
+                        $this->getReportTableRowKey($record)
                     ));
                 }),
         ];

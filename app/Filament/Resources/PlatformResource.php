@@ -60,13 +60,32 @@ class PlatformResource extends Resource
                     ->addActionLabel('Aggiungi dicitura')
                     ->reorderable(false)
                     ->columnSpanFull(),
+                Forms\Components\Repeater::make('extras')
+                    ->label('Diciture extra (es. extra serale, extra festivo)')
+                    ->relationship()
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nome')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Importo (€)')
+                            ->numeric()
+                            ->step('0.01')
+                            ->minValue(0)
+                            ->required(),
+                    ])
+                    ->columns(2)
+                    ->addActionLabel('Aggiungi extra')
+                    ->reorderable(false)
+                    ->columnSpanFull(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['addresses', 'goodsTypes']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['addresses', 'goodsTypes', 'extras']))
             ->defaultSort('name')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
@@ -85,6 +104,11 @@ class PlatformResource extends Resource
                 Tables\Columns\TextColumn::make('goodsTypes')
                     ->label('Diciture')
                     ->state(fn (Platform $record) => $record->goodsTypes->pluck('name')->implode(' • '))
+                    ->placeholder('—')
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('extras')
+                    ->label('Diciture extra')
+                    ->state(fn (Platform $record) => $record->extras->map(fn ($e) => $e->name . ' (€' . number_format((float) $e->amount, 2, ',', '.') . ')')->implode(' • '))
                     ->placeholder('—')
                     ->wrap(),
             ])
@@ -141,7 +165,6 @@ class PlatformResource extends Resource
     {
         return static::currentUserCanAccessModules([
             User::PANEL_MODULE_REFUELS,
-            User::PANEL_MODULE_TRIPS,
             User::PANEL_MODULE_BORDERO,
         ]);
     }

@@ -22,6 +22,7 @@ class PlatformController extends Controller
                 'addresses:id,platform_id,address',
                 'goodsTypes:id,platform_id,name',
                 'goodsTypes.filiali:id,goods_type_id,name,codice',
+                'extras:id,platform_id,name,amount',
             ])
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -40,6 +41,11 @@ class PlatformController extends Controller
                         'name' => $filiale->name,
                         'codice' => $filiale->codice,
                     ])->values(),
+                ])->values(),
+                'extras' => $platform->extras->map(fn ($extra) => [
+                    'id' => $extra->id,
+                    'name' => $extra->name,
+                    'amount' => (float) $extra->amount,
                 ])->values(),
             ]);
 

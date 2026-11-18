@@ -11,11 +11,13 @@ class FilialePrice extends Model
         'filiale_id',
         'trip_order',
         'price',
+        'owner_price',
     ];
 
     protected $casts = [
         'trip_order' => 'integer',
         'price' => 'decimal:2',
+        'owner_price' => 'decimal:2',
     ];
 
     public function filiale(): BelongsTo

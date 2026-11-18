@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Filament\Resources\TripResource;
 use App\Models\Trip;
 use App\Models\User;
 use App\Support\BuildsMonthlyTripSchedule;
@@ -53,6 +54,31 @@ class TripScheduleEditor extends Component
             ->send();
 
         $this->dispatch('price-saved', tripId: $tripId);
+    }
+
+    public function acceptTrip(int $tripId): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User || ! $user->canReviewBordero()) {
+            abort(403);
+        }
+
+        $trip = Trip::query()
+            ->where('user_id', $this->userId)
+            ->findOrFail($tripId);
+
+        $trip->update(['reviewed_at' => now()]);
+
+        Notification::make()
+            ->title('Bordero accettato')
+            ->success()
+            ->send();
+    }
+
+    public function editUrl(int $tripId): string
+    {
+        return TripResource::getUrl('edit', ['record' => $tripId]);
     }
 
     public function render()

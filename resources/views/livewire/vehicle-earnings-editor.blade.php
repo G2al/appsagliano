@@ -1,0 +1,81 @@
+<div class="w-full min-w-0 space-y-4">
+    <div class="flex items-center gap-2">
+        <label for="vehicle-earnings-month-{{ $vehicleId }}" class="text-sm font-medium text-gray-700 dark:text-gray-200">Mese</label>
+        <input
+            type="month"
+            id="vehicle-earnings-month-{{ $vehicleId }}"
+            wire:model.live="month"
+            style="font-size: 16px;"
+            class="fi-input block rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
+        <span>{{ $totalTrips }} {{ $totalTrips === 1 ? 'record' : 'record' }} nel mese selezionato</span>
+        <span class="font-semibold text-gray-900 dark:text-white">
+            Totale mese: € {{ number_format(collect($days)->sum('total'), 2, ',', '.') }}
+        </span>
+    </div>
+
+    @if ($filialeTotals->isNotEmpty())
+        <div class="flex flex-wrap gap-2">
+            @foreach ($filialeTotals as $row)
+                <span class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800">
+                    <span class="text-gray-500 dark:text-gray-400">{{ $row['filiale'] }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">€ {{ number_format($row['total'], 2, ',', '.') }}</span>
+                </span>
+            @endforeach
+        </div>
+    @endif
+
+    <div class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full text-left text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">Giorno</th>
+                    @for ($i = 1; $i <= $maxTripsPerDay; $i++)
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="2">{{ $i }}° record</th>
+                    @endfor
+                    <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                @foreach ($days as $row)
+                    <tr class="{{ $row['trips']->isEmpty() ? 'text-gray-400 dark:text-gray-600' : 'text-gray-900 dark:text-white' }}">
+                        <td class="px-3 py-2 font-semibold whitespace-nowrap align-top" style="border-right: 2px solid rgba(100,116,139,0.5);">
+                            {{ $row['day'] }}
+                            <span class="block text-xs font-normal text-gray-400 dark:text-gray-500">{{ $row['date']->translatedFormat('D') }}</span>
+                        </td>
+
+                        @for ($i = 0; $i < $maxTripsPerDay; $i++)
+                            @php($trip = $row['trips']->get($i))
+                            @if ($trip)
+                                <td class="px-3 py-2 align-top whitespace-nowrap">
+                                    <div class="font-medium whitespace-nowrap">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</div>
+                                    <div class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                                        {{ $trip->user?->full_name ?? 'N/D' }}
+                                        &middot; {{ $trip->goods_type_label }}
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 align-top whitespace-nowrap font-semibold" style="border-right: 2px solid rgba(100,116,139,0.5);">
+                                    {{ $trip->owner_price !== null ? '€ ' . number_format((float) $trip->owner_price, 2, ',', '.') : '—' }}
+                                </td>
+                            @else
+                                <td class="px-3 py-2"></td>
+                                <td class="px-3 py-2" style="border-right: 2px solid rgba(100,116,139,0.5);"></td>
+                            @endif
+                        @endfor
+
+                        <td class="px-3 py-2 align-top font-semibold whitespace-nowrap">
+                            @if ($row['total'] > 0)
+                                € {{ number_format($row['total'], 2, ',', '.') }}
+                            @else
+                                <span class="text-gray-300 dark:text-gray-600">-</span>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
