@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Filiale;
-use App\Models\PlatformExtra;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -58,7 +57,7 @@ class TripController extends Controller
         $allTrips = EloquentCollection::make(
             collect($schedule['days'])->pluck('trips')->collapse()->all()
         );
-        $allTrips->loadMissing('attachments');
+        $allTrips->loadMissing(['attachments', 'extras']);
 
         $isAdmin = $user->role === 'admin';
 
@@ -88,7 +87,7 @@ class TripController extends Controller
     {
         $user = $request->user();
 
-        $query = Trip::with(['filiale.platform', 'filiale.goodsType', 'vehicle', 'user', 'attachments'])
+        $query = Trip::with(['filiale.platform', 'filiale.goodsType', 'vehicle', 'user', 'attachments', 'extras'])
             ->when($user->role !== 'admin', fn ($q) => $q->where('user_id', $user->id))
             ->latest('date')
             ->latest('id');
@@ -131,20 +130,16 @@ class TripController extends Controller
         }
 
         $validated = $this->validatePayload($request);
-        $extraIds = $validated['extra_ids'] ?? [];
-        unset($validated['extra_ids']);
 
         $date = Carbon::parse($validated['date']);
-        $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
+        $filiale = Filiale::query()->with(['platform', 'prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
         $vehicle = Vehicle::query()->findOrFail($validated['vehicle_id']);
-
-        $this->assertExtrasBelongToPlatform($extraIds, $filiale->platform_id);
 
         $calculator = app(TripPriceCalculator::class);
         $tripOrder = $calculator->resolveTripOrder($user->id, $date);
         $scarichi = (int) ($validated['scarichi'] ?? 0);
 
-        $extras = PlatformExtra::query()->whereIn('id', $extraIds)->get();
+        $extras = $calculator->resolveAutomaticExtras($filiale, $date);
 
         $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date);
         $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date);
@@ -152,13 +147,14 @@ class TripController extends Controller
 
         $basePrice = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
         $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
+        $extrasAmount = $calculator->resolveExtrasAmount($extras);
 
         $trip = Trip::create([
             'user_id' => $user->id,
             ...$validated,
             'trip_order' => $tripOrder,
-            'price' => $basePrice !== null ? round($basePrice + $calculator->resolveExtrasAmount($extras), 2) : null,
-            'owner_price' => $ownerPrice,
+            'price' => $basePrice,
+            'owner_price' => $ownerPrice !== null ? round($ownerPrice + $extrasAmount, 2) : null,
         ]);
 
         if ($extras->isNotEmpty()) {
@@ -195,20 +191,16 @@ class TripController extends Controller
         }
 
         $validated = $this->validatePayload($request);
-        $extraIds = $validated['extra_ids'] ?? [];
-        unset($validated['extra_ids']);
 
         $date = Carbon::parse($validated['date']);
-        $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
+        $filiale = Filiale::query()->with(['platform', 'prices', 'goodsType.dischargeBonuses'])->findOrFail($validated['filiale_id']);
         $vehicle = Vehicle::query()->findOrFail($validated['vehicle_id']);
-
-        $this->assertExtrasBelongToPlatform($extraIds, $filiale->platform_id);
 
         $calculator = app(TripPriceCalculator::class);
         $tripOrder = $calculator->resolveTripOrder($trip->user_id, $date, excludeTripId: $trip->id);
         $scarichi = (int) ($validated['scarichi'] ?? 0);
 
-        $extras = PlatformExtra::query()->whereIn('id', $extraIds)->get();
+        $extras = $calculator->resolveAutomaticExtras($filiale, $date);
 
         $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date, excludeTripId: $trip->id);
         $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date, excludeTripId: $trip->id);
@@ -216,12 +208,13 @@ class TripController extends Controller
 
         $basePrice = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
         $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
+        $extrasAmount = $calculator->resolveExtrasAmount($extras);
 
         $trip->update([
             ...$validated,
             'trip_order' => $tripOrder,
-            'price' => $basePrice !== null ? round($basePrice + $calculator->resolveExtrasAmount($extras), 2) : null,
-            'owner_price' => $ownerPrice,
+            'price' => $basePrice,
+            'owner_price' => $ownerPrice !== null ? round($ownerPrice + $extrasAmount, 2) : null,
         ]);
 
         $trip->extras()->sync($extras->pluck('id'));
@@ -285,8 +278,6 @@ class TripController extends Controller
             'attachment' => ['nullable', 'file', 'max:16384'],
             'attachments' => ['nullable', 'array'],
             'attachments.*' => ['file', 'max:16384'],
-            'extra_ids' => ['nullable', 'array'],
-            'extra_ids.*' => ['integer', Rule::exists('platform_extras', 'id')],
         ], [
             'required' => 'Il campo :attribute e obbligatorio.',
             'date' => 'Il campo :attribute non e una data valida.',
@@ -304,7 +295,6 @@ class TripController extends Controller
             'delivery_note_number' => 'numero bordero',
             'attachment' => 'allegato',
             'attachments' => 'allegati',
-            'extra_ids' => 'diciture extra',
         ]);
 
         $validated['scarichi'] = $validated['scarichi'] ?? 0;
@@ -312,26 +302,5 @@ class TripController extends Controller
         unset($validated['attachment'], $validated['attachments']);
 
         return $validated;
-    }
-
-    /**
-     * @param  array<int, int>  $extraIds
-     */
-    private function assertExtrasBelongToPlatform(array $extraIds, int $platformId): void
-    {
-        if (empty($extraIds)) {
-            return;
-        }
-
-        $validCount = PlatformExtra::query()
-            ->whereIn('id', $extraIds)
-            ->where('platform_id', $platformId)
-            ->count();
-
-        if ($validCount !== count(array_unique($extraIds))) {
-            throw ValidationException::withMessages([
-                'extra_ids' => ['Una o piu diciture extra non appartengono alla piattaforma della filiale scelta.'],
-            ]);
-        }
     }
 }

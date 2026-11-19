@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Filament\Widgets\Concerns\RendersTripDetails;
 use App\Models\Trip;
+use App\Support\TripExcelExporter;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -105,6 +106,26 @@ class TripsByVehicleTable extends BaseWidget
                         'Veicolo: ' . trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? '')),
                         $this->getReportTableRowKey($record)
                     ));
+                }),
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function ($record) {
+                    [$start, $end] = $this->getReportTableCheckDateRange();
+
+                    $label = trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? ''));
+
+                    $trips = Trip::query()
+                        ->where('vehicle_id', (int) $record->vehicle_id)
+                        ->whereBetween('date', [$start, $end])
+                        ->with(['user', 'vehicle', 'filiale.platform', 'filiale.goodsType', 'extras'])
+                        ->orderBy('date')
+                        ->get();
+
+                    $spreadsheet = TripExcelExporter::build("Veicolo {$label}", $trips);
+
+                    return TripExcelExporter::stream($spreadsheet, "bordero-veicolo-{$record->plate}.xlsx");
                 }),
         ];
     }

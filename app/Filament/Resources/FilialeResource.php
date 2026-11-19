@@ -104,6 +104,10 @@ class FilialeResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(50),
+                Forms\Components\Toggle::make('is_serale')
+                    ->label('Filiale serale')
+                    ->helperText('Se attivo, ogni viaggio su questa filiale aggiunge in automatico l\'extra serale al guadagno camion.')
+                    ->columnSpanFull(),
                 Forms\Components\Repeater::make('prices')
                     ->label('Listino prezzi (per numero di viaggio nella giornata)')
                     ->relationship()
@@ -163,6 +167,9 @@ class FilialeResource extends Resource
                     ->label('Nome filiale')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('is_serale')
+                    ->label('Serale')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('prices_count')
                     ->label('Prezzi impostati')
                     ->counts('prices')

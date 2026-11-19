@@ -4,7 +4,6 @@ namespace App\Filament\Resources\TripResource\Pages;
 
 use App\Filament\Resources\TripResource;
 use App\Models\Filiale;
-use App\Models\PlatformExtra;
 use App\Models\Vehicle;
 use App\Services\TripPriceCalculator;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,19 +24,16 @@ class CreateTrip extends CreateRecord
         $this->pendingAttachmentPaths = $data['attachments'] ?? [];
         unset($data['attachments']);
 
-        $this->pendingExtraIds = array_map('intval', $data['extras'] ?? []);
-        unset($data['extras']);
-
         $calculator = app(TripPriceCalculator::class);
-        $filiale = Filiale::query()->with(['prices', 'goodsType.dischargeBonuses'])->findOrFail($data['filiale_id']);
+        $filiale = Filiale::query()->with(['platform', 'prices', 'goodsType.dischargeBonuses'])->findOrFail($data['filiale_id']);
         $vehicle = Vehicle::query()->findOrFail($data['vehicle_id']);
         $date = Carbon::parse($data['date']);
         $tripOrder = $calculator->resolveTripOrder((int) $data['user_id'], $date);
         $scarichi = (int) ($data['scarichi'] ?? 0);
 
-        $extrasTotal = $calculator->resolveExtrasAmount(
-            PlatformExtra::query()->whereIn('id', $this->pendingExtraIds)->get()
-        );
+        $extras = $calculator->resolveAutomaticExtras($filiale, $date);
+        $this->pendingExtraIds = $extras->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $extrasTotal = $calculator->resolveExtrasAmount($extras);
 
         $vehicleDayPosition = $calculator->resolveVehicleDayPosition($vehicle->id, $date);
         $priorSequence = $calculator->resolveVehicleDaySequence($vehicle->id, $date);
@@ -47,8 +43,8 @@ class CreateTrip extends CreateRecord
         $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
         $data['trip_order'] = $tripOrder;
-        $data['price'] = $basePrice !== null ? round($basePrice + $extrasTotal, 2) : null;
-        $data['owner_price'] = $ownerPrice;
+        $data['price'] = $basePrice;
+        $data['owner_price'] = $ownerPrice !== null ? round($ownerPrice + $extrasTotal, 2) : null;
 
         return $data;
     }

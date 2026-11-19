@@ -48,6 +48,22 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('address')
                     ->label('Indirizzo di residenza')
                     ->maxLength(255),
+                Forms\Components\TextInput::make('company')
+                    ->label('Società di appartenenza')
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('iban')
+                    ->label('IBAN')
+                    ->maxLength(34)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->dehydrated(fn (): bool => auth()->user()?->isAdmin() ?? false),
+                Forms\Components\TextInput::make('default_salary')
+                    ->label('Stipendio base (€/mese)')
+                    ->helperText('Valore di default; modificabile per singolo mese nella scheda bordero.')
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0)
+                    ->visible(fn (): bool => auth()->user()?->isAdmin() ?? false)
+                    ->dehydrated(fn (): bool => auth()->user()?->isAdmin() ?? false),
                 Forms\Components\TextInput::make('email')
                     ->label('Email')
                     ->email()

@@ -193,6 +193,41 @@ class TripScheduleEditorTest extends TestCase
             ->assertSee('45,50');
     }
 
+    public function test_admin_can_set_monthly_salary_and_add_adjustments(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $driver->update(['default_salary' => 1100]);
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        $trip101 = Trip::where('delivery_note_number', '101')->firstOrFail();
+        $trip101->update(['price' => 50]);
+
+        $component = Livewire::test(TripScheduleEditor::class, ['userId' => $driver->id])
+            ->assertSet('salaryInput', '1100.00')
+            ->set('salaryInput', '1002')
+            ->call('saveSalary')
+            ->set('newAdjustmentLabel', 'Acconto')
+            ->set('newAdjustmentAmount', '-100')
+            ->call('addAdjustment')
+            ->set('newAdjustmentLabel', 'TFR')
+            ->set('newAdjustmentAmount', '+200')
+            ->call('addAdjustment');
+
+        $component->assertSee('Acconto')
+            ->assertSee('TFR')
+            ->assertSee('1.152,00');
+
+        $this->assertDatabaseHas('driver_monthly_salaries', [
+            'user_id' => $driver->id,
+            'amount' => 1002,
+        ]);
+
+        $this->assertDatabaseCount('driver_monthly_adjustments', 2);
+    }
+
     public function test_changing_the_month_input_changes_the_displayed_trips(): void
     {
         $driver = $this->makeDriverWithTrips();

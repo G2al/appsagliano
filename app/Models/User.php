@@ -43,6 +43,9 @@ class User extends Authenticatable implements FilamentUser
         'self_registered',
         'documents_verified',
         'must_change_password',
+        'company',
+        'iban',
+        'default_salary',
     ];
 
     /**
@@ -291,6 +294,31 @@ class User extends Authenticatable implements FilamentUser
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function monthlySalaries(): HasMany
+    {
+        return $this->hasMany(DriverMonthlySalary::class);
+    }
+
+    public function monthlyAdjustments(): HasMany
+    {
+        return $this->hasMany(DriverMonthlyAdjustment::class);
+    }
+
+    /**
+     * Stipendio base per quel mese: valore specifico se impostato, altrimenti
+     * il default dell'autista.
+     */
+    public function resolveMonthlySalary(string $month): ?float
+    {
+        $override = $this->monthlySalaries->firstWhere('month', $month);
+
+        if ($override) {
+            return (float) $override->amount;
+        }
+
+        return $this->default_salary !== null ? (float) $this->default_salary : null;
     }
 
     public function movements(): HasMany

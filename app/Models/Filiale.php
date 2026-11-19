@@ -15,6 +15,11 @@ class Filiale extends Model
         'goods_type_id',
         'name',
         'codice',
+        'is_serale',
+    ];
+
+    protected $casts = [
+        'is_serale' => 'boolean',
     ];
 
     public function platform(): BelongsTo

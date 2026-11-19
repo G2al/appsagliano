@@ -66,16 +66,6 @@ class TripResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
-                        Forms\Components\CheckboxList::make('extras')
-                            ->label('Diciture extra')
-                            ->options(fn (Forms\Get $get) => $get('platform_id')
-                                ? \App\Models\PlatformExtra::query()->where('platform_id', $get('platform_id'))->pluck('name', 'id')
-                                : [])
-                            ->helperText('Facoltativo: extra serale, extra festivo, ecc.')
-                            ->columns(2)
-                            ->visible(fn (Forms\Get $get) => $get('platform_id')
-                                && \App\Models\PlatformExtra::query()->where('platform_id', $get('platform_id'))->exists())
-                            ->columnSpanFull(),
                         Forms\Components\Select::make('platform_id')
                             ->label('Piattaforma')
                             ->options(fn () => Platform::query()->orderBy('name')->pluck('name', 'id'))
@@ -134,7 +124,7 @@ class TripResource extends Resource
         $canReview = static::currentUserCanReviewBordero();
 
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'filiale.platform', 'filiale.goodsType', 'vehicle', 'attachments']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'filiale.platform', 'filiale.goodsType', 'vehicle', 'attachments', 'extras']))
             ->defaultSort('date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('date')
@@ -175,6 +165,12 @@ class TripResource extends Resource
                     ->placeholder('—')
                     ->sortable()
                     ->visible($canManagePrice),
+                Tables\Columns\TextColumn::make('extras')
+                    ->label('Extra')
+                    ->state(fn (Trip $record) => $record->extras->isEmpty()
+                        ? '—'
+                        : $record->extras->map(fn ($extra) => "{$extra->name} (€{$extra->amount})")->implode(', '))
+                    ->visible(fn () => Auth::user()?->isAdmin() ?? false),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Stato')
                     ->state(fn (Trip $record) => $record->is_certified ? 'Certificato' : 'Da certificare')

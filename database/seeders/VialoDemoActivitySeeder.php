@@ -91,15 +91,7 @@ class VialoDemoActivitySeeder extends Seeder
                     // L'80% dei record passati e' gia' certificato (revisionato).
                     $isReviewed = random_int(1, 100) <= 80;
 
-                    $trip = $this->createDemoTrip($calculator, $driver, $vehicle, $filiale, $tripDate, $scarichi, (string) $deliveryNoteSequence++, $isReviewed);
-
-                    // 10% di probabilita' di aggiungere un extra piattaforma, se ce ne sono.
-                    $availableExtras = $filiale->platform?->extras ?? collect();
-                    if ($availableExtras->isNotEmpty() && random_int(1, 100) <= 10) {
-                        $extra = $availableExtras->random();
-                        $trip->extras()->sync([$extra->id]);
-                        $trip->update(['price' => round((float) $trip->price + (float) $extra->amount, 2)]);
-                    }
+                    $this->createDemoTrip($calculator, $driver, $vehicle, $filiale, $tripDate, $scarichi, (string) $deliveryNoteSequence++, $isReviewed);
 
                     $tripsCreated++;
                 }
@@ -195,7 +187,10 @@ class VialoDemoActivitySeeder extends Seeder
         $price = $ruleOverride['price'] ?? $calculator->resolvePrice($filiale, $tripOrder);
         $ownerPrice = $ruleOverride['owner_price'] ?? $calculator->resolveOwnerPrice($filiale, $tripOrder, $scarichi);
 
-        return Trip::create([
+        $extras = $calculator->resolveAutomaticExtras($filiale, $tripDate);
+        $extrasTotal = $calculator->resolveExtrasAmount($extras);
+
+        $trip = Trip::create([
             'user_id' => $driver->id,
             'filiale_id' => $filiale->id,
             'vehicle_id' => $vehicle->id,
@@ -204,9 +199,15 @@ class VialoDemoActivitySeeder extends Seeder
             'scarichi' => $scarichi,
             'delivery_note_number' => $deliveryNoteNumber,
             'price' => $price,
-            'owner_price' => $ownerPrice,
+            'owner_price' => $ownerPrice !== null ? round($ownerPrice + $extrasTotal, 2) : null,
             'reviewed_at' => $isReviewed ? $tripDate->copy()->addHours(random_int(1, 48)) : null,
         ]);
+
+        if ($extras->isNotEmpty()) {
+            $trip->extras()->sync($extras->pluck('id'));
+        }
+
+        return $trip;
     }
 
     /**

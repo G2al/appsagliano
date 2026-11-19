@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Filiale;
+use App\Models\PlatformExtra;
 use App\Models\PriceRule;
 use App\Models\Trip;
 use App\Models\Vehicle;
+use App\Support\ItalianHolidays;
 use Illuminate\Support\Carbon;
 
 class TripPriceCalculator
@@ -64,6 +66,42 @@ class TripPriceCalculator
     public function resolveExtrasAmount($extras): float
     {
         return round((float) $extras->sum(fn ($extra) => (float) $extra->amount), 2);
+    }
+
+    /**
+     * Diciture extra che si applicano IN AUTOMATICO al viaggio (niente piu'
+     * selezione manuale): extra serale se la filiale e' marcata come
+     * serale, extra festivo se la data cade in un giorno festivo/domenica.
+     * Vengono prese dalla piattaforma della filiale, cercandole per nome.
+     *
+     * @return \Illuminate\Support\Collection<int, PlatformExtra>
+     */
+    public function resolveAutomaticExtras(Filiale $filiale, Carbon $date): \Illuminate\Support\Collection
+    {
+        $extras = collect();
+        $platform = $filiale->platform;
+
+        if (! $platform) {
+            return $extras;
+        }
+
+        if ($filiale->is_serale) {
+            $serale = $platform->extraByName('Extra serale');
+
+            if ($serale) {
+                $extras->push($serale);
+            }
+        }
+
+        if (ItalianHolidays::isHoliday($date)) {
+            $festivo = $platform->extraByName('Extra festivo');
+
+            if ($festivo) {
+                $extras->push($festivo);
+            }
+        }
+
+        return $extras;
     }
 
     /**

@@ -38,4 +38,9 @@ class Platform extends Model
     {
         return $this->addresses->count() === 1;
     }
+
+    public function extraByName(string $name): ?PlatformExtra
+    {
+        return $this->extras->firstWhere('name', $name);
+    }
 }

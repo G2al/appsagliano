@@ -58,7 +58,11 @@ class VialoFilialeSeeder extends Seeder
                 foreach ($filiali as $filialeData) {
                     $filiale = $goodsType->filiali()->updateOrCreate(
                         ['codice' => $filialeData['codice']],
-                        ['name' => $filialeData['name'], 'platform_id' => $platform->id]
+                        [
+                            'name' => $filialeData['name'],
+                            'platform_id' => $platform->id,
+                            'is_serale' => $filialeData['codice'] === 'MD-SE-02',
+                        ]
                     );
 
                     for ($tripOrder = 1; $tripOrder <= 6; $tripOrder++) {

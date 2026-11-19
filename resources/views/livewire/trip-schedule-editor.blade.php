@@ -30,6 +30,53 @@
         </div>
     @endif
 
+    @if (auth()->user()?->canManageBorderoPrice())
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <x-filament::section>
+                <x-slot name="heading">Stipendio base del mese</x-slot>
+                <div class="flex items-center gap-2">
+                    <x-filament::input.wrapper class="max-w-[160px]">
+                        <x-filament::input type="text" wire:model="salaryInput" placeholder="0.00" />
+                    </x-filament::input.wrapper>
+                    <x-filament::button wire:click="saveSalary" size="sm">Salva</x-filament::button>
+                </div>
+            </x-filament::section>
+
+            <x-filament::section>
+                <x-slot name="heading">Acconti / TFR</x-slot>
+                <div class="space-y-2">
+                    @forelse ($adjustments as $adjustment)
+                        <div class="flex items-center justify-between gap-2 text-sm">
+                            <span>{{ $adjustment->label }}</span>
+                            <span class="flex items-center gap-2">
+                                <span class="font-semibold {{ $adjustment->amount < 0 ? 'text-danger-600' : 'text-success-600' }}">
+                                    {{ $adjustment->amount > 0 ? '+' : '' }}€ {{ number_format((float) $adjustment->amount, 2, ',', '.') }}
+                                </span>
+                                <button type="button" wire:click="deleteAdjustment({{ $adjustment->id }})" class="text-xs text-gray-400 hover:text-danger-600">✕</button>
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 dark:text-gray-500">Nessuna voce per questo mese.</p>
+                    @endforelse
+
+                    <div class="flex items-center gap-2 pt-2">
+                        <x-filament::input.wrapper class="flex-1">
+                            <x-filament::input type="text" wire:model="newAdjustmentLabel" placeholder="Es. Acconto, TFR" />
+                        </x-filament::input.wrapper>
+                        <x-filament::input.wrapper class="max-w-[120px]">
+                            <x-filament::input type="text" wire:model="newAdjustmentAmount" placeholder="+/- importo" />
+                        </x-filament::input.wrapper>
+                        <x-filament::button wire:click="addAdjustment" size="sm">Aggiungi</x-filament::button>
+                    </div>
+                </div>
+            </x-filament::section>
+        </div>
+
+        <div class="text-right text-sm font-semibold text-gray-900 dark:text-white">
+            Totale da pagare (trasferte + stipendio + acconti/TFR): € {{ number_format($payoutTotal, 2, ',', '.') }}
+        </div>
+    @endif
+
     <div
         class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
         style="contain: inline-size; user-select: none;"
