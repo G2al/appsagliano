@@ -84,4 +84,29 @@ class Trip extends Model
     {
         return $this->filiale?->goodsType?->name ?? 'N/D';
     }
+
+    /**
+     * Elenco di TUTTE le voci che compongono il guadagno camion oltre al
+     * prezzo base del listino: supplemento scarichi + extra automatici
+     * (serale/festivo). Serve per mostrare il dettaglio trasparente di
+     * ogni componente, non solo il totale.
+     *
+     * @return \Illuminate\Support\Collection<int, array{label: string, amount: float}>
+     */
+    public function extrasBreakdown(): \Illuminate\Support\Collection
+    {
+        $items = collect();
+
+        $dischargeBonus = $this->filiale?->goodsType?->dischargeBonusForScarichi((int) $this->scarichi);
+
+        if ($dischargeBonus !== null && $dischargeBonus > 0) {
+            $items->push(['label' => 'Supplemento scarichi', 'amount' => $dischargeBonus]);
+        }
+
+        foreach ($this->extras as $extra) {
+            $items->push(['label' => $extra->name, 'amount' => (float) $extra->amount]);
+        }
+
+        return $items;
+    }
 }

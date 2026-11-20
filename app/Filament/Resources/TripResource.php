@@ -124,7 +124,7 @@ class TripResource extends Resource
         $canReview = static::currentUserCanReviewBordero();
 
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'filiale.platform', 'filiale.goodsType', 'vehicle', 'attachments', 'extras']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'filiale.platform', 'filiale.goodsType.dischargeBonuses', 'vehicle', 'attachments', 'extras']))
             ->defaultSort('date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('date')
@@ -167,9 +167,13 @@ class TripResource extends Resource
                     ->visible($canManagePrice),
                 Tables\Columns\TextColumn::make('extras')
                     ->label('Extra')
-                    ->state(fn (Trip $record) => $record->extras->isEmpty()
-                        ? '—'
-                        : $record->extras->map(fn ($extra) => "{$extra->name} (€{$extra->amount})")->implode(', '))
+                    ->state(function (Trip $record) {
+                        $breakdown = $record->extrasBreakdown();
+
+                        return $breakdown->isEmpty()
+                            ? '—'
+                            : $breakdown->map(fn (array $item) => "{$item['label']} (+€{$item['amount']})")->implode(', ');
+                    })
                     ->visible(fn () => Auth::user()?->isAdmin() ?? false),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Stato')

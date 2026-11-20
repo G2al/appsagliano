@@ -16,14 +16,11 @@
                         {{ $company }}
                     </x-slot>
 
-                    <x-slot name="description">
-                        IBAN: {{ $companyRows->first()['iban'] ?? 'non impostato' }}
-                    </x-slot>
-
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="text-left text-gray-500 dark:text-gray-400">
                                 <th class="py-1">Autista</th>
+                                <th class="py-1">IBAN</th>
                                 <th class="py-1 text-right">Trasferte (€)</th>
                                 <th class="py-1 text-right">Stipendio (€)</th>
                                 <th class="py-1 text-right">Acconti/TFR (€)</th>
@@ -34,6 +31,7 @@
                             @foreach ($companyRows as $row)
                                 <tr>
                                     <td class="py-1">{{ $row['name'] }}</td>
+                                    <td class="py-1 text-xs text-gray-500 dark:text-gray-400">{{ $row['iban'] ?? 'non impostato' }}</td>
                                     <td class="py-1 text-right">{{ number_format($row['trips_total'], 2, ',', '.') }}</td>
                                     <td class="py-1 text-right">{{ number_format($row['salary'], 2, ',', '.') }}</td>
                                     <td class="py-1 text-right">{{ number_format($row['adjustments_total'], 2, ',', '.') }}</td>
@@ -41,7 +39,7 @@
                                 </tr>
                             @endforeach
                             <tr class="font-semibold">
-                                <td class="py-1" colspan="4">Totale società</td>
+                                <td class="py-1" colspan="5">Totale società</td>
                                 <td class="py-1 text-right">{{ number_format($companyRows->sum('total'), 2, ',', '.') }}</td>
                             </tr>
                         </tbody>

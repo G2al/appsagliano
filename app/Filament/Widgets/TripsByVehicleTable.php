@@ -119,7 +119,7 @@ class TripsByVehicleTable extends BaseWidget
                     $trips = Trip::query()
                         ->where('vehicle_id', (int) $record->vehicle_id)
                         ->whereBetween('date', [$start, $end])
-                        ->with(['user', 'vehicle', 'filiale.platform', 'filiale.goodsType', 'extras'])
+                        ->with(['user', 'vehicle', 'filiale.platform', 'filiale.goodsType.dischargeBonuses', 'extras'])
                         ->orderBy('date')
                         ->get();
 

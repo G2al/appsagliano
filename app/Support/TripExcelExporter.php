@@ -39,7 +39,7 @@ class TripExcelExporter
                 $trip->delivery_note_number,
                 $trip->scarichi,
                 $trip->price !== null ? (float) $trip->price : null,
-                $trip->extras->map(fn ($extra) => "{$extra->name} (€{$extra->amount})")->implode(', '),
+                $trip->extrasBreakdown()->map(fn (array $item) => "{$item['label']} (+€{$item['amount']})")->implode(', '),
                 $trip->is_certified ? 'Certificato' : 'Da certificare',
             ], null, 'A' . $row);
 
