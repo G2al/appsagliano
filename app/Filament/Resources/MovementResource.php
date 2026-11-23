@@ -239,9 +239,19 @@ class MovementResource extends Resource
                     ->visible(fn (Movement $record): bool => ! $record->trashed())
                     ->url(fn (Movement $record) => route('movements.receipt', $record))
                     ->openUrlInNewTab(),
+                Tables\Actions\Action::make('attachment_preview')
+                    ->label('Anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->visible(fn (Movement $record): bool => ! $record->trashed() && filled($record->photo_url))
+                    ->modalHeading('Ricevuta rifornimento')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi')
+                    ->modalContent(fn (Movement $record) => view('filament.partials.attachment-preview', [
+                        'items' => [['url' => $record->photo_url, 'label' => 'ricevuta']],
+                    ])),
                 Tables\Actions\Action::make('attachment')
-                    ->label('Ricevuta')
-                    ->icon('heroicon-o-photo')
+                    ->label('Stampa')
+                    ->icon('heroicon-o-printer')
                     ->visible(fn (Movement $record): bool => ! $record->trashed() && filled($record->photo_url))
                     ->url(fn (Movement $record) => route('movements.attachment', $record))
                     ->openUrlInNewTab(),

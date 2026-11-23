@@ -177,9 +177,19 @@ class MaintenanceResource extends Resource
                     ->visible(fn (Maintenance $record): bool => ! $record->trashed())
                     ->url(fn (Maintenance $record) => route('maintenances.receipt', $record))
                     ->openUrlInNewTab(),
+                Tables\Actions\Action::make('attachment_preview')
+                    ->label('Anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->visible(fn (Maintenance $record): bool => ! $record->trashed() && filled($record->attachment_url))
+                    ->modalHeading('Allegato manutenzione')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi')
+                    ->modalContent(fn (Maintenance $record) => view('filament.partials.attachment-preview', [
+                        'items' => [['url' => $record->attachment_url, 'label' => 'allegato']],
+                    ])),
                 Tables\Actions\Action::make('attachment')
-                    ->label('Ricevuta')
-                    ->icon('heroicon-o-photo')
+                    ->label('Stampa')
+                    ->icon('heroicon-o-printer')
                     ->visible(fn (Maintenance $record): bool => ! $record->trashed() && filled($record->attachment_url))
                     ->url(fn (Maintenance $record) => route('maintenances.attachment', $record))
                     ->openUrlInNewTab(),

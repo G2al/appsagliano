@@ -120,6 +120,9 @@ class TripResource extends Resource
                             ->directory('trips')
                             ->disk('public')
                             ->visibility('public')
+                            ->downloadable()
+                            ->openable()
+                            ->previewable()
                             ->minFiles(1)
                             ->required()
                             ->columnSpanFull(),
@@ -230,9 +233,22 @@ class TripResource extends Resource
                     ])
                     ->fillForm(fn (Trip $record): array => ['price' => $record->price])
                     ->action(fn (Trip $record, array $data) => $record->update(['price' => $data['price']])),
+                Tables\Actions\Action::make('attachment_preview')
+                    ->label('Anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->visible(fn (Trip $record): bool => ! $record->trashed() && $record->attachments->isNotEmpty())
+                    ->modalHeading('Allegati viaggio')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi')
+                    ->modalContent(fn (Trip $record) => view('filament.partials.attachment-preview', [
+                        'items' => $record->attachments->values()->map(fn ($attachment, $i) => [
+                            'url' => $attachment->url,
+                            'label' => 'allegato ' . ($i + 1),
+                        ])->all(),
+                    ])),
                 Tables\Actions\Action::make('attachment')
-                    ->label('Allegati')
-                    ->icon('heroicon-o-photo')
+                    ->label('Stampa')
+                    ->icon('heroicon-o-printer')
                     ->visible(fn (Trip $record): bool => ! $record->trashed() && $record->attachments->isNotEmpty())
                     ->url(fn (Trip $record) => route('trips.attachment', $record))
                     ->openUrlInNewTab(),
