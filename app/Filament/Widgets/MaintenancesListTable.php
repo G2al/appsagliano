@@ -6,6 +6,7 @@ use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Maintenance;
 use App\Models\Supplier;
 use App\Models\Vehicle;
+use App\Support\MaintenanceExcelExporter;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -66,8 +67,8 @@ class MaintenancesListTable extends BaseWidget
                 ->toggleable(),
             Tables\Columns\TextColumn::make('attachment_url')
                 ->label('Allegato')
-                ->state(fn ($record) => $record->attachment_url ? 'Stampa' : 'N/D')
-                ->url(fn ($record) => $record->attachment_url ? route('maintenances.attachment', $record) : null, true)
+                ->state(fn ($record) => $record->attachment_url ? 'Vedi' : 'N/D')
+                ->url(fn ($record) => $record->attachment_url, true)
                 ->openUrlInNewTab()
                 ->toggleable(),
         ];
@@ -110,5 +111,22 @@ class MaintenancesListTable extends BaseWidget
         $end = Carbon::parse($endRaw ?: now())->endOfDay();
 
         return [$start, $end];
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $maintenances = $this->getTableQuery()->get();
+
+                    $spreadsheet = MaintenanceExcelExporter::build('Movimenti manutenzione', $maintenances);
+
+                    return MaintenanceExcelExporter::stream($spreadsheet, 'movimenti-manutenzione.xlsx');
+                }),
+        ];
     }
 }

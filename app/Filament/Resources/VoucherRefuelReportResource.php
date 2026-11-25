@@ -37,6 +37,9 @@ class VoucherRefuelReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->modifyQueryUsing(fn (Builder $query) => $query
                 ->where('is_voucher', true)
                 ->with(['user', 'station', 'vehicle', 'attachments'])
@@ -128,6 +131,19 @@ class VoucherRefuelReportResource extends Resource
                     ->icon('heroicon-o-printer')
                     ->url(fn (Movement $record) => route('movements.receipt', $record))
                     ->openUrlInNewTab(),
+                Tables\Actions\Action::make('attachment_preview')
+                    ->label('Vedi anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->visible(fn (Movement $record): bool => $record->attachments->isNotEmpty())
+                    ->modalHeading('Ricevute rifornimento')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi')
+                    ->modalContent(fn (Movement $record) => view('filament.partials.attachment-preview', [
+                        'items' => $record->attachments->values()->map(fn ($attachment, $i) => [
+                            'url' => $attachment->url,
+                            'label' => 'ricevuta ' . ($i + 1),
+                        ])->all(),
+                    ])),
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')

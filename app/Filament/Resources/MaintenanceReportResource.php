@@ -37,6 +37,9 @@ class MaintenanceReportResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['vehicle', 'supplier']))
             ->defaultSort('date', 'desc')
             ->columns([

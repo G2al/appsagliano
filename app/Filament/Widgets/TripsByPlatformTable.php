@@ -3,8 +3,10 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
+use App\Filament\Widgets\Concerns\RendersAttachmentLightbox;
 use App\Filament\Widgets\Concerns\RendersTripDetails;
 use App\Models\Trip;
+use App\Support\GenericExcelExporter;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -12,16 +14,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 
-class TripsByPlatformDriverTable extends BaseWidget
+class TripsByPlatformTable extends BaseWidget
 {
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
+    use RendersAttachmentLightbox;
     use RendersTripDetails;
 
     protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
-    protected static ?string $heading = 'Viaggi per piattaforma e autista';
+    protected static ?string $heading = 'Viaggi per piattaforma';
 
     protected function getTableQuery(): Builder
     {
@@ -32,17 +35,13 @@ class TripsByPlatformDriverTable extends BaseWidget
                 MIN(trips.id) as id,
                 platforms.id as platform_id,
                 platforms.name as platform_name,
-                users.id as user_id,
-                users.name as user_name,
-                users.surname as user_surname,
                 COUNT(*) as trips_count,
-                SUM(CASE WHEN trips.price IS NOT NULL THEN 1 ELSE 0 END) as certified_count,
+                COALESCE(SUM(trips.distance_km), 0) as distance_total,
                 COALESCE(SUM(trips.price), 0) as price_total
             ")
-            ->join('users', 'users.id', '=', 'trips.user_id')
             ->join('platforms', 'platforms.id', '=', 'trips.platform_id')
             ->whereBetween('trips.date', [$start, $end])
-            ->groupBy('platforms.id', 'platforms.name', 'users.id', 'users.name', 'users.surname');
+            ->groupBy('platforms.id', 'platforms.name');
     }
 
     protected function getTableColumns(): array
@@ -53,21 +52,15 @@ class TripsByPlatformDriverTable extends BaseWidget
                 ->label('Piattaforma')
                 ->searchable(['platforms.name'])
                 ->sortable(),
-            Tables\Columns\TextColumn::make('user_name')
-                ->label('Autista')
-                ->formatStateUsing(fn ($state, $record) => trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? '')))
-                ->searchable(['users.name', 'users.surname']),
             Tables\Columns\TextColumn::make('trips_count')
                 ->label('Viaggi')
                 ->sortable(),
-            Tables\Columns\TextColumn::make('certified_count')
-                ->label('Certificati')
+            Tables\Columns\TextColumn::make('distance_total')
+                ->label('Km percorsi')
+                ->formatStateUsing(fn ($state) => number_format((float) $state, 0, ',', '.') . ' km')
                 ->sortable(),
-            Tables\Columns\TextColumn::make('pending_count')
-                ->label('Da certificare')
-                ->state(fn ($record) => (int) $record->trips_count - (int) $record->certified_count),
             Tables\Columns\TextColumn::make('price_total')
-                ->label('Totale certificato')
+                ->label('Totale')
                 ->money('EUR', true)
                 ->sortable(),
         ];
@@ -92,12 +85,12 @@ class TripsByPlatformDriverTable extends BaseWidget
 
     protected function getReportTableRowKeySql(): string
     {
-        return "CONCAT('platform-user:', platforms.id, '-', users.id)";
+        return "CONCAT('platform:', platforms.id)";
     }
 
     protected function getReportTableRowKey(Model $record): string
     {
-        return 'platform-user:' . (int) $record->platform_id . '-' . (int) $record->user_id;
+        return 'platform:' . (int) $record->platform_id;
     }
 
     protected function getTableActions(): array
@@ -106,7 +99,7 @@ class TripsByPlatformDriverTable extends BaseWidget
             Tables\Actions\Action::make('dettagli')
                 ->label('Vedi viaggi')
                 ->icon('heroicon-o-list-bullet')
-                ->modalHeading('Viaggi piattaforma / autista')
+                ->modalHeading('Viaggi della piattaforma')
                 ->modalWidth('7xl')
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Chiudi')
@@ -114,14 +107,35 @@ class TripsByPlatformDriverTable extends BaseWidget
                     [$start, $end] = $this->getReportTableCheckDateRange();
 
                     $query = Trip::query()
-                        ->where('user_id', (int) $record->user_id)
                         ->where('platform_id', (int) $record->platform_id)
                         ->whereBetween('date', [$start, $end]);
 
                     return new HtmlString($this->renderTripDetails(
                         $query,
-                        ($record->platform_name ?? 'N/D') . ' — ' . trim(($record->user_name ?? '') . ' ' . ($record->user_surname ?? ''))
+                        'Piattaforma: ' . ($record->platform_name ?? 'N/D')
                     ));
+                }),
+        ];
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $rows = $this->getTableQuery()->get()->map(fn ($r) => [
+                        $r->platform_name,
+                        (int) $r->trips_count,
+                        (float) $r->distance_total,
+                        (float) $r->price_total,
+                    ]);
+
+                    $spreadsheet = GenericExcelExporter::build('Viaggi per piattaforma', ['Piattaforma', 'Viaggi', 'Km percorsi', 'Totale (€)'], $rows);
+
+                    return GenericExcelExporter::stream($spreadsheet, 'viaggi-per-piattaforma.xlsx');
                 }),
         ];
     }

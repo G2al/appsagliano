@@ -3,7 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
+use App\Filament\Widgets\Concerns\RendersAttachmentLightbox;
 use App\Models\Maintenance;
+use App\Support\GenericExcelExporter;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -16,6 +18,7 @@ class MaintenancesBySupplierTable extends BaseWidget
 {
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
+    use RendersAttachmentLightbox;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Manutenzioni per fornitore';
@@ -85,6 +88,28 @@ class MaintenancesBySupplierTable extends BaseWidget
         return 'supplier:' . (int) $record->supplier_id;
     }
 
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $rows = $this->getTableQuery()->get()->map(fn ($r) => [
+                        $r->name,
+                        (float) $r->price_total,
+                        (float) $r->price_total_with_vat,
+                        (int) $r->maintenances_count,
+                    ]);
+
+                    $spreadsheet = GenericExcelExporter::build('Manutenzioni per fornitore', ['Fornitore', 'Spesa (€)', 'Spesa IVA (€)', 'Interventi'], $rows);
+
+                    return GenericExcelExporter::stream($spreadsheet, 'manutenzioni-per-fornitore.xlsx');
+                }),
+        ];
+    }
+
     protected function getTableActions(): array
     {
         return [
@@ -123,7 +148,7 @@ class MaintenancesBySupplierTable extends BaseWidget
             $price = $m->price !== null ? '€ ' . number_format((float) $m->price, 2, ',', '.') : '€ 0,00';
             $note = $m->notes ?: '';
             $attachment = $m->attachment_url
-                ? '<a href="' . e(route('maintenances.attachment', $m)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+                ? $this->renderAttachmentLightbox($m->attachment_url)
                 : 'N/D';
 
             return "<tr>

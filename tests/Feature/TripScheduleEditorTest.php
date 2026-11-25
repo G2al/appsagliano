@@ -61,6 +61,75 @@ class TripScheduleEditorTest extends TestCase
         $this->assertTrue(TripSchedules::canAccess());
     }
 
+    public function test_trip_schedules_page_orders_drivers_by_trips_count_descending(): void
+    {
+        $busyDriver = $this->makeDriverWithTrips(); // 2 trips
+        $quietDriver = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'name' => 'Luca', 'surname' => 'Bianchi']);
+
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        $users = Livewire::test(TripSchedules::class)->instance()->users;
+
+        $this->assertSame($busyDriver->id, $users->first()->id);
+        $this->assertTrue($users->pluck('id')->contains($quietDriver->id));
+    }
+
+    public function test_driver_row_shows_as_needing_review_until_admin_marks_it_and_resets_on_new_trip(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $admin = User::factory()->create(['role' => 'admin', 'is_approved' => true]);
+
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($admin);
+
+        Livewire::test(TripSchedules::class)
+            ->assertSee('Segna visualizzato');
+
+        // Si avanza l'orologio per garantire un distacco reale rispetto alla
+        // creazione dei viaggi appena fatta nel setup (altrimenti il confronto
+        // di timestamp tra revisione e ultimo viaggio puo' cadere nello stesso secondo).
+        $this->travel(1)->minute();
+
+        Livewire::test(TripSchedules::class)
+            ->call('markReviewed', $driver->id)
+            ->assertDontSee('Segna visualizzato');
+
+        $this->assertNotNull($driver->fresh()->trip_schedule_reviewed_at);
+
+        // Un nuovo viaggio dopo la revisione deve far ritornare l'autista "da visualizzare"
+        // (si avanza l'orologio per garantire un distacco reale rispetto alla revisione appena fatta).
+        $this->travel(1)->minute();
+
+        Trip::query()->create([
+            'user_id' => $driver->id,
+            'platform_id' => $driver->trips()->first()->platform_id,
+            'vehicle_id' => $driver->trips()->first()->vehicle_id,
+            'date' => now(),
+            'destinations' => ['Latina'],
+            'goods_type' => 'secco',
+            'delivery_note_number' => '999',
+        ]);
+
+        Livewire::test(TripSchedules::class)
+            ->assertSee('Segna visualizzato');
+    }
+
+    public function test_only_admin_can_mark_a_driver_as_reviewed(): void
+    {
+        $driver = $this->makeDriverWithTrips();
+        $worker = User::factory()->create(['role' => 'worker', 'is_approved' => true, 'panel_modules' => [User::PANEL_MODULE_TRIPS]]);
+
+        $this->actingAs($worker);
+
+        Livewire::test(TripSchedules::class)
+            ->call('markReviewed', $driver->id)
+            ->assertForbidden();
+
+        $this->assertNull($driver->fresh()->trip_schedule_reviewed_at);
+    }
+
     public function test_setting_a_trip_price_certifies_it_and_updates_day_total(): void
     {
         $driver = $this->makeDriverWithTrips();

@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\TripsByDriverTable;
-use App\Filament\Widgets\TripsByPlatformDriverTable;
+use App\Filament\Widgets\TripsByPlatformTable;
 use App\Filament\Widgets\TripsByVehicleDriverTable;
 use App\Filament\Widgets\TripsByVehicleTable;
 use App\Filament\Widgets\TripsListTable;
@@ -67,7 +67,7 @@ class ReportTrips extends Page
             TripsStats::class,
             TripsByVehicleTable::class,
             TripsByDriverTable::class,
-            TripsByPlatformDriverTable::class,
+            TripsByPlatformTable::class,
             TripsByVehicleDriverTable::class,
         ];
     }

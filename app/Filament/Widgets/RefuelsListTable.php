@@ -6,6 +6,7 @@ use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Models\Movement;
 use App\Models\Station;
 use App\Models\Vehicle;
+use App\Support\MovementExcelExporter;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -77,8 +78,8 @@ class RefuelsListTable extends BaseWidget
                 ->toggleable(),
             Tables\Columns\TextColumn::make('attachments_count')
                 ->label('Allegato')
-                ->state(fn (Movement $record) => $record->attachments->isNotEmpty() ? 'Apri (' . $record->attachments->count() . ')' : 'N/D')
-                ->url(fn (Movement $record) => $record->attachments->isNotEmpty() ? route('movements.attachment', $record) : null, true)
+                ->state(fn (Movement $record) => $record->attachments->isNotEmpty() ? 'Vedi (' . $record->attachments->count() . ')' : 'N/D')
+                ->url(fn (Movement $record) => $record->attachments->isNotEmpty() ? $record->attachments->first()->url : null, true)
                 ->openUrlInNewTab()
                 ->toggleable(),
         ];
@@ -121,5 +122,22 @@ class RefuelsListTable extends BaseWidget
         $end = Carbon::parse($endRaw ?: now())->endOfDay();
 
         return [$start, $end];
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $movements = $this->getTableQuery()->get();
+
+                    $spreadsheet = MovementExcelExporter::build('Movimenti rifornimento', $movements);
+
+                    return MovementExcelExporter::stream($spreadsheet, 'movimenti-rifornimento.xlsx');
+                }),
+        ];
     }
 }

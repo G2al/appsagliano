@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('Mega Trasporti')
+            ->sidebarCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::hex('#1A2A9C'),
             ])

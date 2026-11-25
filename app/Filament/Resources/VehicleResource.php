@@ -66,6 +66,9 @@ class VehicleResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->modifyQueryUsing(function (Builder $query): Builder {
                 $statsQuery = Movement::query()
                     ->whereNotNull('vehicle_id')

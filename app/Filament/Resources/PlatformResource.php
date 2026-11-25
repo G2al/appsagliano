@@ -54,6 +54,9 @@ class PlatformResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->modifyQueryUsing(fn (Builder $query) => $query->with('addresses'))
             ->defaultSort('name')
             ->columns([

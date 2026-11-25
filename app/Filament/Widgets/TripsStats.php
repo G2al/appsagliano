@@ -24,23 +24,21 @@ class TripsStats extends StatsOverviewWidget
             ->whereBetween('date', [$start, $end])
             ->selectRaw('
                 COUNT(*) as trips_count,
-                COALESCE(SUM(CASE WHEN price IS NOT NULL THEN 1 ELSE 0 END), 0) as certified_count,
+                COALESCE(SUM(distance_km), 0) as distance_total,
                 COALESCE(SUM(price), 0) as price_total
             ')
             ->first();
 
         $count = (int) ($totals?->trips_count ?? 0);
-        $certified = (int) ($totals?->certified_count ?? 0);
+        $distanceTotal = (float) ($totals?->distance_total ?? 0);
         $priceTotal = (float) ($totals?->price_total ?? 0);
 
         return [
             Stat::make('Viaggi', number_format($count, 0, ',', '.'))
                 ->icon('heroicon-o-truck'),
-            Stat::make('Certificati', number_format($certified, 0, ',', '.'))
-                ->icon('heroicon-o-check-badge'),
-            Stat::make('Da certificare', number_format($count - $certified, 0, ',', '.'))
-                ->icon('heroicon-o-clock'),
-            Stat::make('Totale certificato', '€ ' . number_format($priceTotal, 2, ',', '.'))
+            Stat::make('Km percorsi', number_format($distanceTotal, 0, ',', '.') . ' km')
+                ->icon('heroicon-o-map'),
+            Stat::make('Totale', '€ ' . number_format($priceTotal, 2, ',', '.'))
                 ->icon('heroicon-o-currency-euro'),
         ];
     }

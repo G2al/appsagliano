@@ -3,7 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
+use App\Filament\Widgets\Concerns\RendersAttachmentLightbox;
 use App\Models\Maintenance;
+use App\Support\GenericExcelExporter;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -16,6 +18,7 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
 {
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
+    use RendersAttachmentLightbox;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Spesa per veicolo / fornitore';
@@ -88,6 +91,28 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
         return 'vehicle:' . (int) $record->vehicle_id . '|supplier:' . (int) $record->supplier_id;
     }
 
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $rows = $this->getTableQuery()->get()->map(fn ($r) => [
+                        trim(($r->plate ? $r->plate . ' - ' : '') . ($r->vehicle_name ?? '')),
+                        $r->supplier_name,
+                        (float) $r->price_total,
+                        (int) $r->maintenances_count,
+                    ]);
+
+                    $spreadsheet = GenericExcelExporter::build('Spesa veicolo-fornitore', ['Veicolo', 'Fornitore', 'Spesa (€)', 'Interventi'], $rows);
+
+                    return GenericExcelExporter::stream($spreadsheet, 'spesa-veicolo-fornitore.xlsx');
+                }),
+        ];
+    }
+
     protected function getTableActions(): array
     {
         return [
@@ -125,7 +150,7 @@ class MaintenancesByVehicleSupplierTable extends BaseWidget
                 $price = $m->price !== null ? '€ ' . number_format((float) $m->price, 2, ',', '.') : '€ 0,00';
                 $note = $m->notes ?: '';
                 $attachment = $m->attachment_url
-                    ? '<a href="' . e(route('maintenances.attachment', $m)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+                    ? $this->renderAttachmentLightbox($m->attachment_url)
                     : 'N/D';
 
                 return "<tr>

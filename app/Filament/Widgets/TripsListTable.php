@@ -7,6 +7,7 @@ use App\Models\Platform;
 use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\TripExcelExporter;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -29,8 +30,10 @@ class TripsListTable extends BaseWidget
 
         return Trip::query()
             ->with(['user', 'vehicle', 'platform', 'attachments'])
-            ->whereBetween('date', [$start, $end])
-            ->orderByDesc('date');
+            ->join('users', 'users.id', '=', 'trips.user_id')
+            ->whereBetween('trips.date', [$start, $end])
+            ->orderByDesc('trips.date')
+            ->select('trips.*');
     }
 
     protected function getTableColumns(): array
@@ -43,7 +46,8 @@ class TripsListTable extends BaseWidget
                 ->sortable(),
             Tables\Columns\TextColumn::make('user.name')
                 ->label('Autista')
-                ->formatStateUsing(fn ($state, Trip $record) => $record->user?->full_name ?? 'N/D'),
+                ->formatStateUsing(fn ($state, Trip $record) => $record->user?->full_name ?? 'N/D')
+                ->searchable(['users.name', 'users.surname']),
             Tables\Columns\TextColumn::make('vehicle.plate')
                 ->label('Veicolo')
                 ->formatStateUsing(fn ($state, Trip $record) => trim(($record->vehicle?->plate ? $record->vehicle->plate . ' - ' : '') . ($record->vehicle?->name ?? ''))),
@@ -61,15 +65,19 @@ class TripsListTable extends BaseWidget
             Tables\Columns\TextColumn::make('delivery_note_number')
                 ->label('Bolla')
                 ->searchable(),
+            Tables\Columns\TextColumn::make('distance_km')
+                ->label('Km percorsi')
+                ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state, 0, ',', '.') . ' km' : '—')
+                ->sortable(),
             Tables\Columns\TextColumn::make('price')
                 ->label('Prezzo')
                 ->money('EUR', true)
-                ->placeholder('Da certificare')
+                ->placeholder('—')
                 ->sortable(),
             Tables\Columns\TextColumn::make('attachments_count')
                 ->label('Allegati')
-                ->state(fn (Trip $record) => $record->attachments->isNotEmpty() ? 'Apri (' . $record->attachments->count() . ')' : 'N/D')
-                ->url(fn (Trip $record) => $record->attachments->isNotEmpty() ? route('trips.attachment', $record) : null, true)
+                ->state(fn (Trip $record) => $record->attachments->isNotEmpty() ? 'Vedi (' . $record->attachments->count() . ')' : 'N/D')
+                ->url(fn (Trip $record) => $record->attachments->isNotEmpty() ? $record->attachments->first()->url : null, true)
                 ->openUrlInNewTab(),
         ];
     }
@@ -105,6 +113,29 @@ class TripsListTable extends BaseWidget
             Tables\Filters\SelectFilter::make('platform_id')
                 ->label('Piattaforma')
                 ->options(fn () => Platform::query()->orderBy('name')->pluck('name', 'id')->toArray()),
+        ];
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    [$start, $end] = $this->getReportTableCheckDateRange();
+
+                    $trips = Trip::query()
+                        ->with(['user', 'vehicle', 'platform', 'attachments'])
+                        ->whereBetween('date', [$start, $end])
+                        ->orderBy('date')
+                        ->get();
+
+                    $spreadsheet = TripExcelExporter::build('Elenco viaggi', $trips);
+
+                    return TripExcelExporter::stream($spreadsheet, 'elenco-viaggi.xlsx');
+                }),
         ];
     }
 }

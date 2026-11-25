@@ -41,6 +41,9 @@ class DocumentFolderTemplateResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->modifyQueryUsing(fn ($query) => $query->withCount('userFolders'))
             ->columns([
                 Tables\Columns\TextColumn::make('title')

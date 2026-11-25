@@ -3,7 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
+use App\Filament\Widgets\Concerns\RendersAttachmentLightbox;
 use App\Models\Movement;
+use App\Support\GenericExcelExporter;
 use Carbon\Carbon;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -16,6 +18,7 @@ class RefuelsByPlatformTable extends BaseWidget
 {
     use InteractsWithPageFilters;
     use InteractsWithReportTableChecks;
+    use RendersAttachmentLightbox;
 
     protected int|string|array $columnSpan = 'full';
     protected static ?string $heading = 'Rifornimenti per piattaforma';
@@ -31,6 +34,7 @@ class RefuelsByPlatformTable extends BaseWidget
                 platforms.name,
                 SUM(movements.price) as price_total,
                 SUM(movements.liters) as liters_total,
+                AVG(movements.km_per_liter) as km_per_liter_avg,
                 COUNT(*) as movements_count
             ")
             ->leftJoin('platforms', 'platforms.id', '=', 'movements.platform_id')
@@ -54,6 +58,10 @@ class RefuelsByPlatformTable extends BaseWidget
                 ->label('Litri')
                 ->numeric(2, locale: 'it')
                 ->sortable(),
+            Tables\Columns\TextColumn::make('km_per_liter_avg')
+                ->label('Media km/litro')
+                ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state, 2, ',', '.') : '—')
+                ->sortable(),
             Tables\Columns\TextColumn::make('movements_count')
                 ->label('Movimenti')
                 ->sortable(),
@@ -75,6 +83,29 @@ class RefuelsByPlatformTable extends BaseWidget
     protected function getReportTableRowKey(Model $record): string
     {
         return 'platform:' . (int) $record->platform_id;
+    }
+
+    protected function getTableHeaderActions(): array
+    {
+        return [
+            Tables\Actions\Action::make('export_excel')
+                ->label('Esporta Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function () {
+                    $rows = $this->getTableQuery()->get()->map(fn ($r) => [
+                        $r->name,
+                        (float) $r->liters_total,
+                        (float) $r->price_total,
+                        $r->km_per_liter_avg !== null ? (float) $r->km_per_liter_avg : null,
+                        (int) $r->movements_count,
+                    ]);
+
+                    $spreadsheet = GenericExcelExporter::build('Rifornimenti per piattaforma', ['Piattaforma', 'Litri', 'Spesa (€)', 'Media km/litro', 'Movimenti'], $rows);
+
+                    return GenericExcelExporter::stream($spreadsheet, 'rifornimenti-per-piattaforma.xlsx');
+                }),
+        ];
     }
 
     protected function getTableActions(): array
@@ -115,7 +146,7 @@ class RefuelsByPlatformTable extends BaseWidget
                 $paymentLabel = $movement->is_voucher ? 'Buono' : 'Credito';
                 $note = $movement->notes ?: '';
                 $attachment = $movement->attachments->isNotEmpty()
-                    ? '<a href="' . e(route('movements.attachment', $movement)) . '" target="_blank" class="text-primary-500">Stampa allegato</a>'
+                    ? $this->renderAttachmentLightbox($movement->attachments->first()->url)
                     : 'N/D';
 
                 return "<tr>

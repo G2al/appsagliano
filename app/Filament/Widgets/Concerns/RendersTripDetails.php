@@ -25,7 +25,7 @@ trait RendersTripDetails
                     ? '€ ' . number_format((float) $trip->price, 2, ',', '.')
                     : 'Da certificare';
                 $attachment = $trip->attachments->isNotEmpty()
-                    ? '<a href="' . e(route('trips.attachment', $trip)) . '" target="_blank" class="text-primary-500">Apri (' . $trip->attachments->count() . ')</a>'
+                    ? $this->renderAttachmentLightbox($trip->attachments->first()->url, 'Vedi (' . $trip->attachments->count() . ')')
                     : 'N/D';
 
                 return "<tr>

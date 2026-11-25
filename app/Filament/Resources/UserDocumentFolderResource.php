@@ -49,6 +49,9 @@ class UserDocumentFolderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Utente')

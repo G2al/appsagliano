@@ -43,6 +43,7 @@ class User extends Authenticatable implements FilamentUser
         'self_registered',
         'documents_verified',
         'must_change_password',
+        'trip_schedule_reviewed_at',
     ];
 
     /**
@@ -91,6 +92,7 @@ class User extends Authenticatable implements FilamentUser
             'self_registered' => 'boolean',
             'documents_verified' => 'boolean',
             'must_change_password' => 'boolean',
+            'trip_schedule_reviewed_at' => 'datetime',
         ];
     }
 

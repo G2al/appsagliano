@@ -112,6 +112,9 @@ class MaintenanceResource extends Resource
                             ->directory('maintenances')
                             ->disk('public')
                             ->visibility('public')
+                            ->downloadable()
+                            ->openable()
+                            ->previewable()
                             ->required(),
                     ]),
             ]);
@@ -120,6 +123,9 @@ class MaintenanceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Autore')
@@ -159,6 +165,16 @@ class MaintenanceResource extends Resource
                     ->visible(fn (Maintenance $record): bool => ! $record->trashed())
                     ->url(fn (Maintenance $record) => route('maintenances.receipt', $record))
                     ->openUrlInNewTab(),
+                Tables\Actions\Action::make('attachment_preview')
+                    ->label('Vedi anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->visible(fn (Maintenance $record): bool => ! $record->trashed() && filled($record->attachment_url))
+                    ->modalHeading('Allegato manutenzione')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi')
+                    ->modalContent(fn (Maintenance $record) => view('filament.partials.attachment-preview', [
+                        'items' => [['url' => $record->attachment_url, 'label' => 'allegato']],
+                    ])),
                 Tables\Actions\Action::make('attachment')
                     ->label('Ricevuta')
                     ->icon('heroicon-o-photo')
