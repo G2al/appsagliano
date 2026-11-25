@@ -18,23 +18,31 @@ trait RendersAttachmentLightbox
 
         $media = $isPdf
             ? "<iframe src=\"{$url}\" style=\"width:85vw;max-width:900px;height:80vh;border:0;border-radius:0.5rem;background:#fff;\"></iframe>"
-            : "<img src=\"{$url}\" style=\"max-width:85vw;max-height:80vh;border-radius:0.5rem;\" />";
+            : <<<IMG
+                <div :style="zoomed ? 'max-width:95vw;max-height:90vh;overflow:auto;' : 'max-width:85vw;max-height:80vh;overflow:hidden;'">
+                    <img
+                        src="{$url}"
+                        @click.stop="zoomed = ! zoomed"
+                        :style="zoomed ? 'max-width:none;max-height:none;cursor:zoom-out;border-radius:0.5rem;display:block;' : 'max-width:85vw;max-height:80vh;cursor:zoom-in;border-radius:0.5rem;display:block;'"
+                    />
+                </div>
+            IMG;
 
         return <<<HTML
-            <span x-data="{ open: false }">
+            <span x-data="{ open: false, zoomed: false }">
                 <button type="button" @click="open = true" class="text-primary-500 underline">{$label}</button>
                 <div
                     x-show="open"
                     x-cloak
-                    @click.self="open = false"
-                    @keydown.escape.window="open = false"
+                    @click.self="open = false; zoomed = false"
+                    @keydown.escape.window="open = false; zoomed = false"
                     style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:1rem;"
                 >
-                    <div @click.stop style="display:flex;flex-direction:column;gap:0.5rem;align-items:center;">
+                    <div @click.self="open = false; zoomed = false" style="display:flex;flex-direction:column;gap:0.5rem;align-items:center;">
                         {$media}
-                        <div style="display:flex;gap:1rem;">
+                        <div style="display:flex;gap:1rem;" @click.stop>
                             <a href="{$url}" target="_blank" style="color:#fff;text-decoration:underline;font-size:0.875rem;">Apri in una scheda</a>
-                            <button type="button" @click="open = false" style="color:#fff;text-decoration:underline;font-size:0.875rem;">Chiudi</button>
+                            <button type="button" @click="open = false; zoomed = false" style="color:#fff;text-decoration:underline;font-size:0.875rem;">Chiudi</button>
                         </div>
                     </div>
                 </div>
