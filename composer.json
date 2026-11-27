@@ -14,7 +14,8 @@
         "minishlink/web-push": "*",
         "phpoffice/phpspreadsheet": "^5.11",
         "setasign/fpdf": "^1.9",
-        "setasign/fpdi": "^2.6"
+        "setasign/fpdi": "^2.6",
+        "spatie/laravel-activitylog": "^4.12"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

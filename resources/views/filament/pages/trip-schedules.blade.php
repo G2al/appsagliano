@@ -32,6 +32,9 @@
 
                     <x-slot name="description">
                         {{ $user->phone ?: 'Telefono non indicato' }}
+                        @if (auth()->user()?->isAdmin() && $user->assignedManagers->isNotEmpty())
+                            &middot; Gestito da: {{ $user->assignedManagers->pluck('full_name')->implode(', ') }}
+                        @endif
                     </x-slot>
 
                     <x-slot name="headerEnd">

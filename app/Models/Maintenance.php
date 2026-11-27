@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Concerns\LogsAuditTrail;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Maintenance extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
+    use LogsAuditTrail;
 
     protected $fillable = [
         'user_id',

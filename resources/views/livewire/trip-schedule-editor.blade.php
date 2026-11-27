@@ -77,34 +77,31 @@
         </div>
     @endif
 
+    @if (auth()->user()?->canReviewBordero())
+        <div class="flex items-center justify-end">
+            <x-filament::button wire:click="exportSelected" size="sm" color="gray" icon="heroicon-o-arrow-down-tray">
+                Esporta selezionati in Excel
+            </x-filament::button>
+        </div>
+    @endif
+
     <div
-        class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing"
-        style="contain: inline-size; user-select: none;"
-        x-data="{
-            isDragging: false,
-            startX: 0,
-            startScrollLeft: 0,
-        }"
-        x-on:mousedown="
-            if ($event.target.tagName === 'INPUT') return;
-            isDragging = true;
-            startX = $event.pageX;
-            startScrollLeft = $el.scrollLeft;
+        class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+        style="contain: inline-size;"
+        x-data
+        x-on:wheel="
+            if (Math.abs($event.deltaY) <= Math.abs($event.deltaX)) return;
+            if ($el.scrollWidth <= $el.clientWidth) return;
+            $el.scrollLeft += $event.deltaY;
             $event.preventDefault();
         "
-        x-on:mousemove.window="
-            if (! isDragging) return;
-            $event.preventDefault();
-            $el.scrollLeft = startScrollLeft - ($event.pageX - startX);
-        "
-        x-on:mouseup.window="isDragging = false"
     >
         <table class="min-w-full text-left text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
                     <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">Giorno</th>
                     @for ($i = 1; $i <= $maxTripsPerDay; $i++)
-                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);" colspan="3">{{ $i }}° record</th>
+                        <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5); min-width: 260px;" colspan="2">{{ $i }}° record</th>
                     @endfor
                     @if (auth()->user()?->canManageBorderoPrice())
                         <th class="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Totale giorno</th>
@@ -122,23 +119,37 @@
                         @for ($i = 0; $i < $maxTripsPerDay; $i++)
                             @php($trip = $row['trips']->get($i))
                             @if ($trip)
-                                <td class="px-3 py-2 align-top whitespace-nowrap">
-                                    <div class="font-medium whitespace-nowrap">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</div>
-                                    <div class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                                        {{ $trip->vehicle?->plate ?? 'N/D' }}
-                                        &middot; {{ $trip->goods_type_label }}
-                                        &middot; scarichi {{ $trip->scarichi }}
+                                @php($isLockedForMe = ! auth()->user()?->isAdmin() && $trip->isExportLockedFor(auth()->user()))
+                                @php($isSelected = $selectedTrips[$trip->id] ?? false)
+                                @php($canSelect = auth()->user()?->canReviewBordero() && ! $isLockedForMe)
+                                <td
+                                    class="px-3 py-2 align-top whitespace-nowrap {{ $isSelected ? 'bg-primary-50 dark:bg-white/10' : '' }}"
+                                    style="{{ $canSelect ? 'cursor:pointer;' : '' }}"
+                                    @if ($canSelect) wire:click="toggleTripSelection({{ $trip->id }})" title="Clicca per selezionare/deselezionare per l'esportazione" @endif
+                                >
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">N. bordero {{ $trip->delivery_note_number }}</span>
+                                        @if ($isSelected)
+                                            <span class="text-xs font-semibold text-primary-600 dark:text-white">✓ selezionato</span>
+                                        @endif
+                                        @if ($isLockedForMe)
+                                            <span class="text-xs text-gray-400" title="Esportato il {{ $trip->export_locked_at?->format('d/m/Y H:i') }}">🔒</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+                                        <span class="font-medium">{{ $trip->filiale ? "{$trip->filiale->codice} - {$trip->filiale->name}" : 'N/D' }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500">{{ $trip->vehicle?->plate ?? 'N/D' }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500">{{ $trip->filiale?->platform?->name ?? 'N/D' }} &middot; {{ $trip->goods_type_label }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500">scarichi {{ $trip->scarichi }}</span>
                                     </div>
                                 </td>
-                                <td class="px-3 py-2 align-top whitespace-nowrap">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">N. bordero</span>
-                                    <div class="font-medium">{{ $trip->delivery_note_number }}</div>
-                                </td>
                                 <td class="px-2 py-2 align-top whitespace-nowrap" style="border-right: 2px solid rgba(100,116,139,0.5);">
-                                    <span
-                                        style="display:inline-block;width:0.6rem;height:0.6rem;border-radius:9999px;vertical-align:middle;margin-right:0.35rem;background-color:{{ $trip->is_reviewed ? '#22c55e' : '#f59e0b' }};"
-                                        title="{{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}"
-                                    ></span>
+                                    <div class="flex items-center gap-1">
+                                        <span
+                                            style="display:inline-block;width:0.6rem;height:0.6rem;border-radius:9999px;vertical-align:middle;background-color:{{ $trip->is_reviewed ? '#22c55e' : '#f59e0b' }};"
+                                            title="{{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}"
+                                        ></span>
+                                    </div>
                                     @if (auth()->user()?->canManageBorderoPrice())
                                         @include('livewire.partials.trip-price-input', ['trip' => $trip])
                                     @else
@@ -146,22 +157,37 @@
                                             {{ $trip->is_reviewed ? 'Accettato' : 'Da revisionare' }}
                                         </span>
                                     @endif
-                                    @if (auth()->user()?->canReviewBordero())
+                                    @if ($trip->is_reviewed && $trip->reviewer)
+                                        <div class="text-xs text-gray-400 dark:text-gray-500">da {{ $trip->reviewer->full_name }}</div>
+                                    @endif
+                                    @if (auth()->user()?->canReviewBordero() && ! $isLockedForMe)
                                         <div class="mt-1 flex items-center gap-2">
                                             <a href="{{ $this->editUrl($trip->id) }}" target="_blank" class="text-xs text-primary-600 hover:underline">Modifica</a>
                                             @unless ($trip->is_reviewed)
                                                 <button
                                                     type="button"
-                                                    wire:click="acceptTrip({{ $trip->id }})"
-                                                    wire:confirm="Confermi l'accettazione di questo bordero?"
+                                                    wire:click="openAcceptForm({{ $trip->id }})"
                                                     class="text-xs text-success-600 hover:underline"
                                                 >Accetta</button>
                                             @endunless
                                         </div>
+                                        @if ($acceptingTripId === $trip->id)
+                                            <div class="mt-1 space-y-1 rounded border border-gray-200 p-1.5 dark:border-gray-700">
+                                                <input type="file" wire:model="pendingScans.{{ $trip->id }}" class="text-xs" />
+                                                <div class="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="acceptTrip({{ $trip->id }})"
+                                                        wire:confirm="Confermi l'accettazione di questo bordero?"
+                                                        class="text-xs font-medium text-success-600 hover:underline"
+                                                    >Conferma</button>
+                                                    <button type="button" wire:click="cancelAcceptForm" class="text-xs text-gray-400 hover:underline">Annulla</button>
+                                                </div>
+                                            </div>
+                                        @endif
                                     @endif
                                 </td>
                             @else
-                                <td class="px-3 py-2"></td>
                                 <td class="px-3 py-2"></td>
                                 <td class="px-3 py-2" style="border-right: 2px solid rgba(100,116,139,0.5);"></td>
                             @endif

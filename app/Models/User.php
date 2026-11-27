@@ -14,11 +14,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+    use LogsActivity;
 
     public const PANEL_MODULE_MAINTENANCE = 'maintenance';
     public const PANEL_MODULE_REFUELS = 'refuels';
@@ -95,6 +97,16 @@ class User extends Authenticatable implements FilamentUser
             'documents_verified' => 'boolean',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    public function getActivitylogOptions(): \Spatie\Activitylog\LogOptions
+    {
+        return \Spatie\Activitylog\LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->logExcept(['password', 'remember_token'])
+            ->useLogName('User');
     }
 
     public function canAccessPanel(Panel $panel): bool
@@ -248,6 +260,33 @@ class User extends Authenticatable implements FilamentUser
     public function canReviewBordero(): bool
     {
         return $this->isAdmin() || $this->canAccessBorderoArea();
+    }
+
+    /**
+     * Autisti assegnati a questo utente (se gestisce il bordero): vede e
+     * controlla solo i loro record, non quelli di tutti.
+     */
+    public function assignedDrivers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'driver_assignments', 'manager_id', 'driver_id');
+    }
+
+    /**
+     * Chi gestisce il bordero di questo autista (puo' essere assegnato a
+     * piu' di un gestore contemporaneamente).
+     */
+    public function assignedManagers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'driver_assignments', 'driver_id', 'manager_id');
+    }
+
+    /**
+     * True se questo utente (non admin) ha una lista di autisti assegnati:
+     * in quel caso la sua visibilita' sul bordero va ristretta a loro.
+     */
+    public function hasAssignedDrivers(): bool
+    {
+        return $this->assignedDrivers()->exists();
     }
 
     public function canAccessUsersArea(): bool

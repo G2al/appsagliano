@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsAuditTrail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Trip extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
+    use LogsAuditTrail;
 
     protected $fillable = [
         'user_id',
@@ -25,6 +29,9 @@ class Trip extends Model
         'price',
         'owner_price',
         'reviewed_at',
+        'reviewed_by',
+        'export_locked_by',
+        'export_locked_at',
     ];
 
     protected $casts = [
@@ -34,6 +41,7 @@ class Trip extends Model
         'scarichi' => 'integer',
         'trip_order' => 'integer',
         'reviewed_at' => 'datetime',
+        'export_locked_at' => 'datetime',
     ];
 
     protected $appends = [
@@ -64,6 +72,25 @@ class Trip extends Model
     public function extras(): BelongsToMany
     {
         return $this->belongsToMany(PlatformExtra::class, 'trip_platform_extra');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function exportLocker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'export_locked_by');
+    }
+
+    /**
+     * True se QUESTO utente ha esportato e quindi "bloccato" il record per
+     * se stesso: non puo' piu' toccarlo, ma per l'admin resta modificabile.
+     */
+    public function isExportLockedFor(User $user): bool
+    {
+        return $this->export_locked_by !== null && (int) $this->export_locked_by === (int) $user->id;
     }
 
     public function getIsCertifiedAttribute(): bool
@@ -108,5 +135,42 @@ class Trip extends Model
         }
 
         return $items;
+    }
+
+    /**
+     * Scomposizione COMPLETA del guadagno camion: prezzo base (listino
+     * filiale o regola prezzo, qualunque dei due abbia determinato il
+     * valore) + ogni componente extra, cosi' si capisce sempre il perche'
+     * di un numero (es. "85 base + 15 scarichi + 20 extra serale = 120").
+     *
+     * @return \Illuminate\Support\Collection<int, array{label: string, amount: float}>
+     */
+    public function ownerPriceBreakdown(): \Illuminate\Support\Collection
+    {
+        if ($this->owner_price === null) {
+            return collect();
+        }
+
+        $extras = $this->extrasBreakdown();
+        $base = round((float) $this->owner_price - (float) $extras->sum('amount'), 2);
+
+        return collect([['label' => 'Prezzo base', 'amount' => $base]])->merge($extras);
+    }
+
+    /**
+     * Stessa scomposizione in formato testo pronto da mostrare, es.
+     * "Base €85,00 + Supplemento scarichi €15,00 + Extra serale €20,00 = €120,00".
+     */
+    public function ownerPriceExplanation(): ?string
+    {
+        if ($this->owner_price === null) {
+            return null;
+        }
+
+        $parts = $this->ownerPriceBreakdown()->map(
+            fn (array $item) => $item['label'] . ' €' . number_format($item['amount'], 2, ',', '.')
+        )->implode(' + ');
+
+        return $parts . ' = €' . number_format((float) $this->owner_price, 2, ',', '.');
     }
 }

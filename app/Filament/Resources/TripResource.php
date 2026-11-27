@@ -226,22 +226,23 @@ class TripResource extends Resource
                     ->form([
                         Forms\Components\Placeholder::make('note')
                             ->label('')
-                            ->content('Controlla il bordero e, se serve, allega la scansione del documento.'),
+                            ->content('Controlla il bordero e allega la scansione del documento per accettare.'),
                         Forms\Components\FileUpload::make('scan')
                             ->label('Scansione documento')
                             ->acceptedFileTypes(['image/*', 'application/pdf'])
                             ->directory('trips')
                             ->disk('public')
                             ->visibility('public')
-                            ->nullable(),
+                            ->required(),
                     ])
                     ->fillForm(fn (): array => ['scan' => null])
                     ->action(function (Trip $record, array $data): void {
-                        if (! empty($data['scan'])) {
-                            $record->attachments()->create(['path' => $data['scan']]);
-                        }
+                        $record->attachments()->create(['path' => $data['scan']]);
 
-                        $record->update(['reviewed_at' => now()]);
+                        $record->update([
+                            'reviewed_at' => now(),
+                            'reviewed_by' => Auth::id(),
+                        ]);
 
                         Notification::make()
                             ->title('Bordero accettato')

@@ -31,10 +31,17 @@
                             @foreach ($companyRows as $row)
                                 <tr>
                                     <td class="py-1">{{ $row['name'] }}</td>
-                                    <td class="py-1 text-xs text-gray-500 dark:text-gray-400">{{ $row['iban'] ?? 'non impostato' }}</td>
+                                    <td class="py-1 text-base font-bold text-gray-900 dark:text-white">{{ $row['iban'] ?? 'non impostato' }}</td>
                                     <td class="py-1 text-right">{{ number_format($row['trips_total'], 2, ',', '.') }}</td>
                                     <td class="py-1 text-right">{{ number_format($row['salary'], 2, ',', '.') }}</td>
-                                    <td class="py-1 text-right">{{ number_format($row['adjustments_total'], 2, ',', '.') }}</td>
+                                    <td class="py-1 text-right">
+                                        {{ number_format($row['adjustments_total'], 2, ',', '.') }}
+                                        @if (!empty($row['adjustments']))
+                                            <div class="text-xs font-normal text-gray-400 dark:text-gray-500">
+                                                ({{ collect($row['adjustments'])->map(fn ($a) => $a['label'] . ' ' . ($a['amount'] > 0 ? '+' : '') . number_format($a['amount'], 2, ',', '.'))->implode(', ') }})
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="py-1 text-right font-medium">{{ number_format($row['total'], 2, ',', '.') }}</td>
                                 </tr>
                             @endforeach

@@ -5,7 +5,8 @@ namespace App\Filament\Widgets;
 use App\Filament\Widgets\Concerns\InteractsWithReportTableChecks;
 use App\Filament\Widgets\Concerns\RendersTripDetails;
 use App\Models\Trip;
-use App\Support\TripExcelExporter;
+use App\Models\Vehicle;
+use App\Support\VehicleTripListExcelExporter;
 use Filament\Tables;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -114,7 +115,7 @@ class TripsByVehicleTable extends BaseWidget
                 ->action(function ($record) {
                     [$start, $end] = $this->getReportTableCheckDateRange();
 
-                    $label = trim(($record->plate ? $record->plate . ' - ' : '') . ($record->name ?? ''));
+                    $vehicle = Vehicle::findOrFail((int) $record->vehicle_id);
 
                     $trips = Trip::query()
                         ->where('vehicle_id', (int) $record->vehicle_id)
@@ -123,9 +124,9 @@ class TripsByVehicleTable extends BaseWidget
                         ->orderBy('date')
                         ->get();
 
-                    $spreadsheet = TripExcelExporter::build("Veicolo {$label}", $trips);
+                    $spreadsheet = VehicleTripListExcelExporter::build($vehicle, $trips);
 
-                    return TripExcelExporter::stream($spreadsheet, "bordero-veicolo-{$record->plate}.xlsx");
+                    return VehicleTripListExcelExporter::stream($spreadsheet, "bordero-veicolo-{$record->plate}.xlsx");
                 }),
         ];
     }

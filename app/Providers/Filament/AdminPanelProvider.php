@@ -9,6 +9,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -27,6 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->brandName('Vialo')
+            ->sidebarCollapsibleOnDesktop()
+            ->maxContentWidth(MaxWidth::Full)
             ->colors([
                 'primary' => Color::hex('#0f7a62'),
             ])
@@ -59,6 +62,27 @@ class AdminPanelProvider extends PanelProvider
                                 navigator.serviceWorker.register('/admin-sw.js').catch(() => {});
                             });
                         }
+
+                        // Permette di scorrere ORIZZONTALMENTE le tabelle (es. report)
+                        // con la rotellina del mouse/trackpad, senza dover usare per
+                        // forza la barra di scroll in basso.
+                        document.addEventListener('wheel', (event) => {
+                            const wrapper = event.target.closest('.fi-ta-content');
+
+                            if (! wrapper || wrapper.scrollWidth <= wrapper.clientWidth) {
+                                return;
+                            }
+
+                            const atLeftEdge = wrapper.scrollLeft <= 0 && event.deltaY < 0;
+                            const atRightEdge = wrapper.scrollLeft + wrapper.clientWidth >= wrapper.scrollWidth && event.deltaY > 0;
+
+                            if (atLeftEdge || atRightEdge) {
+                                return;
+                            }
+
+                            wrapper.scrollLeft += event.deltaY;
+                            event.preventDefault();
+                        }, { passive: false });
                     </script>
                 HTML
             )

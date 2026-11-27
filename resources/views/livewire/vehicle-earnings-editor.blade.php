@@ -28,7 +28,16 @@
         </div>
     @endif
 
-    <div class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+    <div
+        class="w-full min-w-0 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+        x-data
+        x-on:wheel="
+            if (Math.abs($event.deltaY) <= Math.abs($event.deltaX)) return;
+            if ($el.scrollWidth <= $el.clientWidth) return;
+            $el.scrollLeft += $event.deltaY;
+            $event.preventDefault();
+        "
+    >
         <table class="min-w-full text-left text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
@@ -57,8 +66,13 @@
                                         &middot; {{ $trip->goods_type_label }}
                                     </div>
                                 </td>
-                                <td class="px-3 py-2 align-top whitespace-nowrap font-semibold" style="border-right: 2px solid rgba(100,116,139,0.5);">
+                                <td class="px-3 py-2 align-top whitespace-nowrap font-semibold" style="border-right: 2px solid rgba(100,116,139,0.5);" title="{{ $trip->ownerPriceExplanation() }}">
                                     {{ $trip->owner_price !== null ? '€ ' . number_format((float) $trip->owner_price, 2, ',', '.') : '—' }}
+                                    @if ($trip->owner_price !== null)
+                                        <div class="text-xs font-normal text-gray-400 dark:text-gray-500 whitespace-normal" style="max-width: 220px;">
+                                            {{ $trip->ownerPriceExplanation() }}
+                                        </div>
+                                    @endif
                                 </td>
                             @else
                                 <td class="px-3 py-2"></td>

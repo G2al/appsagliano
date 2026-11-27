@@ -12,11 +12,15 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Vehicle;
 use App\Models\Maintenance;
+use App\Models\Concerns\LogsAuditTrail;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Movement extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
+    use LogsAuditTrail;
 
     private const MAINTENANCE_TOLERANCE_KM = 500;
 

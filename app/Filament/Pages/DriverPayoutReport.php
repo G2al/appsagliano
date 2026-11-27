@@ -44,11 +44,11 @@ class DriverPayoutReport extends Page
         [$start, $end] = $this->monthRange();
 
         $salaries = DriverMonthlySalary::query()->where('month', $this->month)->get()->keyBy('user_id');
-        $adjustmentsTotals = DriverMonthlyAdjustment::query()
+        $adjustmentsByUser = DriverMonthlyAdjustment::query()
             ->where('month', $this->month)
-            ->selectRaw('user_id, SUM(amount) as total')
-            ->groupBy('user_id')
-            ->pluck('total', 'user_id');
+            ->orderBy('id')
+            ->get()
+            ->groupBy('user_id');
 
         return User::query()
             ->where('role', 'worker')
@@ -56,10 +56,11 @@ class DriverPayoutReport extends Page
                 ->whereBetween('date', [$start, $end])
                 ->whereNotNull('price')], 'price')
             ->get()
-            ->map(function (User $user) use ($salaries, $adjustmentsTotals) {
+            ->map(function (User $user) use ($salaries, $adjustmentsByUser) {
                 $tripsTotal = (float) ($user->price_total ?? 0);
                 $salary = (float) ($salaries->get($user->id)?->amount ?? $user->default_salary ?? 0);
-                $adjustmentsTotal = (float) ($adjustmentsTotals->get($user->id) ?? 0);
+                $adjustments = $adjustmentsByUser->get($user->id, collect());
+                $adjustmentsTotal = (float) $adjustments->sum(fn ($a) => (float) $a->amount);
 
                 return [
                     'company' => $user->company ?? '',
@@ -68,6 +69,10 @@ class DriverPayoutReport extends Page
                     'trips_total' => $tripsTotal,
                     'salary' => $salary,
                     'adjustments_total' => $adjustmentsTotal,
+                    'adjustments' => $adjustments->map(fn ($a) => [
+                        'label' => $a->label,
+                        'amount' => (float) $a->amount,
+                    ])->all(),
                     'total' => round($tripsTotal + $salary + $adjustmentsTotal, 2),
                 ];
             })

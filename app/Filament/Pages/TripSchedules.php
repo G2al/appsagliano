@@ -6,6 +6,7 @@ use App\Filament\Concerns\ChecksPanelModules;
 use App\Models\User;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
 
@@ -38,7 +39,7 @@ class TripSchedules extends Page
 
     public static function canAccess(): bool
     {
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
         return $user instanceof User && ($user->isAdmin() || $user->canAccessBorderoArea());
     }
@@ -48,6 +49,9 @@ class TripSchedules extends Page
      */
     public function getUsersProperty(): LengthAwarePaginator
     {
+        /** @var User $current */
+        $current = Auth::user();
+
         return User::query()
             ->withCount([
                 'trips',
@@ -55,6 +59,11 @@ class TripSchedules extends Page
                 'trips as unreviewed_trips_count' => fn ($query) => $query->whereNull('reviewed_at'),
             ])
             ->withSum(['trips as certified_trips_total' => fn ($query) => $query->whereNotNull('price')], 'price')
+            ->with('assignedManagers')
+            ->when(
+                ! $current->isAdmin() && $current->hasAssignedDrivers(),
+                fn ($query) => $query->whereIn('id', $current->assignedDrivers()->pluck('users.id'))
+            )
             ->when($this->search !== '', function ($query) {
                 $term = '%' . $this->search . '%';
                 $query->where(fn ($q) => $q

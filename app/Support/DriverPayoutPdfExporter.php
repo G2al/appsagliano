@@ -37,12 +37,24 @@ class DriverPayoutPdfExporter
             $companyTotal = 0.0;
 
             foreach ($companyRows as $row) {
+                $pdf->SetFont('Arial', '', 8);
                 $pdf->Cell(45, 7, $row['name'], 1);
+                $pdf->SetFont('Arial', 'B', 10);
                 $pdf->Cell(45, 7, $row['iban'] ?? 'non impostato', 1);
+                $pdf->SetFont('Arial', '', 8);
                 $pdf->Cell(27, 7, number_format($row['trips_total'], 2, ',', '.'), 1, 0, 'R');
                 $pdf->Cell(27, 7, number_format($row['salary'], 2, ',', '.'), 1, 0, 'R');
                 $pdf->Cell(27, 7, number_format($row['adjustments_total'], 2, ',', '.'), 1, 0, 'R');
                 $pdf->Cell(27, 7, number_format($row['total'], 2, ',', '.'), 1, 1, 'R');
+
+                if (! empty($row['adjustments'])) {
+                    $pdf->SetFont('Arial', 'I', 7);
+                    $breakdown = collect($row['adjustments'])
+                        ->map(fn (array $a) => $a['label'] . ' ' . ($a['amount'] > 0 ? '+' : '') . number_format($a['amount'], 2, ',', '.'))
+                        ->implode(', ');
+                    $pdf->Cell(171, 5, '  ' . $breakdown, 0, 1);
+                }
+
                 $companyTotal += $row['total'];
             }
 
